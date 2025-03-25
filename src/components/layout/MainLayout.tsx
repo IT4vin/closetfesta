@@ -10,7 +10,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className="flex min-h-screen bg-neutral-50">
       <Sidebar />
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex-1 overflow-x-hidden pl-0 md:pl-0">
         <div className="page-container">
           {children}
         </div>
