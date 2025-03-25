@@ -1,13 +1,52 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from "react";
+import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus } from "lucide-react";
+import MainLayout from "../components/layout/MainLayout";
+import DashboardStats from "../components/dashboard/DashboardStats";
+import UpcomingEvents from "../components/dashboard/UpcomingEvents";
 
 const Index = () => {
+  const currentDate = new Date();
+  const options: Intl.DateTimeFormatOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  const formattedDate = currentDate.toLocaleDateString('pt-BR', options);
+  
+  // Capitalize first letter
+  const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <MainLayout>
+      <div className="page-transition">
+        <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
+            <p className="text-neutral-500 flex items-center">
+              <Clock size={16} className="mr-1" />
+              <span>{capitalizedDate}</span>
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
+            <button className="secondary-button">
+              <ShoppingBag size={18} />
+              <span>Nova Venda</span>
+            </button>
+            <button className="primary-button">
+              <CalendarIcon size={18} />
+              <span>Agendar</span>
+            </button>
+          </div>
+        </header>
+        
+        <DashboardStats />
+        
+        <UpcomingEvents />
       </div>
-    </div>
+    </MainLayout>
   );
 };
 
