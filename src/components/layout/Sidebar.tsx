@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
@@ -13,9 +13,42 @@ import {
   X
 } from "lucide-react";
 
-const Sidebar = () => {
+interface SidebarProps {
+  onToggle?: (isOpen: boolean) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
   const location = useLocation();
   const [expanded, setExpanded] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setExpanded(false);
+      } else {
+        setExpanded(true);
+      }
+    };
+
+    // Initial check
+    checkIsMobile();
+
+    // Add event listener
+    window.addEventListener("resize", checkIsMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
+
+  useEffect(() => {
+    // Notify parent component when sidebar state changes
+    if (onToggle) {
+      onToggle(expanded);
+    }
+  }, [expanded, onToggle]);
 
   const toggleSidebar = () => {
     setExpanded(!expanded);
@@ -43,7 +76,7 @@ const Sidebar = () => {
       <aside 
         className={`${
           expanded ? "translate-x-0" : "-translate-x-full"
-        } fixed md:relative z-40 h-screen bg-sidebar transition-transform duration-300 ease-in-out md:translate-x-0 shadow-xl`}
+        } fixed md:relative z-40 h-screen bg-sidebar transition-transform duration-300 ease-in-out md:translate-x-0 shadow-xl w-64`}
       >
         <div className="flex flex-col h-full">
           <div className="px-4 py-8 flex items-center justify-center border-b border-sidebar-border">
