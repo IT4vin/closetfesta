@@ -8,16 +8,16 @@ interface EmptyProductsProps {
 
 const EmptyProducts: React.FC<EmptyProductsProps> = ({ filtered = false }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="bg-neutral-100 p-6 rounded-full mb-4">
-        <Search size={32} className="text-neutral-400" />
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+      <div className="bg-neutral-100 p-8 rounded-full mb-6">
+        <Search size={40} className="text-neutral-400" />
       </div>
-      <h3 className="text-lg font-medium mb-2">
+      <h3 className="text-xl font-medium mb-3">
         {filtered 
           ? "Nenhum produto corresponde aos filtros" 
           : "Nenhum produto encontrado"}
       </h3>
-      <p className="text-neutral-500 max-w-md mx-auto">
+      <p className="text-neutral-500 max-w-md mx-auto text-base">
         {filtered 
           ? "Tente ajustar os filtros ou a busca para encontrar o que procura."
           : "Adicione seu primeiro produto clicando no botão '+ Novo Produto'."}

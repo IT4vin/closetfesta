@@ -40,7 +40,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     <div className="flex min-h-screen bg-neutral-50">
       <Sidebar onToggle={handleSidebarToggle} />
       <main className={`flex-1 overflow-x-hidden transition-all duration-300 ${sidebarOpen && !isMobile ? 'pl-64' : 'pl-0'}`}>
-        <div className="container mx-auto max-w-7xl px-4 md:px-6 py-6 md:py-8">
+        <div className="container mx-auto max-w-7xl px-6 md:px-8 py-8 md:py-10">
           {children}
         </div>
       </main>

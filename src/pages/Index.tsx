@@ -20,29 +20,29 @@ const Index = () => {
   
   return (
     <MainLayout>
-      <div className="page-transition space-y-8">
-        <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+      <div className="page-transition space-y-10">
+        <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-10">
           <div>
-            <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
-            <p className="text-neutral-500 flex items-center">
-              <Clock size={16} className="mr-1" />
+            <h1 className="text-3xl font-semibold mb-2">Dashboard</h1>
+            <p className="text-neutral-500 flex items-center text-lg">
+              <Clock size={20} className="mr-2" />
               <span>{capitalizedDate}</span>
             </p>
           </div>
           
-          <div className="flex gap-3">
-            <button className="secondary-button">
-              <ShoppingBag size={18} />
+          <div className="flex gap-4">
+            <button className="secondary-button py-3 px-6 text-base">
+              <ShoppingBag size={20} className="mr-2" />
               <span>Nova Venda</span>
             </button>
-            <button className="primary-button">
-              <CalendarIcon size={18} />
+            <button className="primary-button py-3 px-6 text-base">
+              <CalendarIcon size={20} className="mr-2" />
               <span>Agendar</span>
             </button>
           </div>
         </header>
         
-        <section className="mb-8">
+        <section className="mb-12">
           <DashboardStats />
         </section>
         
