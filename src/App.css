@@ -112,3 +112,43 @@
     min-height: 8rem;
   }
 }
+
+/* Add styles for our new forms */
+.form-sheet-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Custom colors for the theme */
+:root {
+  --marsala: #800020;
+  --marsala-700: #6b001b;
+}
+
+.text-marsala {
+  color: var(--marsala);
+}
+
+.bg-marsala {
+  background-color: var(--marsala);
+}
+
+.bg-marsala-700 {
+  background-color: var(--marsala-700);
+}
+
+.hover\:bg-marsala:hover {
+  background-color: var(--marsala);
+}
+
+.hover\:bg-marsala-700:hover {
+  background-color: var(--marsala-700);
+}
+
+.border-marsala {
+  border-color: var(--marsala);
+}
+
+.hover\:bg-marsala\/10:hover {
+  background-color: rgba(128, 0, 32, 0.1);
+}

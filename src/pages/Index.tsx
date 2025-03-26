@@ -4,7 +4,8 @@ import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus, DollarSign } from "
 import MainLayout from "../components/layout/MainLayout";
 import DashboardStats from "../components/dashboard/DashboardStats";
 import UpcomingEvents from "../components/dashboard/UpcomingEvents";
-import ScheduleForm from "../components/dashboard/ScheduleForm";
+import NovoLancamentoForm from "../components/forms/NovoLancamentoForm";
+import AgendarForm from "../components/forms/AgendarForm";
 import { 
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,9 +19,17 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent, 
+  SheetHeader,
+  SheetTitle
+} from "@/components/ui/sheet";
 
 const Index = () => {
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [newSaleOpen, setNewSaleOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const currentDate = new Date();
   const options: Intl.DateTimeFormatOptions = { 
@@ -33,6 +42,14 @@ const Index = () => {
   
   // Capitalize first letter
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  
+  const handleNewSale = () => {
+    setIsSheetOpen(true);
+  };
+  
+  const handleNewRental = () => {
+    setIsSheetOpen(true);
+  };
   
   return (
     <MainLayout>
@@ -55,11 +72,11 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => console.log("Nova Venda")}>
+                <DropdownMenuItem onClick={handleNewSale}>
                   <ShoppingBag size={16} className="mr-2" />
                   <span>Nova Venda</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log("Novo Aluguel")}>
+                <DropdownMenuItem onClick={handleNewRental}>
                   <CalendarIcon size={16} className="mr-2" />
                   <span>Novo Aluguel</span>
                 </DropdownMenuItem>
@@ -84,14 +101,27 @@ const Index = () => {
           <UpcomingEvents />
         </section>
 
+        {/* Schedule Dialog */}
         <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
               <DialogTitle className="text-2xl font-semibold">Agendar</DialogTitle>
             </DialogHeader>
-            <ScheduleForm onClose={() => setScheduleOpen(false)} />
+            <AgendarForm onClose={() => setScheduleOpen(false)} />
           </DialogContent>
         </Dialog>
+        
+        {/* New Sale/Rental Sheet */}
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-2xl font-semibold">Novo Lançamento</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <NovoLancamentoForm onClose={() => setIsSheetOpen(false)} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </MainLayout>
   );
