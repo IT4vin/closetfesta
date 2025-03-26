@@ -44,29 +44,33 @@ const EventCard = ({ event }: { event: typeof upcomingEvents[0] }) => {
   
   return (
     <div className={`premium-card p-5 card-hover ${isRental ? "border-l-4 border-l-marsala" : "border-l-4 border-l-blue-400"}`}>
-      <div className="flex justify-between">
-        <h3 className="font-medium text-base">{event.title}</h3>
-        <span className={`text-sm px-2 py-0.5 rounded-full ${isRental ? "bg-marsala-100 text-marsala-800" : "bg-blue-100 text-blue-700"}`}>
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium text-base truncate mr-2">{event.title}</h3>
+        <span className={`text-sm px-2 py-0.5 rounded-full whitespace-nowrap ${isRental ? "bg-marsala-100 text-marsala-800" : "bg-blue-100 text-blue-700"}`}>
           {isRental ? "Aluguel" : "Prova"}
         </span>
       </div>
       
       <div className="mt-3 space-y-2">
         <div className="flex items-center gap-2 text-sm text-neutral-600">
-          <User size={14} />
-          <span>{event.client}</span>
+          <User size={14} className="flex-shrink-0" />
+          <span className="truncate">{event.client}</span>
+        </div>
+        
+        <div className="flex items-center flex-wrap gap-1 text-sm text-neutral-600">
+          <div className="flex items-center gap-1 mr-2">
+            <Calendar size={14} className="flex-shrink-0" />
+            <span>{event.date}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock size={14} className="flex-shrink-0" />
+            <span>{event.time}</span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 text-sm text-neutral-600">
-          <Calendar size={14} />
-          <span>{event.date}</span>
-          <Clock size={14} className="ml-2" />
-          <span>{event.time}</span>
-        </div>
-        
-        <div className="flex items-center gap-2 text-sm text-neutral-600">
-          <MapPin size={14} />
-          <span>{event.location}</span>
+          <MapPin size={14} className="flex-shrink-0" />
+          <span className="truncate">{event.location}</span>
         </div>
       </div>
       
@@ -74,7 +78,7 @@ const EventCard = ({ event }: { event: typeof upcomingEvents[0] }) => {
         <h4 className="text-xs text-neutral-500 mb-1">Itens:</h4>
         <div className="flex flex-wrap gap-1">
           {event.items.map((item, idx) => (
-            <span key={idx} className="text-xs px-2 py-0.5 bg-neutral-100 rounded-full">
+            <span key={idx} className="text-xs px-2 py-0.5 bg-neutral-100 rounded-full whitespace-nowrap">
               {item}
             </span>
           ))}
@@ -93,7 +97,7 @@ const EventCard = ({ event }: { event: typeof upcomingEvents[0] }) => {
 
 const UpcomingEvents = () => {
   return (
-    <div className="mt-8">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Próximos Eventos</h2>
         <button className="secondary-button py-1.5">
@@ -101,8 +105,8 @@ const UpcomingEvents = () => {
         </button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {upcomingEvents.map((event, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {upcomingEvents.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
       </div>

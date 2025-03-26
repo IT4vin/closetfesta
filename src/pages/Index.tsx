@@ -20,7 +20,7 @@ const Index = () => {
   
   return (
     <MainLayout>
-      <div className="page-transition">
+      <div className="page-transition space-y-8">
         <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold mb-1">Dashboard</h1>
@@ -42,9 +42,13 @@ const Index = () => {
           </div>
         </header>
         
-        <DashboardStats />
+        <section className="mb-8">
+          <DashboardStats />
+        </section>
         
-        <UpcomingEvents />
+        <section>
+          <UpcomingEvents />
+        </section>
       </div>
     </MainLayout>
   );
