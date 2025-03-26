@@ -76,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
       <aside 
         className={`${
           expanded ? "translate-x-0" : "-translate-x-full"
-        } fixed md:relative z-40 h-screen bg-sidebar transition-transform duration-300 ease-in-out md:translate-x-0 shadow-xl w-64`}
+        } fixed z-40 h-screen bg-sidebar overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0 shadow-xl w-64`}
       >
         <div className="flex flex-col h-full">
           <div className="px-4 py-8 flex items-center justify-center border-b border-sidebar-border">
@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
             ))}
           </div>
 
-          <div className="p-4 border-t border-sidebar-border">
+          <div className="sticky bottom-0 p-4 border-t border-sidebar-border bg-sidebar">
             <div className="flex items-center gap-3 px-2">
               <div className="w-8 h-8 rounded-full bg-marsala-400 flex items-center justify-center text-white font-semibold">
                 A
