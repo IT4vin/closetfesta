@@ -1,13 +1,8 @@
 
 import React from "react";
-import { Edit, Trash, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+import { CreditCard, Calendar, Edit, Tag } from "lucide-react";
 
 interface ProductCardProps {
   product: any;
@@ -15,79 +10,96 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit }) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    navigate(`/products/${product.id}`);
+  };
+  
   return (
-    <div className="premium-card overflow-hidden card-hover">
-      <div className="relative h-64 overflow-hidden bg-neutral-100">
-        <img 
-          src={product.image} 
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+    <div className="premium-card overflow-hidden">
+      <div className="relative">
+        <div 
+          className="h-48 bg-center bg-cover" 
+          style={{ backgroundImage: `url(${product.image})` }}
         />
-        <div className="absolute top-3 right-3">
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-            product.status === "available" 
-              ? "bg-green-100 text-green-800" 
-              : product.status === "rented"
-              ? "bg-orange-100 text-orange-800"
-              : "bg-red-100 text-red-800"
-          }`}>
-            {product.status === "available" ? "Disponível" : 
-             product.status === "rented" ? "Alugado" : "Em Manutenção"}
-          </span>
-        </div>
         
-        <div className="absolute bottom-3 right-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="bg-white text-neutral-700 hover:text-marsala">
-                <Eye size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit} className="cursor-pointer">
-                <Edit size={16} className="mr-2" />
-                <span>Editar</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-red-500">
-                <Trash size={16} className="mr-2" />
-                <span>Excluir</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <span 
+          className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-medium ${
+            product.status === 'available' 
+              ? 'bg-green-100 text-green-800' 
+              : product.status === 'rented'
+              ? 'bg-amber-100 text-amber-800'
+              : 'bg-red-100 text-red-800'
+          }`}>
+          {product.status === 'available' 
+            ? 'Disponível' 
+            : product.status === 'rented'
+            ? 'Alugado'
+            : 'Manutenção'}
+        </span>
       </div>
       
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-medium text-lg truncate">{product.name}</h3>
-          <span className="text-xs bg-neutral-100 text-neutral-600 px-2 py-1 rounded">
-            {product.sku}
-          </span>
-        </div>
-        
-        <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-          {product.description}
-        </p>
-        
-        <div className="flex justify-between items-center mb-3">
-          <div className="text-sm text-neutral-600">
-            Tipo: <span className="font-medium">{product.type}</span>
-            {product.subtype && <span> ({product.subtype})</span>}
-          </div>
-          <div className="text-sm text-neutral-600">
-            Tamanho: <span className="font-medium">{product.size}</span>
-          </div>
-        </div>
-        
-        <div className="flex justify-between border-t border-neutral-100 pt-3">
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-2">
           <div>
-            <p className="text-xs text-neutral-500">Aluguel</p>
-            <p className="font-medium text-marsala">R$ {product.rentalPrice.toFixed(2)}</p>
+            <h3 className="font-medium text-lg truncate">{product.name}</h3>
+            <p className="text-neutral-500 text-sm">{product.sku}</p>
           </div>
+          <div>
+            <span className="inline-flex items-center gap-1 text-sm text-neutral-500">
+              <Tag size={14} />
+              {product.type}
+            </span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="text-sm">
+            <p className="text-neutral-500">Tamanho</p>
+            <p>{product.size}</p>
+          </div>
+          <div className="text-sm">
+            <p className="text-neutral-500">Cor</p>
+            <p>{product.color}</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <p className="text-sm text-neutral-500">Valor</p>
+            <div className="flex items-center gap-1">
+              <CreditCard size={16} className="text-marsala" />
+              <p className="font-medium">R$ {product.rentalPrice}</p>
+            </div>
+          </div>
+          
           <div className="text-right">
-            <p className="text-xs text-neutral-500">Venda</p>
-            <p className="font-medium">R$ {product.price.toFixed(2)}</p>
+            <p className="text-sm text-neutral-500">Adicionado em</p>
+            <p className="text-sm">{product.dateAdded}</p>
           </div>
+        </div>
+        
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="flex-1"
+          >
+            <Edit size={16} className="mr-1" />
+            <span>Editar</span>
+          </Button>
+          
+          <Button 
+            className="flex-1 bg-marsala hover:bg-marsala-700"
+            onClick={handleClick}
+          >
+            <Calendar size={16} className="mr-1" />
+            <span>Alugar</span>
+          </Button>
         </div>
       </div>
     </div>

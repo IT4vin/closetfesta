@@ -1,7 +1,9 @@
 
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/layout/MainLayout";
 import { Search, Plus, Filter, Mail, Phone, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // In a real app, this would come from an API/database
 const clients = [
@@ -62,6 +64,16 @@ const clients = [
 ];
 
 const ClientsPage = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Filter clients based on search term
+  const filteredClients = clients.filter(client => 
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.phone.includes(searchTerm)
+  );
+  
   return (
     <MainLayout>
       <div className="page-transition">
@@ -72,14 +84,17 @@ const ClientsPage = () => {
           </div>
           
           <div className="flex gap-4">
-            <button className="secondary-button py-3 px-6 text-base">
+            <Button 
+              variant="outline" 
+              className="border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+            >
               <Filter size={20} className="mr-2" />
               <span>Filtrar</span>
-            </button>
-            <button className="primary-button py-3 px-6 text-base">
+            </Button>
+            <Button className="bg-marsala hover:bg-marsala-700">
               <Plus size={20} className="mr-2" />
               <span>Novo Cliente</span>
-            </button>
+            </Button>
           </div>
         </header>
         
@@ -90,7 +105,9 @@ const ClientsPage = () => {
               <input 
                 type="text" 
                 placeholder="Buscar clientes por nome, email ou telefone..." 
-                className="input-field pl-12 py-3 text-base"
+                className="input-field pl-12 py-3 text-base w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             
@@ -113,7 +130,7 @@ const ClientsPage = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {clients.map((client) => (
+          {filteredClients.map((client) => (
             <div key={client.id} className="premium-card p-6 card-hover">
               <div className="flex justify-between items-start mb-5">
                 <div>
@@ -152,12 +169,18 @@ const ClientsPage = () => {
               </div>
               
               <div className="mt-5 flex gap-3">
-                <button className="flex-1 py-3 text-base text-center border border-neutral-200 rounded-md hover:bg-neutral-50 transition-colors">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 py-3"
+                  onClick={() => navigate(`/clients/${client.id}`)}
+                >
                   Ver Detalhes
-                </button>
-                <button className="flex-1 py-3 text-base text-center text-marsala border border-marsala rounded-md hover:bg-marsala-50 transition-colors">
+                </Button>
+                <Button 
+                  className="flex-1 py-3 text-marsala border border-marsala bg-transparent hover:bg-marsala-50"
+                >
                   Agendar
-                </button>
+                </Button>
               </div>
             </div>
           ))}
