@@ -1,9 +1,11 @@
 
 import React, { useState } from "react";
-import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus, DollarSign } from "lucide-react";
+import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus, DollarSign, ChevronDown } from "lucide-react";
 import MainLayout from "../components/layout/MainLayout";
-import DashboardStats from "../components/dashboard/DashboardStats";
+import DashboardMetrics from "../components/dashboard/DashboardMetrics";
 import UpcomingEvents from "../components/dashboard/UpcomingEvents";
+import RecentActivities from "../components/dashboard/RecentActivities";
+import TopProducts from "../components/dashboard/TopProducts";
 import NovoLancamentoForm from "../components/forms/NovoLancamentoForm";
 import AgendarForm from "../components/forms/AgendarForm";
 import { 
@@ -25,6 +27,12 @@ import {
   SheetHeader,
   SheetTitle
 } from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
 
 const Index = () => {
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -94,12 +102,33 @@ const Index = () => {
         </header>
         
         <section className="mb-8">
-          <DashboardStats />
+          <DashboardMetrics />
         </section>
-        
-        <section>
-          <UpcomingEvents />
-        </section>
+
+        <Tabs defaultValue="overview" className="space-y-8">
+          <TabsList className="grid grid-cols-3 w-[400px]">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="events">Eventos</TabsTrigger>
+            <TabsTrigger value="products">Produtos</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RecentActivities />
+              <UpcomingEvents />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="events">
+            <div className="premium-card">
+              <UpcomingEvents />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="products">
+            <TopProducts />
+          </TabsContent>
+        </Tabs>
 
         {/* Schedule Dialog */}
         <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
