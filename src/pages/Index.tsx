@@ -3,6 +3,11 @@ import React, { useState } from "react";
 import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus, DollarSign, ChevronDown } from "lucide-react";
 import MainLayout from "../components/layout/MainLayout";
 import DashboardMetrics from "../components/dashboard/DashboardMetrics";
+import LateReturns from "../components/dashboard/LateReturns";
+import TodayReturns from "../components/dashboard/TodayReturns";
+import Next10DaysReturns from "../components/dashboard/Next10DaysReturns";
+import FinancialResults from "../components/dashboard/FinancialResults";
+import DailySchedule from "../components/dashboard/DailySchedule";
 import UpcomingEvents from "../components/dashboard/UpcomingEvents";
 import RecentActivities from "../components/dashboard/RecentActivities";
 import TopProducts from "../components/dashboard/TopProducts";
@@ -102,31 +107,39 @@ const Index = () => {
         </header>
         
         <section className="mb-8">
-          <DashboardMetrics />
+          <FinancialResults />
         </section>
 
         <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="grid grid-cols-3 w-[400px]">
+          <TabsList className="grid grid-cols-4 w-[600px] max-w-full">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="events">Eventos</TabsTrigger>
-            <TabsTrigger value="products">Produtos</TabsTrigger>
+            <TabsTrigger value="late">Em Atraso</TabsTrigger>
+            <TabsTrigger value="today">Para Hoje</TabsTrigger>
+            <TabsTrigger value="upcoming">Próximos Dias</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DailySchedule />
               <RecentActivities />
-              <UpcomingEvents />
+            </div>
+            
+            <div>
+              <h2 className="text-2xl font-semibold mb-6">Produtos Mais Alugados</h2>
+              <TopProducts />
             </div>
           </TabsContent>
           
-          <TabsContent value="events">
-            <div className="premium-card">
-              <UpcomingEvents />
-            </div>
+          <TabsContent value="late">
+            <LateReturns />
           </TabsContent>
           
-          <TabsContent value="products">
-            <TopProducts />
+          <TabsContent value="today">
+            <TodayReturns />
+          </TabsContent>
+          
+          <TabsContent value="upcoming">
+            <Next10DaysReturns />
           </TabsContent>
         </Tabs>
 
