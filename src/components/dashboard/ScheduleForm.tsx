@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,8 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
   });
   const [hasChanges, setHasChanges] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [clients, setClients] = useState([
     { id: "1", name: "Maria Silva" },
     { id: "2", name: "João Paulo" },
@@ -46,21 +47,15 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Monitor for changes
   useEffect(() => {
     const hasFormData = formData.type || formData.client || formData.product || 
                         formData.time || formData.notes || formData.duration !== "1" || date;
     setHasChanges(hasFormData);
   }, [formData, date]);
 
-  // Simulate loading clients from API
   useEffect(() => {
     const loadClients = async () => {
       try {
-        // In a real app, fetch clients from your API
-        // const response = await fetch('/api/clients');
-        // const data = await response.json();
-        // setClients(data);
         console.log("Loaded clients:", clients.length);
       } catch (error) {
         console.error("Failed to load clients:", error);
@@ -75,14 +70,9 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
     loadClients();
   }, []);
 
-  // Simulate loading products from API
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        // In a real app, fetch products from your API
-        // const response = await fetch('/api/products');
-        // const data = await response.json();
-        // setProducts(data);
         console.log("Loaded products:", products.length);
       } catch (error) {
         console.error("Failed to load products:", error);
@@ -125,7 +115,6 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       console.log("Form submitted:", { ...formData, date });
       
@@ -219,7 +208,7 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data</Label>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button 
                     variant="outline"
@@ -236,7 +225,10 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={setDate}
+                    onSelect={(newDate) => {
+                      setDate(newDate);
+                      setIsCalendarOpen(false);
+                    }}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
@@ -307,7 +299,6 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
         </div>
       </form>
 
-      {/* Confirmation Dialog for unsaved changes */}
       <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
