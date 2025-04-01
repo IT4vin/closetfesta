@@ -1,10 +1,25 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building } from "lucide-react";
 
 const BankDetailsSection = () => {
+  const [bankDetails, setBankDetails] = useState({
+    bankName: "Banco do Brasil",
+    accountType: "Corrente",
+    agency: "1234",
+    account: "56789-0",
+    pixKey: "examplo@email.com"
+  });
+
+  const handleBankDetailChange = (field: string, value: string) => {
+    setBankDetails(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   return (
     <div className="border rounded-lg p-6">
       <h3 className="text-lg font-medium mb-4 flex items-center">
@@ -13,50 +28,65 @@ const BankDetailsSection = () => {
       </h3>
       
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="bank-name">Banco</Label>
+        <div>
+          <Label htmlFor="bankName">Nome do Banco</Label>
           <Input 
-            id="bank-name"
-            placeholder="Nome do banco"
-            defaultValue="Banco do Brasil"
+            id="bankName"
+            value={bankDetails.bankName}
+            onChange={(e) => 
+              handleBankDetailChange('bankName', e.target.value)
+            }
+            className="mt-1"
           />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
+        <div>
+          <Label htmlFor="accountType">Tipo de Conta</Label>
+          <Input 
+            id="accountType"
+            value={bankDetails.accountType}
+            onChange={(e) => 
+              handleBankDetailChange('accountType', e.target.value)
+            }
+            className="mt-1"
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
             <Label htmlFor="agency">Agência</Label>
             <Input 
               id="agency"
-              placeholder="Número da agência"
-              defaultValue="1234"
+              value={bankDetails.agency}
+              onChange={(e) => 
+                handleBankDetailChange('agency', e.target.value)
+              }
+              className="mt-1"
             />
           </div>
           
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="account">Conta</Label>
             <Input 
               id="account"
-              placeholder="Número da conta"
-              defaultValue="56789-0"
+              value={bankDetails.account}
+              onChange={(e) => 
+                handleBankDetailChange('account', e.target.value)
+              }
+              className="mt-1"
             />
           </div>
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="account-holder">Titular</Label>
+        <div>
+          <Label htmlFor="pixKey">Chave Pix</Label>
           <Input 
-            id="account-holder"
-            placeholder="Nome do titular da conta"
-            defaultValue="Empresa de Vestidos Ltda."
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="cnpj">CNPJ</Label>
-          <Input 
-            id="cnpj"
-            placeholder="CNPJ da empresa"
-            defaultValue="12.345.678/0001-90"
+            id="pixKey"
+            value={bankDetails.pixKey}
+            onChange={(e) => 
+              handleBankDetailChange('pixKey', e.target.value)
+            }
+            className="mt-1"
           />
         </div>
       </div>
