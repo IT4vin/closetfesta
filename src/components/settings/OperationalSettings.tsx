@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -26,7 +25,7 @@ import {
   Plus,
   Trash,
   CreditCard,
-  BankTransfer,
+  Bank,
   Wallet,
   QrCode,
   PiggyBank
@@ -42,7 +41,6 @@ const OperationalSettings = () => {
     { id: 5, method: "Transferência Bancária", enabled: false },
   ]);
   
-  // Horários de funcionamento
   const [workingHours, setWorkingHours] = useState({
     sunday: { open: false, start: "09:00", end: "18:00" },
     monday: { open: true, start: "09:00", end: "18:00" },
@@ -82,7 +80,7 @@ const OperationalSettings = () => {
       case "Pix":
         return <QrCode size={18} />;
       case "Transferência Bancária":
-        return <BankTransfer size={18} />;
+        return <Bank size={18} />;
       default:
         return <DollarSign size={18} />;
     }
@@ -212,7 +210,7 @@ const OperationalSettings = () => {
                 
                 <div className="border rounded-lg p-6">
                   <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <BankTransfer size={18} className="mr-2" />
+                    <Bank size={18} className="mr-2" />
                     Dados Bancários
                   </h3>
                   
