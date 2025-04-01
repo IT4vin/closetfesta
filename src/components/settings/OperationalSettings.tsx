@@ -25,7 +25,7 @@ import {
   Plus,
   Trash,
   CreditCard,
-  Bank,
+  Building,
   Wallet,
   QrCode,
   PiggyBank
@@ -80,7 +80,7 @@ const OperationalSettings = () => {
       case "Pix":
         return <QrCode size={18} />;
       case "Transferência Bancária":
-        return <Bank size={18} />;
+        return <Building size={18} />;
       default:
         return <DollarSign size={18} />;
     }
@@ -210,7 +210,7 @@ const OperationalSettings = () => {
                 
                 <div className="border rounded-lg p-6">
                   <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <Bank size={18} className="mr-2" />
+                    <Building size={18} className="mr-2" />
                     Dados Bancários
                   </h3>
                   
