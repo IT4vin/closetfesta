@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface ScheduleFormProps {
 }
 
 const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
-  const [date, setDate] = useState<Date>();
+  const [date, setDate] = useState<Date | undefined>();
   const [formData, setFormData] = useState({
     type: "",
     client: "",

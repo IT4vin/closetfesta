@@ -16,6 +16,11 @@ interface LancamentoTabsProps {
 const LancamentoTabs = ({ onClose }: LancamentoTabsProps) => {
   const [activeTab, setActiveTab] = useState("venda");
 
+  const handleClose = () => {
+    // Ensure clean close
+    onClose();
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="w-full grid grid-cols-2">
@@ -25,12 +30,12 @@ const LancamentoTabs = ({ onClose }: LancamentoTabsProps) => {
       
       {/* Sale Form */}
       <TabsContent value="venda" className="space-y-4 py-4">
-        <SaleForm onClose={onClose} />
+        <SaleForm onClose={handleClose} />
       </TabsContent>
       
       {/* Rental Form */}
       <TabsContent value="aluguel" className="space-y-4 py-4">
-        <RentalForm onClose={onClose} />
+        <RentalForm onClose={handleClose} />
       </TabsContent>
     </Tabs>
   );

@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus, DollarSign, ChevronDown } from "lucide-react";
+import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus } from "lucide-react";
 import MainLayout from "../components/layout/MainLayout";
 import DashboardMetrics from "../components/dashboard/DashboardMetrics";
 import LateReturns from "../components/dashboard/LateReturns";
@@ -41,7 +40,6 @@ import {
 
 const Index = () => {
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [newSaleOpen, setNewSaleOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const currentDate = new Date();
@@ -62,6 +60,11 @@ const Index = () => {
   
   const handleNewRental = () => {
     setIsSheetOpen(true);
+  };
+  
+  const handleCloseSheet = () => {
+    // Force close the sheet and reset any needed state
+    setIsSheetOpen(false);
   };
   
   return (
@@ -154,13 +157,13 @@ const Index = () => {
         </Dialog>
         
         {/* New Sale/Rental Sheet */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen} forceMount={false}>
           <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
             <SheetHeader>
               <SheetTitle className="text-2xl font-semibold">Novo Lançamento</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <NovoLancamentoForm onClose={() => setIsSheetOpen(false)} />
+              <NovoLancamentoForm onClose={handleCloseSheet} />
             </div>
           </SheetContent>
         </Sheet>

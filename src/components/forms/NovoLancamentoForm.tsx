@@ -7,7 +7,12 @@ interface NovoLancamentoFormProps {
 }
 
 const NovoLancamentoForm = ({ onClose }: NovoLancamentoFormProps) => {
-  return <LancamentoTabs onClose={onClose} />;
+  const handleClose = () => {
+    // Ensure proper cleanup before closing
+    onClose();
+  };
+
+  return <LancamentoTabs onClose={handleClose} />;
 };
 
 export default NovoLancamentoForm;
