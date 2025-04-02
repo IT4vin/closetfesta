@@ -146,6 +146,12 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
     }
   };
 
+  // Fixed calendar date selection handler
+  const handleDateSelect = (newDate: Date | undefined) => {
+    setDate(newDate);
+    setIsCalendarOpen(false); // Close the calendar after selection
+  };
+
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -226,10 +232,7 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={(newDate) => {
-                      setDate(newDate);
-                      setIsCalendarOpen(false);
-                    }}
+                    onSelect={handleDateSelect}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
