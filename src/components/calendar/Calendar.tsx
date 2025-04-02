@@ -1,6 +1,27 @@
 
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogFooter,
+  AlertDialogCancel
+} from "@/components/ui/alert-dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import ScheduleForm from "@/components/dashboard/ScheduleForm";
 
 // Helper function to generate dates for the current month
 const getDaysInMonth = (year: number, month: number) => {
@@ -58,6 +79,8 @@ const getEventsForDate = (date: Date) => {
       title: "Casamento Silva",
       type: "rental",
       time: "18:00",
+      client: "Ana Silva",
+      status: "confirmado"
     });
   }
   
@@ -67,6 +90,8 @@ const getEventsForDate = (date: Date) => {
       title: "Prova de Vestido",
       type: "fitting",
       time: "14:30",
+      client: "Maria Oliveira",
+      status: "agendado"
     });
   }
   
@@ -76,6 +101,19 @@ const getEventsForDate = (date: Date) => {
       title: "Formatura Santos",
       type: "rental",
       time: "19:00",
+      client: "Pedro Santos",
+      status: "confirmado"
+    });
+  }
+  
+  if (day % 9 === 0) {
+    events.push({
+      id: `event-${date.getTime()}-4`,
+      title: "Ajuste de Vestido",
+      type: "adjustment",
+      time: "10:00",
+      client: "Laura Mendes",
+      status: "confirmado"
     });
   }
   
@@ -93,6 +131,11 @@ const Calendar = () => {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(today);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const [isDeleteEventOpen, setIsDeleteEventOpen] = useState(false);
+  const { toast } = useToast();
   
   const days = getDaysInMonth(currentYear, currentMonth);
   
@@ -117,7 +160,37 @@ const Calendar = () => {
   const handleDateClick = (day: (typeof days)[0], index: number) => {
     if (day.currentMonth) {
       setSelectedDate(new Date(currentYear, currentMonth, day.date));
+      
+      // If the day has events, show them
+      if (day.events.length > 0) {
+        // Could open a drawer with events list
+      } else if(day.currentMonth) {
+        // Could open scheduling form pre-selecting this date
+        setIsScheduleOpen(true);
+      }
     }
+  };
+  
+  const handleEventClick = (event: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedEvent(event);
+    setIsEventDetailsOpen(true);
+  };
+  
+  const goToToday = () => {
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+    setSelectedDate(today);
+  };
+  
+  const handleDeleteEvent = () => {
+    // In a real app, this would call an API to delete the event
+    toast({
+      title: "Evento excluído",
+      description: "O evento foi excluído com sucesso.",
+    });
+    setIsDeleteEventOpen(false);
+    setIsEventDetailsOpen(false);
   };
 
   return (
@@ -128,6 +201,14 @@ const Calendar = () => {
             {MONTHS[currentMonth]} {currentYear}
           </h2>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={goToToday}
+              className="text-sm"
+            >
+              <CalendarIcon size={16} className="mr-1" />
+              Hoje
+            </Button>
             <button 
               onClick={prevMonth}
               className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
@@ -140,10 +221,13 @@ const Calendar = () => {
             >
               <ChevronRight size={18} />
             </button>
-            <button className="primary-button py-1.5 ml-2">
+            <Button 
+              className="bg-marsala hover:bg-marsala-700 text-white py-1.5 ml-2"
+              onClick={() => setIsScheduleOpen(true)}
+            >
               <Plus size={16} />
               <span>Novo</span>
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -166,18 +250,27 @@ const Calendar = () => {
                 ${day.currentMonth ? "hover:bg-neutral-50 cursor-pointer" : ""}
               `}
             >
-              <div className="text-sm mb-1">{day.date}</div>
+              <div className="text-sm font-medium mb-1">{day.date}</div>
               
               <div className="space-y-1">
                 {day.events.map((event) => (
                   <div 
                     key={event.id} 
-                    className={`calendar-event ${event.type}`}
+                    onClick={(e) => handleEventClick(event, e)}
+                    className={`
+                      calendar-event p-1 rounded text-xs cursor-pointer transition-colors
+                      ${event.type === 'rental' ? 'bg-marsala-100 text-marsala-800 hover:bg-marsala-200' : 
+                       event.type === 'fitting' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 
+                       event.type === 'adjustment' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 
+                       'bg-green-100 text-green-800 hover:bg-green-200'}
+                    `}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 font-medium truncate">
+                      <Clock size={10} className="shrink-0" />
+                      <span>{event.time}</span>
                       <span className="truncate">{event.title}</span>
                     </div>
-                    <div className="text-xs opacity-70">{event.time}</div>
+                    <div className="text-[10px] opacity-70 truncate">{event.client}</div>
                   </div>
                 ))}
               </div>
@@ -185,6 +278,127 @@ const Calendar = () => {
           ))}
         </div>
       </div>
+      
+      {/* Schedule Dialog */}
+      <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold">Agendar</DialogTitle>
+          </DialogHeader>
+          <ScheduleForm 
+            onClose={() => setIsScheduleOpen(false)} 
+            initialDate={selectedDate || undefined}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Event Details Dialog */}
+      {selectedEvent && (
+        <Dialog open={isEventDetailsOpen} onOpenChange={setIsEventDetailsOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-semibold">{selectedEvent.title}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="flex items-start gap-8">
+                <div className="space-y-1 flex-1">
+                  <div className="text-sm text-neutral-500">Cliente</div>
+                  <div className="font-medium">{selectedEvent.client}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-neutral-500">Horário</div>
+                  <div className="font-medium flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    {selectedEvent.time}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm text-neutral-500">Tipo</div>
+                  <div className="px-3 py-1 rounded-full text-xs font-medium inline-block
+                    ${selectedEvent.type === 'rental' ? 'bg-marsala-100 text-marsala-800' : 
+                     selectedEvent.type === 'fitting' ? 'bg-blue-100 text-blue-800' : 
+                     selectedEvent.type === 'adjustment' ? 'bg-amber-100 text-amber-800' : 
+                     'bg-green-100 text-green-800'}
+                  ">
+                    {selectedEvent.type === 'rental' ? 'Aluguel' : 
+                     selectedEvent.type === 'fitting' ? 'Prova' : 
+                     selectedEvent.type === 'adjustment' ? 'Ajuste' : 
+                     'Consultoria'}
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="text-sm text-neutral-500">Status</div>
+                  <div className="px-3 py-1 rounded-full text-xs font-medium inline-block
+                    ${selectedEvent.status === 'agendado' ? 'bg-blue-100 text-blue-800' : 
+                     selectedEvent.status === 'confirmado' ? 'bg-green-100 text-green-800' : 
+                     selectedEvent.status === 'cancelado' ? 'bg-red-100 text-red-800' : 
+                     'bg-neutral-100 text-neutral-800'}
+                  ">
+                    {selectedEvent.status === 'agendado' ? 'Agendado' : 
+                     selectedEvent.status === 'confirmado' ? 'Confirmado' : 
+                     selectedEvent.status === 'cancelado' ? 'Cancelado' : 
+                     'Concluído'}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-1 pt-2">
+                <div className="text-sm text-neutral-500">Observações</div>
+                <div className="text-sm">
+                  {selectedEvent.notes || "Nenhuma observação adicionada."}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-between gap-4 pt-4 border-t border-neutral-200">
+              <Button 
+                variant="outline" 
+                className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                onClick={() => {
+                  setIsDeleteEventOpen(true);
+                }}
+              >
+                Excluir
+              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsEventDetailsOpen(false)}
+                >
+                  Fechar
+                </Button>
+                <Button 
+                  className="bg-marsala hover:bg-marsala-700 text-white"
+                >
+                  Editar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Event Confirmation */}
+      <AlertDialog open={isDeleteEventOpen} onOpenChange={setIsDeleteEventOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEvent} className="bg-red-500 hover:bg-red-600">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

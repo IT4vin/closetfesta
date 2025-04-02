@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "../components/layout/MainLayout";
 import CalendarComponent from "../components/calendar/Calendar";
-import { CalendarDays, Filter, Plus, X } from "lucide-react";
+import { CalendarDays, Filter, Plus, X, ChevronRight, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ScheduleForm from "@/components/dashboard/ScheduleForm";
@@ -22,6 +22,42 @@ const CalendarPage = () => {
     status: []
   });
   const [isFiltering, setIsFiltering] = useState(false);
+  const [todayEvents, setTodayEvents] = useState<any[]>([
+    {
+      id: "event-1",
+      title: "Casamento Silva",
+      type: "Aluguel",
+      typeColor: "marsala",
+      time: "18:00",
+      location: "Casa de Festas Elegance",
+      client: "Ana Silva"
+    },
+    {
+      id: "event-2",
+      title: "Prova de Vestido",
+      type: "Prova",
+      typeColor: "blue",
+      time: "14:30",
+      location: "Loja Central",
+      client: "Maria Oliveira"
+    },
+    {
+      id: "event-3",
+      title: "Ajuste Final",
+      type: "Ajuste",
+      typeColor: "amber",
+      time: "10:00",
+      location: "Atelier",
+      client: "Carla Mendes"
+    }
+  ]);
+  
+  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
+
+  useEffect(() => {
+    // In a real app, this would fetch today's events from an API
+    console.log("Fetching today's events with filters:", activeFilters);
+  }, [activeFilters]);
 
   const handleApplyFilters = (filters: EventFilters) => {
     console.log("Applied filters:", filters);
@@ -56,6 +92,14 @@ const CalendarPage = () => {
     if (activeFilters.dateFrom || activeFilters.dateTo) count++;
     if (activeFilters.status.length > 0) count++;
     return count;
+  };
+  
+  const handleEventHover = (index: number) => {
+    setSelectedEvent(index);
+  };
+  
+  const handleEventLeave = () => {
+    setSelectedEvent(null);
   };
 
   return (
@@ -154,29 +198,65 @@ const CalendarPage = () => {
           
           <div className="w-full lg:w-1/3">
             <div className="premium-card p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <CalendarDays className="text-marsala" size={24} />
-                <h2 className="text-xl font-medium">Eventos do Dia</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="text-marsala" size={24} />
+                  <h2 className="text-xl font-medium">Eventos do Dia</h2>
+                </div>
+                <span className="text-sm text-neutral-500">{new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
               </div>
               
-              <div className="space-y-5">
-                <div className="border-l-4 border-marsala p-4 bg-neutral-50 rounded-r-md">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-lg">Casamento Silva</h3>
-                    <span className="text-sm px-3 py-1 rounded-full bg-marsala-100 text-marsala-800">Aluguel</span>
+              <div className="space-y-4">
+                {todayEvents.length > 0 ? (
+                  todayEvents.map((event, index) => (
+                    <div 
+                      key={event.id}
+                      className={`border-l-4 ${
+                        event.typeColor === 'marsala' ? 'border-marsala' : 
+                        event.typeColor === 'blue' ? 'border-blue-400' :
+                        event.typeColor === 'amber' ? 'border-amber-400' :
+                        'border-green-400'
+                      } p-4 bg-neutral-50 rounded-r-md transition-all duration-200 ${
+                        selectedEvent === index ? 'bg-neutral-100' : ''
+                      }`}
+                      onMouseEnter={() => handleEventHover(index)}
+                      onMouseLeave={handleEventLeave}
+                    >
+                      <div className="flex justify-between">
+                        <h3 className="font-medium text-lg">{event.title}</h3>
+                        <span className={`text-sm px-3 py-1 rounded-full ${
+                          event.typeColor === 'marsala' ? 'bg-marsala-100 text-marsala-800' : 
+                          event.typeColor === 'blue' ? 'bg-blue-100 text-blue-700' :
+                          event.typeColor === 'amber' ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>{event.type}</span>
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        <p className="text-base text-neutral-600 flex items-center">
+                          <Clock size={14} className="mr-1 text-neutral-400" />
+                          {event.time} - {event.location}
+                        </p>
+                        <p className="text-base text-neutral-600">Cliente: {event.client}</p>
+                      </div>
+                      {selectedEvent === index && (
+                        <div className="mt-3 flex justify-end">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-marsala hover:text-marsala-700 flex items-center"
+                          >
+                            Ver detalhes
+                            <ChevronRight size={16} />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-neutral-500">
+                    <p>Não há eventos para hoje</p>
                   </div>
-                  <p className="text-base text-neutral-600 mt-2">18:00 - Casa de Festas Elegance</p>
-                  <p className="text-base text-neutral-600">Cliente: Ana Silva</p>
-                </div>
-                
-                <div className="border-l-4 border-blue-400 p-4 bg-neutral-50 rounded-r-md">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-lg">Prova de Vestido</h3>
-                    <span className="text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-700">Prova</span>
-                  </div>
-                  <p className="text-base text-neutral-600 mt-2">14:30 - Loja Central</p>
-                  <p className="text-base text-neutral-600">Cliente: Maria Oliveira</p>
-                </div>
+                )}
                 
                 <div className="mt-5">
                   <button 
@@ -208,6 +288,7 @@ const CalendarPage = () => {
           <EventFilterForm 
             onClose={() => setIsFilterOpen(false)} 
             onApplyFilters={handleApplyFilters}
+            initialFilters={activeFilters}
           />
         </SheetContent>
       </Sheet>

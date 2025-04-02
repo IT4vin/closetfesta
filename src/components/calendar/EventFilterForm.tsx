@@ -1,34 +1,24 @@
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, CalendarIcon, Clock, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger,
-  SelectValue 
-} from "@/components/ui/select";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { 
   Popover, 
   PopoverContent, 
   PopoverTrigger 
 } from "@/components/ui/popover";
-import { 
-  CalendarIcon,
-  Clock 
-} from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface EventFilterFormProps {
   onClose: () => void;
   onApplyFilters: (filters: EventFilters) => void;
+  initialFilters?: EventFilters;
 }
 
 export interface EventFilters {
@@ -40,8 +30,8 @@ export interface EventFilters {
   status: string[];
 }
 
-const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
-  const [filters, setFilters] = useState<EventFilters>({
+const EventFilterForm = ({ onClose, onApplyFilters, initialFilters }: EventFilterFormProps) => {
+  const [filters, setFilters] = useState<EventFilters>(initialFilters || {
     eventType: [],
     client: "",
     product: "",
@@ -104,6 +94,19 @@ const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
     onApplyFilters(filters);
     onClose();
   };
+  
+  const getFilterCount = () => {
+    let count = 0;
+    if (filters.eventType.length > 0) count++;
+    if (filters.client) count++;
+    if (filters.product) count++;
+    if (filters.dateFrom) count++;
+    if (filters.dateTo) count++;
+    if (filters.status.length > 0) count++;
+    return count;
+  };
+  
+  const filterCount = getFilterCount();
 
   return (
     <div className="py-4 space-y-6">
@@ -119,7 +122,40 @@ const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
         </Button>
       </div>
 
+      {filterCount > 0 && (
+        <div className="bg-neutral-50 p-3 rounded-lg border border-neutral-200">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium flex items-center gap-1">
+              <Badge variant="default" className="bg-marsala text-white">
+                {filterCount}
+              </Badge>
+              Filtros aplicados
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 text-xs text-neutral-500"
+              onClick={handleReset}
+            >
+              Limpar todos
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-5">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={16} />
+          <Input 
+            name="client"
+            value={filters.client}
+            onChange={handleInputChange}
+            placeholder="Buscar por cliente..."
+            className="pl-9"
+          />
+        </div>
+        
         {/* Event Types */}
         <div className="space-y-2">
           <Label className="text-base font-medium">Tipo de Evento</Label>
@@ -128,13 +164,14 @@ const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
               <div 
                 key={type.id}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors",
+                  "px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors flex items-center gap-1",
                   filters.eventType.includes(type.id)
                     ? "bg-marsala text-white border-marsala"
                     : "bg-white text-neutral-700 border-neutral-300 hover:border-marsala"
                 )}
                 onClick={() => handleEventTypeChange(type.id)}
               >
+                {filters.eventType.includes(type.id) && <Check size={14} />}
                 {type.label}
               </div>
             ))}
@@ -200,17 +237,6 @@ const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
 
         {/* Client and Product */}
         <div className="space-y-2">
-          <Label htmlFor="client">Cliente</Label>
-          <Input 
-            id="client"
-            name="client"
-            value={filters.client}
-            onChange={handleInputChange}
-            placeholder="Nome do cliente"
-          />
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="product">Produto</Label>
           <Input 
             id="product"
@@ -229,13 +255,14 @@ const EventFilterForm = ({ onClose, onApplyFilters }: EventFilterFormProps) => {
               <div 
                 key={status.id}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors",
+                  "px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors flex items-center gap-1",
                   filters.status.includes(status.id)
                     ? "bg-marsala text-white border-marsala"
                     : "bg-white text-neutral-700 border-neutral-300 hover:border-marsala"
                 )}
                 onClick={() => handleStatusChange(status.id)}
               >
+                {filters.status.includes(status.id) && <Check size={14} />}
                 {status.label}
               </div>
             ))}

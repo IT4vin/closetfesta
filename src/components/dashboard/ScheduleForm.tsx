@@ -9,13 +9,21 @@ import { useScheduleFormData } from "./schedule/useScheduleFormData";
 
 interface ScheduleFormProps {
   onClose: () => void;
+  initialDate?: Date;
 }
 
-const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
+const ScheduleForm = ({ onClose, initialDate }: ScheduleFormProps) => {
   const { formData, date, setDate, handleChange, clients, products, hasChanges } = useScheduleFormData();
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Set the initial date if provided
+  useEffect(() => {
+    if (initialDate) {
+      setDate(initialDate);
+    }
+  }, [initialDate, setDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
