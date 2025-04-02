@@ -4,7 +4,7 @@ import MainLayout from "../components/layout/MainLayout";
 import CalendarComponent from "../components/calendar/Calendar";
 import { CalendarDays, Filter, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ScheduleForm from "@/components/dashboard/ScheduleForm";
 import EventFilterForm, { EventFilters } from "@/components/calendar/EventFilterForm";
 import { Button } from "@/components/ui/button";
