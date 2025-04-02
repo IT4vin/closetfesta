@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Clock, ShoppingBag, Calendar as CalendarIcon, Plus } from "lucide-react";
 import MainLayout from "../components/layout/MainLayout";
@@ -157,7 +158,7 @@ const Index = () => {
         </Dialog>
         
         {/* New Sale/Rental Sheet */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen} forceMount={false}>
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
             <SheetHeader>
               <SheetTitle className="text-2xl font-semibold">Novo Lançamento</SheetTitle>
