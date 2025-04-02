@@ -1,111 +1,80 @@
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
 
-export type Client = {
+interface Client {
   id: string;
   name: string;
-};
+}
 
-export type Product = {
+interface Product {
   id: string;
   name: string;
-};
+  category: string;
+}
 
-export type ScheduleFormDataType = {
+interface FormData {
   type: string;
   client: string;
   product: string;
   time: string;
-  duration: string;
   notes: string;
-};
+}
 
 export const useScheduleFormData = () => {
-  const [date, setDate] = useState<Date | undefined>();
-  const [formData, setFormData] = useState<ScheduleFormDataType>({
+  const [formData, setFormData] = useState<FormData>({
     type: "",
     client: "",
     product: "",
     time: "",
-    duration: "1",
-    notes: "",
+    notes: ""
   });
+  
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [initialFormData, setInitialFormData] = useState<FormData>(formData);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
-  const [clients, setClients] = useState<Client[]>([
-    { id: "1", name: "Maria Silva" },
-    { id: "2", name: "João Paulo" },
-    { id: "3", name: "Ana Beatriz" },
-    { id: "4", name: "Carlos Eduardo" },
-    { id: "5", name: "Fernanda Lima" },
-  ]);
+  // Mock clients and products for development - in a real app, these would come from an API
+  const clients: Client[] = [
+    { id: "1", name: "Maria Oliveira" },
+    { id: "2", name: "João Silva" },
+    { id: "3", name: "Ana Pereira" },
+    { id: "4", name: "Carlos Santos" },
+    { id: "5", name: "Luiza Costa" },
+  ];
   
-  const [products, setProducts] = useState<Product[]>([
-    { id: "vestido-a", name: "Vestido de Festa A" },
-    { id: "vestido-b", name: "Vestido de Noiva B" },
-    { id: "terno-c", name: "Terno C" },
-    { id: "vestido-d", name: "Vestido de Gala D" },
-    { id: "terno-e", name: "Terno de Casamento E" },
-  ]);
+  const products: Product[] = [
+    { id: "1", name: "Vestido Noiva Clássico", category: "Vestidos" },
+    { id: "2", name: "Terno Azul Marinho", category: "Ternos" },
+    { id: "3", name: "Vestido Madrinha Rosa", category: "Vestidos" },
+    { id: "4", name: "Smoking Preto", category: "Ternos" },
+    { id: "5", name: "Vestido de Festa Longo", category: "Vestidos" }
+  ];
   
-  const { toast } = useToast();
-
+  // Check for form changes
   useEffect(() => {
-    const hasFormData = formData.type || formData.client || formData.product || 
-                      formData.time || formData.notes || formData.duration !== "1" || date;
-    setHasChanges(hasFormData);
-  }, [formData, date]);
-
-  useEffect(() => {
-    const loadClients = async () => {
-      try {
-        console.log("Loaded clients:", clients.length);
-      } catch (error) {
-        console.error("Failed to load clients:", error);
-        toast({
-          title: "Erro ao carregar clientes",
-          description: "Não foi possível carregar a lista de clientes. Tente novamente.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    loadClients();
-  }, []);
-
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        console.log("Loaded products:", products.length);
-      } catch (error) {
-        console.error("Failed to load products:", error);
-        toast({
-          title: "Erro ao carregar produtos",
-          description: "Não foi possível carregar a lista de produtos. Tente novamente.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    loadProducts();
-  }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { name: string; value: string }) => {
-    const { name, value } = 'target' in e ? e.target : e;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const hasChanged = 
+      formData.type !== initialFormData.type ||
+      formData.client !== initialFormData.client ||
+      formData.product !== initialFormData.product ||
+      formData.time !== initialFormData.time ||
+      formData.notes !== initialFormData.notes;
+    
+    setHasChanges(hasChanged);
+  }, [formData, initialFormData]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-
+  
   return {
     formData,
+    setFormData,
     date,
     setDate,
     handleChange,
     clients,
     products,
-    hasChanges,
-    isCalendarOpen,
-    setIsCalendarOpen
+    hasChanges
   };
 };
