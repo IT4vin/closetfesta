@@ -146,10 +146,10 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
     }
   };
 
-  // Fixed calendar date selection handler
+  // Fixed calendar date selection handler that properly handles the types
   const handleDateSelect = (newDate: Date | undefined) => {
     setDate(newDate);
-    setIsCalendarOpen(false); // Close the calendar after selection
+    setIsCalendarOpen(false);
   };
 
   return (
