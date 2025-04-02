@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -146,7 +145,6 @@ const ScheduleForm = ({ onClose }: ScheduleFormProps) => {
     }
   };
 
-  // Fixed calendar date selection handler that properly handles the types
   const handleDateSelect = (newDate: Date | undefined) => {
     setDate(newDate);
     setIsCalendarOpen(false);
