@@ -1,18 +1,18 @@
 
 import { useState, useEffect } from "react";
 
-interface Client {
+export interface Client {
   id: string;
   name: string;
 }
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   category: string;
 }
 
-interface FormData {
+export interface FormData {
   type: string;
   client: string;
   product: string;

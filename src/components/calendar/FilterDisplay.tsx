@@ -3,7 +3,8 @@ import React from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EventFilters } from "./EventFilterForm";
+import { EventFilters } from "./types/filterTypes";
+import { EVENT_TYPES, STATUS_OPTIONS } from "./types/filterTypes";
 
 interface FilterDisplayProps {
   filters: EventFilters;
@@ -11,6 +12,17 @@ interface FilterDisplayProps {
 }
 
 const FilterDisplay = ({ filters, onClearFilters }: FilterDisplayProps) => {
+  // Helper function to get label from id
+  const getEventTypeLabel = (id: string): string => {
+    const eventType = EVENT_TYPES.find(type => type.id === id);
+    return eventType ? eventType.label : id;
+  };
+
+  const getStatusLabel = (id: string): string => {
+    const status = STATUS_OPTIONS.find(status => status.id === id);
+    return status ? status.label : id;
+  };
+
   return (
     <div className="mb-6 bg-neutral-50 p-4 rounded-lg border border-neutral-200">
       <div className="flex justify-between items-center">
@@ -28,9 +40,7 @@ const FilterDisplay = ({ filters, onClearFilters }: FilterDisplayProps) => {
       <div className="flex flex-wrap gap-2 mt-2">
         {filters.eventType.map(type => (
           <Badge key={type} variant="outline" className="bg-white">
-            Tipo: {type === 'prova' ? 'Prova' : 
-                   type === 'evento' ? 'Evento' : 
-                   type === 'ajuste' ? 'Ajuste' : 'Consultoria'}
+            Tipo: {getEventTypeLabel(type)}
           </Badge>
         ))}
         {filters.client && (
@@ -55,9 +65,7 @@ const FilterDisplay = ({ filters, onClearFilters }: FilterDisplayProps) => {
         )}
         {filters.status.map(status => (
           <Badge key={status} variant="outline" className="bg-white">
-            Status: {status === 'agendado' ? 'Agendado' : 
-                    status === 'confirmado' ? 'Confirmado' : 
-                    status === 'cancelado' ? 'Cancelado' : 'Concluído'}
+            Status: {getStatusLabel(status)}
           </Badge>
         ))}
       </div>

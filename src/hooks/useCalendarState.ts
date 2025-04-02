@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { EventFilters } from "@/components/calendar/EventFilterForm";
+import { EventFilters } from "@/components/calendar/types/filterTypes";
 
 interface TodayEvent {
   id: string;
