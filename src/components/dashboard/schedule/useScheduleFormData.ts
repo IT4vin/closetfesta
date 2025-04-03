@@ -11,8 +11,8 @@ export interface ScheduleFormData {
   type: string;
   notes: string;
   status: string;
-  product?: string; // Added product field
-  duration?: string; // Add duration field
+  product?: string;
+  duration: string; // Ensure duration is properly defined
 }
 
 // Define Client and Product interfaces
@@ -44,15 +44,34 @@ export const useScheduleFormData = (initialDate?: Date) => {
     duration: ""
   });
 
+  const [date, setDate] = useState<Date | undefined>(initialDate);
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Mock data for clients and products
+  const clients = [
+    { id: "1", name: "João Silva" },
+    { id: "2", name: "Maria Oliveira" },
+    { id: "3", name: "Pedro Santos" }
+  ];
+
+  const products = [
+    { id: "1", name: "Vestido de Noiva Elegance" },
+    { id: "2", name: "Terno Preto Classic" },
+    { id: "3", name: "Vestido Madrinha Rose" }
+  ];
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { name: string; value: string }
   ) => {
     const { name, value } = 'target' in e ? e.target : e;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setHasChanges(true);
   };
 
-  const handleDateChange = (date: Date | undefined) => {
-    setFormData(prev => ({ ...prev, date }));
+  const handleDateChange = (newDate: Date | undefined) => {
+    setFormData(prev => ({ ...prev, date: newDate }));
+    setDate(newDate);
+    setHasChanges(true);
   };
 
   const handleReset = () => {
@@ -69,6 +88,8 @@ export const useScheduleFormData = (initialDate?: Date) => {
       product: "",
       duration: ""
     });
+    setDate(initialDate);
+    setHasChanges(false);
   };
 
   const isValid = () => {
@@ -80,11 +101,22 @@ export const useScheduleFormData = (initialDate?: Date) => {
     );
   };
 
+  // Alias for handleInputChange to match the component expectations
+  const handleChange = handleInputChange;
+
   return {
     formData,
     handleInputChange,
     handleDateChange,
     handleReset,
-    isValid
+    isValid,
+    // Additional properties expected by ScheduleFormFields
+    date,
+    setDate,
+    handleChange,
+    clients,
+    products,
+    hasChanges,
+    setHasChanges
   };
 };
