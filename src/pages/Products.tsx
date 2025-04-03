@@ -2,12 +2,17 @@
 import React, { useState } from "react";
 import MainLayout from "../components/layout/MainLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Download, Upload, Filter, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import ProductForm from "@/components/products/ProductForm";
 import ProductsHeader from "@/components/products/ProductsHeader";
 import ProductsSearchBar from "@/components/products/ProductsSearchBar";
 import ProductsFilters from "@/components/products/ProductsFilters";
 import ProductsViewControls from "@/components/products/ProductsViewControls";
 import ProductsDisplay from "@/components/products/ProductsDisplay";
+import ImportProductsModal from "@/components/products/import-export/ImportProductsModal";
+import ExportProductsModal from "@/components/products/import-export/ExportProductsModal";
+import { useToast } from "@/hooks/use-toast";
 
 // In a real app, this would come from an API/database
 const products = [
@@ -104,6 +109,7 @@ const products = [
 ];
 
 const ProductsPage = () => {
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -117,6 +123,9 @@ const ProductsPage = () => {
     color: ""
   });
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [productsList, setProductsList] = useState(products);
   
   // Handle adding a new product
   const handleAddProduct = () => {
@@ -134,11 +143,46 @@ const ProductsPage = () => {
   const handleFormSubmit = (productData: any) => {
     console.log("Product data submitted:", productData);
     // Here you would typically send this data to your backend
+    
+    // For this demo, we'll update the local state
+    if (editingProduct) {
+      setProductsList(prev => 
+        prev.map(p => p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p)
+      );
+      toast({
+        title: "Produto atualizado",
+        description: `${productData.name} foi atualizado com sucesso`,
+      });
+    } else {
+      const newProduct = {
+        ...productData,
+        id: Date.now(), // Generate a temporary ID
+        dateAdded: new Date().toISOString().split('T')[0]
+      };
+      setProductsList(prev => [...prev, newProduct]);
+      toast({
+        title: "Produto adicionado",
+        description: `${productData.name} foi adicionado com sucesso`,
+      });
+    }
+    
     setModalOpen(false);
   };
   
+  // Handle import confirmation
+  const handleImportConfirm = (importedProducts: any[]) => {
+    // In a real app, you would send this to your backend
+    const newProducts = importedProducts.map((product, index) => ({
+      ...product,
+      id: Date.now() + index, // Generate temporary IDs
+      dateAdded: new Date().toISOString().split('T')[0]
+    }));
+    
+    setProductsList(prev => [...prev, ...newProducts]);
+  };
+  
   // Filter products based on search and filters
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = productsList.filter(product => {
     // Search filter
     if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
         !product.sku.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -188,14 +232,58 @@ const ProductsPage = () => {
     }));
   };
   
+  // Check if any filters are applied
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(value => value !== "");
+  };
+  
   return (
     <MainLayout>
       <div className="page-transition p-6">
-        <ProductsHeader
-          showFilters={showFilters}
-          setShowFilters={setShowFilters}
-          handleAddProduct={handleAddProduct}
-        />
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1">Produtos</h1>
+            <p className="text-neutral-500">Gerencie seus vestidos, ternos e acessórios</p>
+          </div>
+          
+          <div className="flex gap-3 flex-wrap">
+            <Button 
+              variant="outline" 
+              onClick={() => setImportModalOpen(true)}
+              className="secondary-button"
+            >
+              <Upload size={18} />
+              <span>Importar</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setExportModalOpen(true)}
+              className="secondary-button"
+            >
+              <Download size={18} />
+              <span>Exportar</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFilters(!showFilters)}
+              className="secondary-button"
+            >
+              <Filter size={18} />
+              <span>Filtrar</span>
+              {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </Button>
+            
+            <Button 
+              className="primary-button bg-marsala hover:bg-marsala/90"
+              onClick={handleAddProduct}
+            >
+              <Plus size={18} />
+              <span>Novo Produto</span>
+            </Button>
+          </div>
+        </div>
         
         <div className="premium-card mb-8 p-4">
           <div className="flex flex-col space-y-4">
@@ -238,6 +326,22 @@ const ProductsPage = () => {
           />
         </DialogContent>
       </Dialog>
+      
+      {/* Import Products Modal */}
+      <ImportProductsModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImportConfirm={handleImportConfirm}
+      />
+      
+      {/* Export Products Modal */}
+      <ExportProductsModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        products={productsList}
+        filteredProducts={filteredProducts}
+        hasFilters={hasActiveFilters()}
+      />
     </MainLayout>
   );
 };

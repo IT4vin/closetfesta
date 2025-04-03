@@ -11,7 +11,22 @@ export interface ScheduleFormData {
   type: string;
   notes: string;
   status: string;
+  product?: string; // Added product field
 }
+
+// Define Client and Product interfaces
+export interface Client {
+  id: string;
+  name: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+}
+
+// Rename ScheduleFormData to ScheduleFormDataType for backwards compatibility
+export type ScheduleFormDataType = ScheduleFormData;
 
 export const useScheduleFormData = (initialDate?: Date) => {
   const [formData, setFormData] = useState<ScheduleFormData>({
@@ -23,7 +38,8 @@ export const useScheduleFormData = (initialDate?: Date) => {
     location: "",
     type: "fitting", // default value
     notes: "",
-    status: "agendado" // default value
+    status: "agendado", // default value
+    product: ""
   });
 
   const handleInputChange = (
@@ -47,7 +63,8 @@ export const useScheduleFormData = (initialDate?: Date) => {
       location: "",
       type: "fitting",
       notes: "",
-      status: "agendado"
+      status: "agendado",
+      product: ""
     });
   };
 
