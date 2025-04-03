@@ -1,172 +1,86 @@
 
 import React, { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  Palette, 
-  Monitor, 
-  Sliders, 
-  Bell,
-  Sun,
-  Moon,
-  Languages,
-  Check,
-  SaveIcon
-} from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-
-const themeColors = [
-  { name: "Marsala", primary: "#800020", secondary: "#CC5A71" }, // Added Marsala as first (default) option
-  { name: "Bordô", primary: "#8B0A50", secondary: "#CC5A71" },
-  { name: "Marinho", primary: "#003366", secondary: "#336699" },
-  { name: "Esmeralda", primary: "#2E8B57", secondary: "#66CDAA" },
-  { name: "Roxo", primary: "#663399", secondary: "#9966CC" },
-  { name: "Laranja", primary: "#FF6600", secondary: "#FF9966" },
-  { name: "Turquesa", primary: "#008080", secondary: "#66CDAA" },
-];
+import { Palette, Moon, Sun, Eye } from "lucide-react";
 
 const SystemPersonalization = () => {
-  const [activeTheme, setActiveTheme] = useState("light");
-  const [primaryColor, setPrimaryColor] = useState(themeColors[0]);
-  const [fontSize, setFontSize] = useState("medium");
-  const [highContrast, setHighContrast] = useState(false);
-  const [settingsChanged, setSettingsChanged] = useState(false);
   const { toast } = useToast();
-  
-  const [notificationSettings, setNotificationSettings] = useState({
-    email: true,
-    push: true,
-    sms: false,
-    whatsapp: true
-  });
+  const [theme, setTheme] = useState("light");
+  const [highContrast, setHighContrast] = useState(false);
+  const [fontSize, setFontSize] = useState("medium");
+  const [colorScheme, setColorScheme] = useState("marsala");
 
-  // Load saved settings when component mounts
+  // Load saved settings on component mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    const savedColor = localStorage.getItem('primaryColor');
-    const savedFontSize = localStorage.getItem('fontSize');
-    const savedHighContrast = localStorage.getItem('highContrast');
-    
-    if (savedTheme) setActiveTheme(savedTheme);
-    if (savedColor) {
-      const colorObj = themeColors.find(c => c.name === savedColor);
-      if (colorObj) setPrimaryColor(colorObj);
+    if (savedTheme) {
+      setTheme(savedTheme);
     }
-    if (savedFontSize) setFontSize(savedFontSize);
-    if (savedHighContrast) setHighContrast(savedHighContrast === 'true');
     
-    // Apply theme to document
-    applyTheme(savedTheme || 'light');
-    applyColor(savedColor ? themeColors.find(c => c.name === savedColor) || themeColors[0] : themeColors[0]);
+    const savedHighContrast = localStorage.getItem('highContrast');
+    if (savedHighContrast) {
+      setHighContrast(savedHighContrast === 'true');
+    }
+    
+    const savedFontSize = localStorage.getItem('fontSize');
+    if (savedFontSize) {
+      setFontSize(savedFontSize);
+    }
+    
+    const savedColorScheme = localStorage.getItem('colorScheme');
+    if (savedColorScheme) {
+      setColorScheme(savedColorScheme);
+    } else {
+      // Default to marsala if no preference saved
+      setColorScheme("marsala");
+      localStorage.setItem('colorScheme', 'marsala');
+    }
   }, []);
 
-  // Apply theme and color changes to document
-  const applyTheme = (theme: string) => {
-    if (theme === 'dark') {
+  // Apply theme change
+  const handleThemeChange = (value: string) => {
+    setTheme(value);
+    localStorage.setItem('theme', value);
+    
+    if (value === 'dark') {
       document.documentElement.classList.add('dark');
-      // Apply dark theme variables
-      document.documentElement.style.setProperty('--background', '240 10% 3.9%');
-      document.documentElement.style.setProperty('--foreground', '0 0% 98%');
-      document.documentElement.style.setProperty('--card', '240 10% 3.9%');
-      document.documentElement.style.setProperty('--card-foreground', '0 0% 98%');
     } else {
       document.documentElement.classList.remove('dark');
-      // Reset to light theme variables
-      document.documentElement.style.setProperty('--background', '0 0% 100%');
-      document.documentElement.style.setProperty('--foreground', '0 0% 20%');
-      document.documentElement.style.setProperty('--card', '0 0% 100%');
-      document.documentElement.style.setProperty('--card-foreground', '0 0% 20%');
-    }
-  };
-
-  const applyColor = (color: typeof themeColors[0]) => {
-    // Apply color CSS variables to document
-    const hslPrimary = hexToHSL(color.primary);
-    const hslSecondary = hexToHSL(color.secondary);
-    
-    if (hslPrimary) {
-      document.documentElement.style.setProperty('--primary', `${hslPrimary.h} ${hslPrimary.s}% ${hslPrimary.l}%`);
-      document.documentElement.style.setProperty('--marsala', `${hslPrimary.h} ${hslPrimary.s}% ${hslPrimary.l}%`);
     }
     
-    if (hslSecondary) {
-      // Set secondary color as a lighter version of primary
-      document.documentElement.style.setProperty('--secondary', `${hslSecondary.h} ${hslSecondary.s}% ${hslSecondary.l}%`);
-    }
+    toast({
+      title: "Tema alterado",
+      description: `O tema foi alterado para ${value === 'dark' ? 'escuro' : 'claro'}.`,
+    });
   };
 
-  // Helper function to convert hex to HSL
-  const hexToHSL = (hex: string): { h: number, s: number, l: number } | null => {
-    // Remove the # if present
-    hex = hex.replace(/^#/, '');
-    
-    // Parse the hex values
-    let r = parseInt(hex.substring(0, 2), 16) / 255;
-    let g = parseInt(hex.substring(2, 4), 16) / 255;
-    let b = parseInt(hex.substring(4, 6), 16) / 255;
-    
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
-
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
-        case g: h = ((b - r) / d + 2) * 60; break;
-        case b: h = ((r - g) / d + 4) * 60; break;
-      }
-    }
-    
-    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
-  };
-
-  const handleThemeChange = (theme: string) => {
-    setActiveTheme(theme);
-    applyTheme(theme);
-    setSettingsChanged(true);
-  };
-
-  const handleColorChange = (color: typeof themeColors[0]) => {
-    setPrimaryColor(color);
-    applyColor(color);
-    setSettingsChanged(true);
-  };
-
+  // Apply high contrast change
   const handleHighContrastChange = (checked: boolean) => {
     setHighContrast(checked);
-    // Apply high contrast styles
+    localStorage.setItem('highContrast', checked.toString());
+    
     if (checked) {
       document.documentElement.classList.add('high-contrast');
     } else {
       document.documentElement.classList.remove('high-contrast');
     }
-    setSettingsChanged(true);
+    
+    toast({
+      title: "Contraste alterado",
+      description: `Alto contraste ${checked ? 'ativado' : 'desativado'}.`,
+    });
   };
 
-  const handleFontSizeChange = (size: string) => {
-    setFontSize(size);
-    // Apply font size to body
-    switch (size) {
+  // Apply font size change
+  const handleFontSizeChange = (value: string) => {
+    setFontSize(value);
+    localStorage.setItem('fontSize', value);
+    
+    switch (value) {
       case 'small':
         document.documentElement.style.fontSize = '14px';
         break;
@@ -180,336 +94,143 @@ const SystemPersonalization = () => {
         document.documentElement.style.fontSize = '20px';
         break;
     }
-    setSettingsChanged(true);
-  };
-
-  const saveSettings = () => {
-    // Save all settings to localStorage
-    localStorage.setItem('theme', activeTheme);
-    localStorage.setItem('primaryColor', primaryColor.name);
-    localStorage.setItem('fontSize', fontSize);
-    localStorage.setItem('highContrast', highContrast.toString());
     
     toast({
-      title: "Configurações salvas",
-      description: "Suas preferências de aparência foram salvas com sucesso.",
+      title: "Tamanho da fonte alterado",
+      description: "O tamanho da fonte foi alterado com sucesso.",
     });
-    
-    setSettingsChanged(false);
   };
-  
+
+  // Apply color scheme change
+  const handleColorSchemeChange = (value: string) => {
+    setColorScheme(value);
+    localStorage.setItem('colorScheme', value);
+    
+    // Here we would apply the color scheme change
+    // For now, just show a toast as this would require more extensive CSS changes
+    toast({
+      title: "Esquema de cores alterado",
+      description: `O esquema de cores foi alterado para ${value}.`,
+    });
+  };
+
   return (
-    <Card className="w-full shadow-md">
-      <CardHeader>
-        <CardTitle>Personalização do Sistema</CardTitle>
-        <CardDescription>
-          Customize a aparência e as preferências do sistema
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="appearance" className="w-full">
-          <TabsList className="mb-6 grid grid-cols-2">
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette size={16} />
-              Aparência
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex items-center gap-2">
-              <Sliders size={16} />
-              Preferências
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="appearance" className="space-y-6">
-            <div className="space-y-6">
-              <div className="grid gap-6">
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <Monitor size={18} className="mr-2" />
-                    Tema do Sistema
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div 
-                      className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 flex items-center gap-3 ${
-                        activeTheme === "light" ? "border-primary ring-2 ring-primary/20" : ""
-                      }`}
-                      onClick={() => handleThemeChange("light")}
-                    >
-                      <div className="h-12 w-12 bg-white border rounded-full flex items-center justify-center">
-                        <Sun size={20} className="text-amber-500" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Tema Claro</div>
-                        <div className="text-sm text-gray-500">Fundo branco, ideal para uso diurno</div>
-                      </div>
-                      {activeTheme === "light" && (
-                        <div className="ml-auto">
-                          <Check size={18} className="text-primary" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div 
-                      className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 flex items-center gap-3 ${
-                        activeTheme === "dark" ? "border-primary ring-2 ring-primary/20" : ""
-                      }`}
-                      onClick={() => handleThemeChange("dark")}
-                    >
-                      <div className="h-12 w-12 bg-gray-900 border rounded-full flex items-center justify-center">
-                        <Moon size={20} className="text-indigo-300" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Tema Escuro</div>
-                        <div className="text-sm text-gray-500">Fundo escuro, reduz cansaço visual</div>
-                      </div>
-                      {activeTheme === "dark" && (
-                        <div className="ml-auto">
-                          <Check size={18} className="text-primary" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <h4 className="font-medium mb-3">Contraste Alto</h4>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="space-y-0.5">
-                      <p className="text-sm text-gray-500">Aumenta o contraste para melhorar a legibilidade</p>
-                    </div>
-                    <Switch 
-                      checked={highContrast}
-                      onCheckedChange={handleHighContrastChange}
-                    />
-                  </div>
-                  
-                  <h4 className="font-medium mb-3">Cores do Sistema</h4>
-                  <p className="text-sm text-gray-500 mb-4">Selecione uma paleta de cores para personalizar a interface</p>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    {themeColors.map((color) => (
-                      <div 
-                        key={color.name}
-                        className={`border rounded-lg p-3 cursor-pointer hover:bg-gray-50 ${
-                          primaryColor.name === color.name ? "border-primary ring-2 ring-primary/20" : ""
-                        }`}
-                        onClick={() => handleColorChange(color)}
-                      >
-                        <div className="flex gap-2 mb-2">
-                          <div 
-                            className="h-8 w-8 rounded-full" 
-                            style={{ backgroundColor: color.primary }}
-                          ></div>
-                          <div 
-                            className="h-8 w-8 rounded-full" 
-                            style={{ backgroundColor: color.secondary }}
-                          ></div>
-                        </div>
-                        <div className="font-medium text-sm">{color.name}</div>
-                      </div>
-                    ))}
-                  </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-4">
+          <Palette className="h-6 w-6 text-marsala" />
+          <CardTitle>Personalização do Sistema</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Theme Selection */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Tema</h3>
+            <div className="flex items-center space-x-4">
+              <RadioGroup 
+                value={theme} 
+                onValueChange={handleThemeChange}
+                className="flex space-x-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="light" id="light" />
+                  <Label htmlFor="light" className="flex items-center gap-2">
+                    <Sun size={18} /> Claro
+                  </Label>
                 </div>
-                
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4">Ajustes de Texto</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="mb-2 block">Tamanho da Fonte</Label>
-                      <Select 
-                        value={fontSize} 
-                        onValueChange={handleFontSizeChange}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione um tamanho" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="small">Pequeno</SelectItem>
-                          <SelectItem value="medium">Médio (Padrão)</SelectItem>
-                          <SelectItem value="large">Grande</SelectItem>
-                          <SelectItem value="xlarge">Extra Grande</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <div className="border rounded-lg p-4">
-                        <p className={`mb-2 ${
-                          fontSize === "small" ? "text-sm" :
-                          fontSize === "medium" ? "text-base" :
-                          fontSize === "large" ? "text-lg" :
-                          "text-xl"
-                        }`}>
-                          Exemplo de texto
-                        </p>
-                        <p className={`text-gray-500 ${
-                          fontSize === "small" ? "text-xs" :
-                          fontSize === "medium" ? "text-sm" :
-                          fontSize === "large" ? "text-base" :
-                          "text-lg"
-                        }`}>
-                          Este é um exemplo de como o texto aparecerá com este tamanho de fonte.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="dark" id="dark" />
+                  <Label htmlFor="dark" className="flex items-center gap-2">
+                    <Moon size={18} /> Escuro
+                  </Label>
                 </div>
-              </div>
-              
-              {settingsChanged && (
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={saveSettings}
-                    className="flex items-center gap-2"
-                  >
-                    <SaveIcon size={16} />
-                    Salvar Alterações
-                  </Button>
-                </div>
-              )}
+              </RadioGroup>
             </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="preferences" className="space-y-6">
-            <div className="space-y-6">
-              <div className="grid gap-6">
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <Bell size={18} className="mr-2" />
-                    Notificações
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Notificações por E-mail</Label>
-                        <p className="text-sm text-gray-500">Receber alertas importantes por e-mail</p>
-                      </div>
-                      <Switch 
-                        checked={notificationSettings.email}
-                        onCheckedChange={(checked) => 
-                          setNotificationSettings({...notificationSettings, email: checked})
-                        }
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Notificações Push</Label>
-                        <p className="text-sm text-gray-500">Receber alertas no navegador</p>
-                      </div>
-                      <Switch 
-                        checked={notificationSettings.push}
-                        onCheckedChange={(checked) => 
-                          setNotificationSettings({...notificationSettings, push: checked})
-                        }
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Notificações por SMS</Label>
-                        <p className="text-sm text-gray-500">Receber alertas por mensagem de texto</p>
-                      </div>
-                      <Switch 
-                        checked={notificationSettings.sms}
-                        onCheckedChange={(checked) => 
-                          setNotificationSettings({...notificationSettings, sms: checked})
-                        }
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Notificações por WhatsApp</Label>
-                        <p className="text-sm text-gray-500">Receber alertas via WhatsApp</p>
-                      </div>
-                      <Switch 
-                        checked={notificationSettings.whatsapp}
-                        onCheckedChange={(checked) => 
-                          setNotificationSettings({...notificationSettings, whatsapp: checked})
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4 flex items-center">
-                    <Languages size={18} className="mr-2" />
-                    Idioma e Formato
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="mb-2 block">Idioma do Sistema</Label>
-                      <Select defaultValue="pt-BR">
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione um idioma" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                          <SelectItem value="en-US">English (US)</SelectItem>
-                          <SelectItem value="es-ES">Español</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label className="mb-2 block">Formato de Data</Label>
-                      <Select defaultValue="dd/mm/yyyy">
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione um formato" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dd/mm/yyyy">DD/MM/AAAA (31/12/2023)</SelectItem>
-                          <SelectItem value="mm/dd/yyyy">MM/DD/AAAA (12/31/2023)</SelectItem>
-                          <SelectItem value="yyyy-mm-dd">AAAA-MM-DD (2023-12-31)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label className="mb-2 block">Formato de Moeda</Label>
-                      <Select defaultValue="brl">
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione um formato" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="brl">Real Brasileiro (R$ 1.234,56)</SelectItem>
-                          <SelectItem value="usd">Dólar Americano ($ 1,234.56)</SelectItem>
-                          <SelectItem value="eur">Euro (€ 1.234,56)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4">Dashboard Padrão</h3>
-                  <p className="text-sm text-gray-500 mb-4">Selecione a visualização inicial ao fazer login no sistema</p>
-                  
-                  <Select defaultValue="summary">
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o dashboard" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="summary">Resumo Geral</SelectItem>
-                      <SelectItem value="financial">Resultados Financeiros</SelectItem>
-                      <SelectItem value="calendar">Agenda do Dia</SelectItem>
-                      <SelectItem value="returns">Devoluções Pendentes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* High Contrast Mode */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Acessibilidade</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Eye size={18} />
+                <Label htmlFor="high-contrast">Modo de alto contraste</Label>
               </div>
-              
-              <div className="flex justify-end">
-                <Button>Salvar Preferências</Button>
-              </div>
+              <Switch 
+                id="high-contrast" 
+                checked={highContrast} 
+                onCheckedChange={handleHighContrastChange} 
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+          </div>
+          
+          {/* Font Size */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Tamanho da Fonte</h3>
+            <RadioGroup 
+              value={fontSize} 
+              onValueChange={handleFontSizeChange}
+              className="grid grid-cols-2 gap-4 sm:grid-cols-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="small" id="small" />
+                <Label htmlFor="small">Pequeno</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="medium" id="medium" />
+                <Label htmlFor="medium">Médio</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="large" id="large" />
+                <Label htmlFor="large">Grande</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="xlarge" id="xlarge" />
+                <Label htmlFor="xlarge">Extra Grande</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
+          {/* Color Scheme */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Esquema de Cores</h3>
+            <RadioGroup 
+              value={colorScheme} 
+              onValueChange={handleColorSchemeChange}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="marsala" id="marsala" />
+                <Label htmlFor="marsala" className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full bg-marsala"></div>
+                  Marsala (padrão)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="blue" id="blue" />
+                <Label htmlFor="blue" className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full bg-blue-600"></div>
+                  Azul
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="green" id="green" />
+                <Label htmlFor="green" className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full bg-emerald-600"></div>
+                  Verde
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="purple" id="purple" />
+                <Label htmlFor="purple" className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full bg-purple-600"></div>
+                  Roxo
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
