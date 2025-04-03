@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -27,10 +27,13 @@ import {
   Sun,
   Moon,
   Languages,
-  Check
+  Check,
+  SaveIcon
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const themeColors = [
+  { name: "Marsala", primary: "#800020", secondary: "#CC5A71" }, // Added Marsala as first (default) option
   { name: "Bordô", primary: "#8B0A50", secondary: "#CC5A71" },
   { name: "Marinho", primary: "#003366", secondary: "#336699" },
   { name: "Esmeralda", primary: "#2E8B57", secondary: "#66CDAA" },
@@ -43,12 +46,157 @@ const SystemPersonalization = () => {
   const [activeTheme, setActiveTheme] = useState("light");
   const [primaryColor, setPrimaryColor] = useState(themeColors[0]);
   const [fontSize, setFontSize] = useState("medium");
+  const [highContrast, setHighContrast] = useState(false);
+  const [settingsChanged, setSettingsChanged] = useState(false);
+  const { toast } = useToast();
+  
   const [notificationSettings, setNotificationSettings] = useState({
     email: true,
     push: true,
     sms: false,
     whatsapp: true
   });
+
+  // Load saved settings when component mounts
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const savedColor = localStorage.getItem('primaryColor');
+    const savedFontSize = localStorage.getItem('fontSize');
+    const savedHighContrast = localStorage.getItem('highContrast');
+    
+    if (savedTheme) setActiveTheme(savedTheme);
+    if (savedColor) {
+      const colorObj = themeColors.find(c => c.name === savedColor);
+      if (colorObj) setPrimaryColor(colorObj);
+    }
+    if (savedFontSize) setFontSize(savedFontSize);
+    if (savedHighContrast) setHighContrast(savedHighContrast === 'true');
+    
+    // Apply theme to document
+    applyTheme(savedTheme || 'light');
+    applyColor(savedColor ? themeColors.find(c => c.name === savedColor) || themeColors[0] : themeColors[0]);
+  }, []);
+
+  // Apply theme and color changes to document
+  const applyTheme = (theme: string) => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      // Apply dark theme variables
+      document.documentElement.style.setProperty('--background', '240 10% 3.9%');
+      document.documentElement.style.setProperty('--foreground', '0 0% 98%');
+      document.documentElement.style.setProperty('--card', '240 10% 3.9%');
+      document.documentElement.style.setProperty('--card-foreground', '0 0% 98%');
+    } else {
+      document.documentElement.classList.remove('dark');
+      // Reset to light theme variables
+      document.documentElement.style.setProperty('--background', '0 0% 100%');
+      document.documentElement.style.setProperty('--foreground', '0 0% 20%');
+      document.documentElement.style.setProperty('--card', '0 0% 100%');
+      document.documentElement.style.setProperty('--card-foreground', '0 0% 20%');
+    }
+  };
+
+  const applyColor = (color: typeof themeColors[0]) => {
+    // Apply color CSS variables to document
+    const hslPrimary = hexToHSL(color.primary);
+    const hslSecondary = hexToHSL(color.secondary);
+    
+    if (hslPrimary) {
+      document.documentElement.style.setProperty('--primary', `${hslPrimary.h} ${hslPrimary.s}% ${hslPrimary.l}%`);
+      document.documentElement.style.setProperty('--marsala', `${hslPrimary.h} ${hslPrimary.s}% ${hslPrimary.l}%`);
+    }
+    
+    if (hslSecondary) {
+      // Set secondary color as a lighter version of primary
+      document.documentElement.style.setProperty('--secondary', `${hslSecondary.h} ${hslSecondary.s}% ${hslSecondary.l}%`);
+    }
+  };
+
+  // Helper function to convert hex to HSL
+  const hexToHSL = (hex: string): { h: number, s: number, l: number } | null => {
+    // Remove the # if present
+    hex = hex.replace(/^#/, '');
+    
+    // Parse the hex values
+    let r = parseInt(hex.substring(0, 2), 16) / 255;
+    let g = parseInt(hex.substring(2, 4), 16) / 255;
+    let b = parseInt(hex.substring(4, 6), 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
+        case g: h = ((b - r) / d + 2) * 60; break;
+        case b: h = ((r - g) / d + 4) * 60; break;
+      }
+    }
+    
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+  };
+
+  const handleThemeChange = (theme: string) => {
+    setActiveTheme(theme);
+    applyTheme(theme);
+    setSettingsChanged(true);
+  };
+
+  const handleColorChange = (color: typeof themeColors[0]) => {
+    setPrimaryColor(color);
+    applyColor(color);
+    setSettingsChanged(true);
+  };
+
+  const handleHighContrastChange = (checked: boolean) => {
+    setHighContrast(checked);
+    // Apply high contrast styles
+    if (checked) {
+      document.documentElement.classList.add('high-contrast');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+    }
+    setSettingsChanged(true);
+  };
+
+  const handleFontSizeChange = (size: string) => {
+    setFontSize(size);
+    // Apply font size to body
+    switch (size) {
+      case 'small':
+        document.documentElement.style.fontSize = '14px';
+        break;
+      case 'medium':
+        document.documentElement.style.fontSize = '16px';
+        break;
+      case 'large':
+        document.documentElement.style.fontSize = '18px';
+        break;
+      case 'xlarge':
+        document.documentElement.style.fontSize = '20px';
+        break;
+    }
+    setSettingsChanged(true);
+  };
+
+  const saveSettings = () => {
+    // Save all settings to localStorage
+    localStorage.setItem('theme', activeTheme);
+    localStorage.setItem('primaryColor', primaryColor.name);
+    localStorage.setItem('fontSize', fontSize);
+    localStorage.setItem('highContrast', highContrast.toString());
+    
+    toast({
+      title: "Configurações salvas",
+      description: "Suas preferências de aparência foram salvas com sucesso.",
+    });
+    
+    setSettingsChanged(false);
+  };
   
   return (
     <Card className="w-full shadow-md">
@@ -83,9 +231,9 @@ const SystemPersonalization = () => {
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div 
                       className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 flex items-center gap-3 ${
-                        activeTheme === "light" ? "border-primary-500 ring-2 ring-primary/20" : ""
+                        activeTheme === "light" ? "border-primary ring-2 ring-primary/20" : ""
                       }`}
-                      onClick={() => setActiveTheme("light")}
+                      onClick={() => handleThemeChange("light")}
                     >
                       <div className="h-12 w-12 bg-white border rounded-full flex items-center justify-center">
                         <Sun size={20} className="text-amber-500" />
@@ -103,9 +251,9 @@ const SystemPersonalization = () => {
                     
                     <div 
                       className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 flex items-center gap-3 ${
-                        activeTheme === "dark" ? "border-primary-500 ring-2 ring-primary/20" : ""
+                        activeTheme === "dark" ? "border-primary ring-2 ring-primary/20" : ""
                       }`}
-                      onClick={() => setActiveTheme("dark")}
+                      onClick={() => handleThemeChange("dark")}
                     >
                       <div className="h-12 w-12 bg-gray-900 border rounded-full flex items-center justify-center">
                         <Moon size={20} className="text-indigo-300" />
@@ -127,7 +275,10 @@ const SystemPersonalization = () => {
                     <div className="space-y-0.5">
                       <p className="text-sm text-gray-500">Aumenta o contraste para melhorar a legibilidade</p>
                     </div>
-                    <Switch />
+                    <Switch 
+                      checked={highContrast}
+                      onCheckedChange={handleHighContrastChange}
+                    />
                   </div>
                   
                   <h4 className="font-medium mb-3">Cores do Sistema</h4>
@@ -140,7 +291,7 @@ const SystemPersonalization = () => {
                         className={`border rounded-lg p-3 cursor-pointer hover:bg-gray-50 ${
                           primaryColor.name === color.name ? "border-primary ring-2 ring-primary/20" : ""
                         }`}
-                        onClick={() => setPrimaryColor(color)}
+                        onClick={() => handleColorChange(color)}
                       >
                         <div className="flex gap-2 mb-2">
                           <div 
@@ -166,7 +317,7 @@ const SystemPersonalization = () => {
                       <Label className="mb-2 block">Tamanho da Fonte</Label>
                       <Select 
                         value={fontSize} 
-                        onValueChange={setFontSize}
+                        onValueChange={handleFontSizeChange}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione um tamanho" />
@@ -203,6 +354,18 @@ const SystemPersonalization = () => {
                   </div>
                 </div>
               </div>
+              
+              {settingsChanged && (
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={saveSettings}
+                    className="flex items-center gap-2"
+                  >
+                    <SaveIcon size={16} />
+                    Salvar Alterações
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
           
