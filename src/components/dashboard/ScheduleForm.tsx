@@ -13,17 +13,45 @@ interface ScheduleFormProps {
 }
 
 const ScheduleForm = ({ onClose, initialDate }: ScheduleFormProps) => {
-  const { formData, date, setDate, handleChange, clients, products, hasChanges } = useScheduleFormData();
+  const { formData, handleInputChange, handleDateChange, handleReset, isValid } = useScheduleFormData(initialDate);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(initialDate);
   const { toast } = useToast();
-
+  
   // Set the initial date if provided
   useEffect(() => {
     if (initialDate) {
       setDate(initialDate);
     }
-  }, [initialDate, setDate]);
+  }, [initialDate]);
+
+  // Mock clients and products for the form
+  const clients = [
+    { id: "1", name: "João Silva" },
+    { id: "2", name: "Maria Oliveira" },
+    { id: "3", name: "Pedro Santos" }
+  ];
+
+  const products = [
+    { id: "1", name: "Vestido de Noiva Elegance" },
+    { id: "2", name: "Terno Preto Classic" },
+    { id: "3", name: "Vestido Madrinha Rose" }
+  ];
+
+  // Update form data when date changes
+  useEffect(() => {
+    if (date) {
+      handleDateChange(date);
+      setHasChanges(true);
+    }
+  }, [date, handleDateChange]);
+
+  // Update hasChanges when form data changes
+  useEffect(() => {
+    setHasChanges(true);
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +95,11 @@ const ScheduleForm = ({ onClose, initialDate }: ScheduleFormProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { name: string; value: string }) => {
+    handleInputChange(e);
+    setHasChanges(true);
   };
 
   const handleClose = () => {

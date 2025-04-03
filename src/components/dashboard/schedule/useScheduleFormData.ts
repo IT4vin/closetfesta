@@ -12,6 +12,7 @@ export interface ScheduleFormData {
   notes: string;
   status: string;
   product?: string; // Added product field
+  duration?: string; // Add duration field
 }
 
 // Define Client and Product interfaces
@@ -39,7 +40,8 @@ export const useScheduleFormData = (initialDate?: Date) => {
     type: "fitting", // default value
     notes: "",
     status: "agendado", // default value
-    product: ""
+    product: "",
+    duration: ""
   });
 
   const handleInputChange = (
@@ -64,7 +66,8 @@ export const useScheduleFormData = (initialDate?: Date) => {
       type: "fitting",
       notes: "",
       status: "agendado",
-      product: ""
+      product: "",
+      duration: ""
     });
   };
 
