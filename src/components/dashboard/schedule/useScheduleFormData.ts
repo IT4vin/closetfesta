@@ -1,80 +1,70 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export interface Client {
-  id: string;
-  name: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  category: string;
-}
-
-export interface FormData {
-  type: string;
+export interface ScheduleFormData {
+  title: string;
   client: string;
-  product: string;
+  date: Date | undefined;
   time: string;
+  endTime: string;
+  location: string;
+  type: string;
   notes: string;
+  status: string;
 }
 
-export const useScheduleFormData = () => {
-  const [formData, setFormData] = useState<FormData>({
-    type: "",
+export const useScheduleFormData = (initialDate?: Date) => {
+  const [formData, setFormData] = useState<ScheduleFormData>({
+    title: "",
     client: "",
-    product: "",
+    date: initialDate || undefined,
     time: "",
-    notes: ""
+    endTime: "",
+    location: "",
+    type: "fitting", // default value
+    notes: "",
+    status: "agendado" // default value
   });
-  
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [initialFormData, setInitialFormData] = useState<FormData>(formData);
-  const [hasChanges, setHasChanges] = useState(false);
-  
-  // Mock clients and products for development - in a real app, these would come from an API
-  const clients: Client[] = [
-    { id: "1", name: "Maria Oliveira" },
-    { id: "2", name: "João Silva" },
-    { id: "3", name: "Ana Pereira" },
-    { id: "4", name: "Carlos Santos" },
-    { id: "5", name: "Luiza Costa" },
-  ];
-  
-  const products: Product[] = [
-    { id: "1", name: "Vestido Noiva Clássico", category: "Vestidos" },
-    { id: "2", name: "Terno Azul Marinho", category: "Ternos" },
-    { id: "3", name: "Vestido Madrinha Rosa", category: "Vestidos" },
-    { id: "4", name: "Smoking Preto", category: "Ternos" },
-    { id: "5", name: "Vestido de Festa Longo", category: "Vestidos" }
-  ];
-  
-  // Check for form changes
-  useEffect(() => {
-    const hasChanged = 
-      formData.type !== initialFormData.type ||
-      formData.client !== initialFormData.client ||
-      formData.product !== initialFormData.product ||
-      formData.time !== initialFormData.time ||
-      formData.notes !== initialFormData.notes;
-    
-    setHasChanges(hasChanged);
-  }, [formData, initialFormData]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { name: string; value: string }
+  ) => {
+    const { name, value } = 'target' in e ? e.target : e;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData(prev => ({ ...prev, date }));
+  };
+
+  const handleReset = () => {
+    setFormData({
+      title: "",
+      client: "",
+      date: initialDate || undefined,
+      time: "",
+      endTime: "",
+      location: "",
+      type: "fitting",
+      notes: "",
+      status: "agendado"
+    });
+  };
+
+  const isValid = () => {
+    return (
+      formData.title.trim() !== "" && 
+      formData.client.trim() !== "" && 
+      formData.date !== undefined && 
+      formData.time.trim() !== ""
+    );
+  };
+
   return {
     formData,
-    setFormData,
-    date,
-    setDate,
-    handleChange,
-    clients,
-    products,
-    hasChanges
+    handleInputChange,
+    handleDateChange,
+    handleReset,
+    isValid
   };
 };

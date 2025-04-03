@@ -1,7 +1,6 @@
 
 import React from "react";
 import MainLayout from "../components/layout/MainLayout";
-import CalendarComponent from "../components/calendar/Calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ScheduleForm from "@/components/dashboard/ScheduleForm";
@@ -9,6 +8,7 @@ import EventFilterForm from "@/components/calendar/EventFilterForm";
 import CalendarHeader from "@/components/calendar/CalendarHeader";
 import FilterDisplay from "@/components/calendar/FilterDisplay";
 import TodayEvents from "@/components/calendar/TodayEvents";
+import CalendarView from "@/components/calendar/CalendarView";
 import { useCalendarState } from "@/hooks/useCalendarState";
 
 const CalendarPage = () => {
@@ -44,7 +44,7 @@ const CalendarPage = () => {
         
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-2/3">
-            <CalendarComponent />
+            <CalendarView />
           </div>
           
           <div className="w-full lg:w-1/3">
