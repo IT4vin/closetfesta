@@ -40,6 +40,35 @@ const Settings = () => {
           break;
       }
     }
+    
+    // Apply color scheme
+    const savedColorScheme = localStorage.getItem('colorScheme');
+    if (savedColorScheme) {
+      // Remove all current color scheme classes
+      document.documentElement.classList.remove('theme-marsala', 'theme-blue', 'theme-green', 'theme-purple');
+      
+      // Add the new color scheme class
+      document.documentElement.classList.add(`theme-${savedColorScheme}`);
+      
+      // Update the CSS variable for primary color based on the scheme
+      switch (savedColorScheme) {
+        case 'marsala':
+          document.documentElement.style.setProperty('--marsala', '353 69% 25%');
+          break;
+        case 'blue':
+          document.documentElement.style.setProperty('--marsala', '210 100% 50%');
+          break;
+        case 'green':
+          document.documentElement.style.setProperty('--marsala', '142 76% 36%');
+          break;
+        case 'purple':
+          document.documentElement.style.setProperty('--marsala', '271 76% 53%');
+          break;
+      }
+    } else {
+      // Default to marsala
+      document.documentElement.classList.add('theme-marsala');
+    }
   }, []);
 
   return (

@@ -19,25 +19,30 @@ const SystemPersonalization = () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {
       setTheme(savedTheme);
+      applyTheme(savedTheme);
     }
     
     const savedHighContrast = localStorage.getItem('highContrast');
     if (savedHighContrast) {
       setHighContrast(savedHighContrast === 'true');
+      applyHighContrast(savedHighContrast === 'true');
     }
     
     const savedFontSize = localStorage.getItem('fontSize');
     if (savedFontSize) {
       setFontSize(savedFontSize);
+      applyFontSize(savedFontSize);
     }
     
     const savedColorScheme = localStorage.getItem('colorScheme');
     if (savedColorScheme) {
       setColorScheme(savedColorScheme);
+      applyColorScheme(savedColorScheme);
     } else {
       // Default to marsala if no preference saved
       setColorScheme("marsala");
       localStorage.setItem('colorScheme', 'marsala');
+      applyColorScheme("marsala");
     }
   }, []);
 
@@ -45,12 +50,7 @@ const SystemPersonalization = () => {
   const handleThemeChange = (value: string) => {
     setTheme(value);
     localStorage.setItem('theme', value);
-    
-    if (value === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    applyTheme(value);
     
     toast({
       title: "Tema alterado",
@@ -58,16 +58,19 @@ const SystemPersonalization = () => {
     });
   };
 
+  const applyTheme = (themeValue: string) => {
+    if (themeValue === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   // Apply high contrast change
   const handleHighContrastChange = (checked: boolean) => {
     setHighContrast(checked);
     localStorage.setItem('highContrast', checked.toString());
-    
-    if (checked) {
-      document.documentElement.classList.add('high-contrast');
-    } else {
-      document.documentElement.classList.remove('high-contrast');
-    }
+    applyHighContrast(checked);
     
     toast({
       title: "Contraste alterado",
@@ -75,12 +78,28 @@ const SystemPersonalization = () => {
     });
   };
 
+  const applyHighContrast = (highContrastValue: boolean) => {
+    if (highContrastValue) {
+      document.documentElement.classList.add('high-contrast');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+    }
+  };
+
   // Apply font size change
   const handleFontSizeChange = (value: string) => {
     setFontSize(value);
     localStorage.setItem('fontSize', value);
+    applyFontSize(value);
     
-    switch (value) {
+    toast({
+      title: "Tamanho da fonte alterado",
+      description: "O tamanho da fonte foi alterado com sucesso.",
+    });
+  };
+
+  const applyFontSize = (fontSizeValue: string) => {
+    switch (fontSizeValue) {
       case 'small':
         document.documentElement.style.fontSize = '14px';
         break;
@@ -94,24 +113,42 @@ const SystemPersonalization = () => {
         document.documentElement.style.fontSize = '20px';
         break;
     }
-    
-    toast({
-      title: "Tamanho da fonte alterado",
-      description: "O tamanho da fonte foi alterado com sucesso.",
-    });
   };
 
   // Apply color scheme change
   const handleColorSchemeChange = (value: string) => {
     setColorScheme(value);
     localStorage.setItem('colorScheme', value);
+    applyColorScheme(value);
     
-    // Here we would apply the color scheme change
-    // For now, just show a toast as this would require more extensive CSS changes
     toast({
       title: "Esquema de cores alterado",
       description: `O esquema de cores foi alterado para ${value}.`,
     });
+  };
+
+  const applyColorScheme = (colorSchemeValue: string) => {
+    // Remove all current color scheme classes
+    document.documentElement.classList.remove('theme-marsala', 'theme-blue', 'theme-green', 'theme-purple');
+    
+    // Add the new color scheme class
+    document.documentElement.classList.add(`theme-${colorSchemeValue}`);
+    
+    // Update the CSS variable for primary color based on the scheme
+    switch (colorSchemeValue) {
+      case 'marsala':
+        document.documentElement.style.setProperty('--marsala', '353 69% 25%');
+        break;
+      case 'blue':
+        document.documentElement.style.setProperty('--marsala', '210 100% 50%');
+        break;
+      case 'green':
+        document.documentElement.style.setProperty('--marsala', '142 76% 36%');
+        break;
+      case 'purple':
+        document.documentElement.style.setProperty('--marsala', '271 76% 53%');
+        break;
+    }
   };
 
   return (
