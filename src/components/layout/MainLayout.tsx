@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
+import ThemeToggle from "./ThemeToggle";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -37,10 +38,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-200">
       <Sidebar onToggle={handleSidebarToggle} />
       <main className={`flex-1 overflow-x-hidden transition-all duration-300 ${sidebarOpen && !isMobile ? 'pl-64' : 'pl-0'}`}>
         <div className="container mx-auto max-w-7xl px-6 md:px-8 py-6">
+          <div className="flex justify-end mb-4">
+            <ThemeToggle />
+          </div>
           {children}
         </div>
       </main>
