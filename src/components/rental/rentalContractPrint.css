@@ -1,0 +1,43 @@
+
+@media print {
+  /* Hide everything except the contract when printing */
+  body * {
+    visibility: hidden;
+  }
+  
+  .contract-content, 
+  .contract-content * {
+    visibility: visible;
+  }
+  
+  .contract-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    background-color: white;
+    color: black;
+  }
+  
+  /* Hide buttons and UI elements when printing */
+  .print:hidden {
+    display: none !important;
+  }
+  
+  /* Ensure tables display properly */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  
+  /* Force page breaks where needed */
+  .page-break {
+    page-break-after: always;
+  }
+}
