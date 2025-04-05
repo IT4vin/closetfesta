@@ -491,7 +491,7 @@ const StoreIntegrationSection = () => {
                           <Key className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" />
                           <div>
                             <p className="font-medium mb-1">Onde encontrar minhas credenciais?</p>
-                            <p>Acesse o <a href="https://dashboard.pagar.me/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Dashboard do Pagar.me</a>, faça login e navegue até "Configurações" > "Chaves de API".</p>
+                            <p>Acesse o <a href="https://dashboard.pagar.me/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Dashboard do Pagar.me</a>, faça login e navegue até "Configurações" {'>'} "Chaves de API".</p>
                           </div>
                         </div>
                       </div>
