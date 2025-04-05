@@ -5,18 +5,20 @@ import InventoryDashboard from "./InventoryDashboard";
 import InventoryList from "./InventoryList";
 import InventoryTransactions from "./InventoryTransactions";
 import InventoryAlerts from "./InventoryAlerts";
+import InventoryReports from "./InventoryReports";
 import { 
   BarChart3, 
   Package, 
   ArrowRightLeft, 
-  AlertTriangle
+  AlertTriangle,
+  FileBarChart 
 } from "lucide-react";
 
 const InventoryOverview = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8">
+        <TabsList className="grid grid-cols-5 mb-8">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
             <BarChart3 size={16} />
             <span className="hidden sm:inline">Dashboard</span>
@@ -32,6 +34,10 @@ const InventoryOverview = () => {
           <TabsTrigger value="alerts" className="flex items-center gap-2">
             <AlertTriangle size={16} />
             <span className="hidden sm:inline">Alertas</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileBarChart size={16} />
+            <span className="hidden sm:inline">Relatórios</span>
           </TabsTrigger>
         </TabsList>
         
@@ -49,6 +55,10 @@ const InventoryOverview = () => {
         
         <TabsContent value="alerts" className="space-y-6">
           <InventoryAlerts />
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-6">
+          <InventoryReports />
         </TabsContent>
       </Tabs>
     </div>
