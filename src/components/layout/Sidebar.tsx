@@ -10,7 +10,8 @@ import {
   BarChart3, 
   Settings, 
   Menu, 
-  X
+  X,
+  BoxesIcon
 } from "lucide-react";
 
 interface SidebarProps {
@@ -60,6 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
     { name: "Produtos", path: "/products", icon: <Package size={20} /> },
     { name: "Clientes", path: "/clients", icon: <Users size={20} /> },
     { name: "Financeiro", path: "/financial", icon: <DollarSign size={20} /> },
+    { name: "Estoque", path: "/inventory", icon: <BoxesIcon size={20} /> },
     { name: "Relatórios", path: "/reports", icon: <BarChart3 size={20} /> },
     { name: "Configurações", path: "/settings", icon: <Settings size={20} /> },
   ];
