@@ -42,7 +42,7 @@ const Inventory = () => {
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">Adicionar Produto ao Estoque</DialogTitle>
             </DialogHeader>
-            <InventoryForm onClose={() => setIsAddProductOpen(false)} />
+            <InventoryForm product={null} onClose={() => setIsAddProductOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
