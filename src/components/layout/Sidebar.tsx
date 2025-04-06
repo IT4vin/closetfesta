@@ -1,121 +1,53 @@
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
+import UserProfile from "./UserProfile";
 
-import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  Calendar, 
-  Package, 
-  Users, 
-  DollarSign, 
-  BarChart3, 
-  Settings, 
-  Menu, 
-  X,
-  BoxesIcon
-} from "lucide-react";
-
-interface SidebarProps {
-  onToggle?: (isOpen: boolean) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ onToggle }) => {
-  const location = useLocation();
-  const [expanded, setExpanded] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkIsMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setExpanded(false);
-      } else {
-        setExpanded(true);
-      }
-    };
-
-    // Initial check
-    checkIsMobile();
-
-    // Add event listener
-    window.addEventListener("resize", checkIsMobile);
-
-    // Cleanup
-    return () => window.removeEventListener("resize", checkIsMobile);
-  }, []);
-
-  useEffect(() => {
-    // Notify parent component when sidebar state changes
-    if (onToggle) {
-      onToggle(expanded);
-    }
-  }, [expanded, onToggle]);
-
-  const toggleSidebar = () => {
-    setExpanded(!expanded);
-  };
-
-  const menuItems = [
-    { name: "Dashboard", path: "/", icon: <Home size={20} /> },
-    { name: "Agenda", path: "/calendar", icon: <Calendar size={20} /> },
-    { name: "Produtos", path: "/products", icon: <Package size={20} /> },
-    { name: "Clientes", path: "/clients", icon: <Users size={20} /> },
-    { name: "Financeiro", path: "/financial", icon: <DollarSign size={20} /> },
-    { name: "Estoque", path: "/inventory", icon: <BoxesIcon size={20} /> },
-    { name: "Relatórios", path: "/reports", icon: <BarChart3 size={20} /> },
-    { name: "Configurações", path: "/settings", icon: <Settings size={20} /> },
+const Sidebar = () => {
+  const navigation = [
+    { name: "Dashboard", href: "/", icon: BarChart },
+    { name: "Clientes", href: "/clients", icon: Users },
+    { name: "Produtos", href: "/products", icon: ShoppingBag },
+    { name: "Agendamentos", href: "/calendar", icon: Calendar },
+    { name: "Financeiro", href: "/financial", icon: Wallet },
+    { name: "Estoque", href: "/inventory", icon: LineChart },
+    { name: "Configurações", href: "/settings", icon: Settings },
   ];
 
   return (
-    <>
-      <button 
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 md:hidden bg-white p-2 rounded-full shadow-md text-neutral-800"
-      >
-        {expanded ? <X size={20} /> : <Menu size={20} />}
-      </button>
+    <div className="h-full w-64 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col">
+      <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+        <h1 className="text-xl font-bold text-marsala">Closet Manager</h1>
+        <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
+      </div>
       
-      <aside 
-        className={`${
-          expanded ? "translate-x-0" : "-translate-x-full"
-        } fixed z-40 h-screen bg-sidebar overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0 shadow-xl w-64`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="px-4 py-8 flex items-center justify-center border-b border-sidebar-border">
-            <h1 className="text-2xl font-montserrat font-semibold text-white">
-              Closet
-            </h1>
-          </div>
-
-          <div className="flex-1 py-6 flex flex-col gap-1">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`sidebar-item ${
-                  location.pathname === item.path ? "active" : ""
-                }`}
-              >
-                {item.icon}
-                <span className="text-sm">{item.name}</span>
-              </Link>
-            ))}
-          </div>
-
-          <div className="sticky bottom-0 p-4 border-t border-sidebar-border bg-sidebar">
-            <div className="flex items-center gap-3 px-2">
-              <div className="w-8 h-8 rounded-full bg-marsala-400 flex items-center justify-center text-white font-semibold">
-                A
-              </div>
-              <div>
-                <p className="text-sm text-white">Admin</p>
-                <p className="text-xs text-white/70">Administrador</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </>
+      <nav className="flex-1 p-2 overflow-y-auto">
+        {navigation.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.href}
+            className={({ isActive }) =>
+              `flex items-center space-x-3 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
+                isActive
+                  ? "bg-neutral-100 dark:bg-neutral-800 font-medium"
+                  : ""
+              }`
+            }
+          >
+            <item.icon className="w-4 h-4" />
+            <span>{item.name}</span>
+          </NavLink>
+        ))}
+      </nav>
+      
+      <UserProfile />
+      
+      <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+        <p className="text-xs text-neutral-500">&copy; 2025 Closet Manager</p>
+        <ThemeToggle />
+      </div>
+    </div>
   );
 };
 

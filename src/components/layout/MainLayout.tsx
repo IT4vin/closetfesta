@@ -1,52 +1,14 @@
-
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import ThemeToggle from "./ThemeToggle";
+import UserProfile from "./UserProfile";
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-const MainLayout = ({ children }: MainLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Handle window resize
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    // Initial check
-    checkIsMobile();
-
-    // Add event listener
-    window.addEventListener("resize", checkIsMobile);
-
-    // Cleanup
-    return () => window.removeEventListener("resize", checkIsMobile);
-  }, []);
-
-  // Toggle sidebar when Sidebar component sends an update
-  const handleSidebarToggle = (isOpen: boolean) => {
-    setSidebarOpen(isOpen);
-  };
-
+const MainLayout = () => {
   return (
-    <div className="flex min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-200">
-      <Sidebar onToggle={handleSidebarToggle} />
-      <main className={`flex-1 overflow-x-hidden transition-all duration-300 ${sidebarOpen && !isMobile ? 'pl-64' : 'pl-0'}`}>
-        <div className="container mx-auto max-w-7xl px-6 md:px-8 py-6">
-          <div className="flex justify-end mb-4">
-            <ThemeToggle />
-          </div>
-          {children}
-        </div>
+    <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto p-6">
+        <Outlet />
       </main>
     </div>
   );
