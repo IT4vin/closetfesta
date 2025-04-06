@@ -38,7 +38,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  CreditCard
+  CreditCard,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 
 const FinancialDashboard = () => {
