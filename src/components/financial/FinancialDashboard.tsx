@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import PeriodSelector from "@/components/common/PeriodSelector";
 import {
   FinancialMetricsCards,
   RevenueChart,
   ExpenseBreakdown,
-  UpcomingFinancialEvents,
-  PeriodSelector
+  UpcomingFinancialEvents
 } from "./dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 

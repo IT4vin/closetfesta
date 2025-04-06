@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PeriodSelectorDropdown from "./common/PeriodSelectorDropdown";
+import PeriodSelector from "@/components/common/PeriodSelector";
 import { 
   CashFlowChart, 
   CurrentBalanceCard, 
@@ -19,7 +19,7 @@ const CashFlow = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Fluxo de Caixa</h2>
         <div className="flex gap-2">
-          <PeriodSelectorDropdown 
+          <PeriodSelector 
             timeRange={timeRange} 
             setTimeRange={setTimeRange} 
           />

@@ -11,15 +11,16 @@ import {
 interface PeriodSelectorProps {
   timeRange: string;
   setTimeRange: (value: string) => void;
+  className?: string;
 }
 
-const PeriodSelector = ({ timeRange, setTimeRange }: PeriodSelectorProps) => {
+const PeriodSelector = ({ timeRange, setTimeRange, className }: PeriodSelectorProps) => {
   return (
     <Select 
       value={timeRange}
       onValueChange={(value) => setTimeRange(value)}
     >
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className={className || "w-[180px]"}>
         <SelectValue placeholder="Período" />
       </SelectTrigger>
       <SelectContent>
