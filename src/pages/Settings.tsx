@@ -1,6 +1,7 @@
 
 import React from "react";
 import SettingsTabs from "@/components/settings/SettingsTabs";
+import UserProfileSettings from "@/components/settings/UserProfileSettings";
 
 const Settings = () => {
   return (
@@ -10,7 +11,10 @@ const Settings = () => {
         <p className="text-neutral-500 dark:text-neutral-400 text-lg">Personalize o sistema de acordo com suas preferências</p>
       </header>
       
-      <SettingsTabs />
+      <div className="space-y-8">
+        <UserProfileSettings />
+        <SettingsTabs />
+      </div>
     </div>
   );
 };

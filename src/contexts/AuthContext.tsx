@@ -18,6 +18,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateEmail: (email: string, password: string) => Promise<boolean>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -39,6 +41,14 @@ const MOCK_USERS = [
     password: "user123",
     role: "user" as const,
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lily",
+  },
+  {
+    id: "3",
+    name: "Gustavo",
+    email: "I.gustavosza@gmail.com",
+    password: "123456",
+    role: "admin" as const,
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gustavo",
   },
 ];
 
@@ -108,6 +118,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Função para atualizar email
+  const updateEmail = async (email: string, password: string): Promise<boolean> => {
+    // Simulação de API para atualização de email
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    if (user) {
+      // Em uma implementação real, verificaria a senha antes de atualizar
+      const updatedUser = {
+        ...user,
+        email
+      };
+      
+      setUser(updatedUser);
+      sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      return true;
+    }
+    return false;
+  };
+  
+  // Função para atualizar senha
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    // Simulação de API para atualização de senha
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Em uma implementação real, verificaria a senha atual antes de atualizar
+    return true;
+  };
+
   // Função para fazer logout
   const logout = () => {
     setUser(null);
@@ -126,6 +164,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         logout,
         isAuthenticated: !!user,
+        updateEmail,
+        updatePassword
       }}
     >
       {children}
