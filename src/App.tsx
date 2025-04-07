@@ -40,11 +40,14 @@ const App = () => {
                   <Route path="/login" element={<Login />} />
                   
                   {/* Rotas protegidas */}
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <MainLayout />
-                    </ProtectedRoute>
-                  }>
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <MainLayout />
+                      </ProtectedRoute>
+                    }
+                  >
                     <Route index element={<Index />} />
                     <Route path="calendar" element={<Calendar />} />
                     <Route path="products" element={<Products />} />

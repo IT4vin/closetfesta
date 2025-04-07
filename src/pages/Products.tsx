@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import MainLayout from "../components/layout/MainLayout";
 import ProductsHeader from "@/components/products/page/ProductsHeader";
 import ProductsFilterBar from "@/components/products/page/ProductsFilterBar";
 import ProductsDisplay from "@/components/products/ProductsDisplay";
@@ -43,33 +42,31 @@ const ProductsPage = () => {
   };
   
   return (
-    <MainLayout>
-      <div className="page-transition p-6">
-        <ProductsHeader 
-          showFilters={showFilters}
-          setShowFilters={setShowFilters}
-          handleAddProduct={handleAddProductClick}
-          setImportModalOpen={setImportModalOpen}
-          setExportModalOpen={setExportModalOpen}
-        />
-        
-        <ProductsFilterBar 
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          filters={filters}
-          handleFilterChange={handleFilterChange}
-          showFilters={showFilters}
-          productsCount={filteredProducts.length}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-        />
-        
-        <ProductsDisplay
-          products={filteredProducts}
-          viewMode={viewMode}
-          onEdit={handleEditProductClick}
-        />
-      </div>
+    <div className="page-transition p-6">
+      <ProductsHeader 
+        showFilters={showFilters}
+        setShowFilters={setShowFilters}
+        handleAddProduct={handleAddProductClick}
+        setImportModalOpen={setImportModalOpen}
+        setExportModalOpen={setExportModalOpen}
+      />
+      
+      <ProductsFilterBar 
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filters={filters}
+        handleFilterChange={handleFilterChange}
+        showFilters={showFilters}
+        productsCount={filteredProducts.length}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
+      
+      <ProductsDisplay
+        products={filteredProducts}
+        viewMode={viewMode}
+        onEdit={handleEditProductClick}
+      />
       
       <ProductsModals 
         modalOpen={modalOpen}
@@ -85,7 +82,7 @@ const ProductsPage = () => {
         filteredProducts={filteredProducts}
         hasActiveFilters={hasActiveFilters()}
       />
-    </MainLayout>
+    </div>
   );
 };
 

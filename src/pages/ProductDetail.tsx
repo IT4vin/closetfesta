@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import MainLayout from "@/components/layout/MainLayout";
 import { 
   ArrowLeft, 
   Edit, 
@@ -57,14 +56,12 @@ const ProductDetail = () => {
   
   if (!product) {
     return (
-      <MainLayout>
-        <div className="flex flex-col items-center justify-center h-[70vh]">
-          <h1 className="text-2xl font-semibold mb-4">Produto não encontrado</h1>
-          <Button onClick={() => navigate("/products")}>
-            Voltar para Produtos
-          </Button>
-        </div>
-      </MainLayout>
+      <div className="flex flex-col items-center justify-center h-[70vh]">
+        <h1 className="text-2xl font-semibold mb-4">Produto não encontrado</h1>
+        <Button onClick={() => navigate("/products")}>
+          Voltar para Produtos
+        </Button>
+      </div>
     );
   }
   
@@ -94,196 +91,194 @@ const ProductDetail = () => {
   };
   
   return (
-    <MainLayout>
-      <div className="page-transition">
-        {/* Header with navigation and actions */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate("/products")}
-              className="h-10 w-10"
-            >
-              <ArrowLeft size={18} />
-            </Button>
-            
-            <div>
-              <h1 className="text-2xl font-semibold">{product.name}</h1>
-              <p className="text-neutral-500">SKU: {product.sku}</p>
-            </div>
-          </div>
+    <div className="page-transition">
+      {/* Header with navigation and actions */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate("/products")}
+            className="h-10 w-10"
+          >
+            <ArrowLeft size={18} />
+          </Button>
           
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleScheduleMaintenance}
-              className="border-marsala text-marsala hover:bg-marsala/10"
-            >
-              <Scissors size={18} className="mr-2" />
-              <span>Agendar Manutenção</span>
-            </Button>
-            
-            <Button
-              variant="outline" 
-              onClick={handleEditProduct}
-            >
-              <Edit size={18} className="mr-2" />
-              <span>Editar</span>
-            </Button>
-            
-            <Button 
-              onClick={handleRentProduct}
-              className="bg-marsala hover:bg-marsala-700"
-            >
-              <Calendar size={18} className="mr-2" />
-              <span>Alugar</span>
-            </Button>
+          <div>
+            <h1 className="text-2xl font-semibold">{product.name}</h1>
+            <p className="text-neutral-500">SKU: {product.sku}</p>
           </div>
         </div>
         
-        {/* Product content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column - Image */}
-          <div className="lg:col-span-1">
-            <div className="premium-card p-0 overflow-hidden">
-              <img 
-                src={product.image} 
-                alt={product.name} 
-                className="w-full h-auto object-cover aspect-[3/4]"
-              />
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleScheduleMaintenance}
+            className="border-marsala text-marsala hover:bg-marsala/10"
+          >
+            <Scissors size={18} className="mr-2" />
+            <span>Agendar Manutenção</span>
+          </Button>
+          
+          <Button
+            variant="outline" 
+            onClick={handleEditProduct}
+          >
+            <Edit size={18} className="mr-2" />
+            <span>Editar</span>
+          </Button>
+          
+          <Button 
+            onClick={handleRentProduct}
+            className="bg-marsala hover:bg-marsala-700"
+          >
+            <Calendar size={18} className="mr-2" />
+            <span>Alugar</span>
+          </Button>
+        </div>
+      </div>
+      
+      {/* Product content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left column - Image */}
+        <div className="lg:col-span-1">
+          <div className="premium-card p-0 overflow-hidden">
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="w-full h-auto object-cover aspect-[3/4]"
+            />
+            
+            <div className="p-5">
+              <div className="flex justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-lg">Preço</h3>
+                  <p className="text-2xl font-bold text-marsala">
+                    R$ {product.rentalPrice.toFixed(2)}
+                    <span className="text-sm text-neutral-500 font-normal">/diária</span>
+                  </p>
+                </div>
+                
+                <div className="text-right">
+                  <h3 className="font-semibold text-lg">Status</h3>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                    product.status === 'available' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {product.status === 'available' ? 'Disponível' : 'Alugado'}
+                  </span>
+                </div>
+              </div>
               
-              <div className="p-5">
-                <div className="flex justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg">Preço</h3>
-                    <p className="text-2xl font-bold text-marsala">
-                      R$ {product.rentalPrice.toFixed(2)}
-                      <span className="text-sm text-neutral-500 font-normal">/diária</span>
-                    </p>
-                  </div>
-                  
-                  <div className="text-right">
-                    <h3 className="font-semibold text-lg">Status</h3>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      product.status === 'available' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {product.status === 'available' ? 'Disponível' : 'Alugado'}
-                    </span>
-                  </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="border border-neutral-200 rounded-md p-3">
+                  <p className="text-sm text-neutral-500">Tamanho</p>
+                  <p className="font-medium">{product.size}</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="border border-neutral-200 rounded-md p-3">
-                    <p className="text-sm text-neutral-500">Tamanho</p>
-                    <p className="font-medium">{product.size}</p>
-                  </div>
-                  
-                  <div className="border border-neutral-200 rounded-md p-3">
-                    <p className="text-sm text-neutral-500">Cor</p>
-                    <p className="font-medium">{product.color}</p>
-                  </div>
-                  
-                  <div className="border border-neutral-200 rounded-md p-3">
-                    <p className="text-sm text-neutral-500">Categoria</p>
-                    <p className="font-medium">{product.type}</p>
-                  </div>
-                  
-                  <div className="border border-neutral-200 rounded-md p-3">
-                    <p className="text-sm text-neutral-500">Subcategoria</p>
-                    <p className="font-medium">{product.subtype}</p>
-                  </div>
+                <div className="border border-neutral-200 rounded-md p-3">
+                  <p className="text-sm text-neutral-500">Cor</p>
+                  <p className="font-medium">{product.color}</p>
                 </div>
                 
-                <div className="mt-4">
-                  <Button 
-                    className="w-full bg-marsala hover:bg-marsala-700"
-                    onClick={handleRentProduct}
-                  >
-                    <Calendar size={18} className="mr-2" />
-                    <span>Alugar Agora</span>
-                  </Button>
+                <div className="border border-neutral-200 rounded-md p-3">
+                  <p className="text-sm text-neutral-500">Categoria</p>
+                  <p className="font-medium">{product.type}</p>
                 </div>
+                
+                <div className="border border-neutral-200 rounded-md p-3">
+                  <p className="text-sm text-neutral-500">Subcategoria</p>
+                  <p className="font-medium">{product.subtype}</p>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Button 
+                  className="w-full bg-marsala hover:bg-marsala-700"
+                  onClick={handleRentProduct}
+                >
+                  <Calendar size={18} className="mr-2" />
+                  <span>Alugar Agora</span>
+                </Button>
               </div>
             </div>
           </div>
-          
-          {/* Right column - Details and History tabs */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="details" className="premium-card">
-              <TabsList className="mb-6 bg-neutral-100">
-                <TabsTrigger value="details">Detalhes</TabsTrigger>
-                <TabsTrigger value="history">Histórico de Aluguéis</TabsTrigger>
-                <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
-              </TabsList>
+        </div>
+        
+        {/* Right column - Details and History tabs */}
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="details" className="premium-card">
+            <TabsList className="mb-6 bg-neutral-100">
+              <TabsTrigger value="details">Detalhes</TabsTrigger>
+              <TabsTrigger value="history">Histórico de Aluguéis</TabsTrigger>
+              <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="p-2">
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Tag size={18} className="text-neutral-400" />
+                    <h3 className="font-medium">Tipo de Produto</h3>
+                  </div>
+                  <p className="text-neutral-700 pl-7">{product.type} - {product.subtype}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <DollarSign size={18} className="text-neutral-400" />
+                    <h3 className="font-medium">Preço de Compra</h3>
+                  </div>
+                  <p className="text-neutral-700 pl-7">R$ {product.price.toFixed(2)}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Clock size={18} className="text-neutral-400" />
+                    <h3 className="font-medium">Data de Aquisição</h3>
+                  </div>
+                  <p className="text-neutral-700 pl-7">{product.dateAdded}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag size={18} className="text-neutral-400" />
+                    <h3 className="font-medium">Localização no Estoque</h3>
+                  </div>
+                  <p className="text-neutral-700 pl-7">{product.location}</p>
+                </div>
+              </div>
               
-              <TabsContent value="details" className="p-2">
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Tag size={18} className="text-neutral-400" />
-                      <h3 className="font-medium">Tipo de Produto</h3>
-                    </div>
-                    <p className="text-neutral-700 pl-7">{product.type} - {product.subtype}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <DollarSign size={18} className="text-neutral-400" />
-                      <h3 className="font-medium">Preço de Compra</h3>
-                    </div>
-                    <p className="text-neutral-700 pl-7">R$ {product.price.toFixed(2)}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Clock size={18} className="text-neutral-400" />
-                      <h3 className="font-medium">Data de Aquisição</h3>
-                    </div>
-                    <p className="text-neutral-700 pl-7">{product.dateAdded}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <ShoppingBag size={18} className="text-neutral-400" />
-                      <h3 className="font-medium">Localização no Estoque</h3>
-                    </div>
-                    <p className="text-neutral-700 pl-7">{product.location}</p>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Descrição</h3>
-                  <p className="text-neutral-700">{product.description}</p>
-                </div>
-                
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Material</h3>
-                  <p className="text-neutral-700">{product.material}</p>
-                </div>
-                
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Instruções de Limpeza</h3>
-                  <p className="text-neutral-700">{product.cleaningInstructions}</p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Observações</h3>
-                  <p className="text-neutral-700">{product.notes}</p>
-                </div>
-              </TabsContent>
+              <div className="mb-6">
+                <h3 className="font-medium mb-2">Descrição</h3>
+                <p className="text-neutral-700">{product.description}</p>
+              </div>
               
-              <TabsContent value="history" className="p-2">
-                <RentalHistoryTable productId={product.id} />
-              </TabsContent>
+              <div className="mb-6">
+                <h3 className="font-medium mb-2">Material</h3>
+                <p className="text-neutral-700">{product.material}</p>
+              </div>
               
-              <TabsContent value="maintenance" className="p-2">
-                <MaintenanceHistoryTable productId={product.id} />
-              </TabsContent>
-            </Tabs>
-          </div>
+              <div className="mb-6">
+                <h3 className="font-medium mb-2">Instruções de Limpeza</h3>
+                <p className="text-neutral-700">{product.cleaningInstructions}</p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-2">Observações</h3>
+                <p className="text-neutral-700">{product.notes}</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="history" className="p-2">
+              <RentalHistoryTable productId={product.id} />
+            </TabsContent>
+            
+            <TabsContent value="maintenance" className="p-2">
+              <MaintenanceHistoryTable productId={product.id} />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       
@@ -314,7 +309,7 @@ const ProductDetail = () => {
           </div>
         </SheetContent>
       </Sheet>
-    </MainLayout>
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
 
 import React from "react";
-import MainLayout from "../components/layout/MainLayout";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import ScheduleForm from "@/components/dashboard/ScheduleForm";
@@ -26,33 +25,31 @@ const CalendarPage = () => {
   } = useCalendarState();
 
   return (
-    <MainLayout>
-      <div className="page-transition">
-        <CalendarHeader 
-          onOpenFilter={() => setIsFilterOpen(true)}
-          onOpenSchedule={() => setIsScheduleOpen(true)}
-          isFiltering={isFiltering}
-          filterCount={getActiveFilterCount()}
+    <div className="page-transition">
+      <CalendarHeader 
+        onOpenFilter={() => setIsFilterOpen(true)}
+        onOpenSchedule={() => setIsScheduleOpen(true)}
+        isFiltering={isFiltering}
+        filterCount={getActiveFilterCount()}
+      />
+      
+      {isFiltering && (
+        <FilterDisplay 
+          filters={activeFilters} 
+          onClearFilters={handleClearFilters} 
         />
+      )}
+      
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="w-full lg:w-2/3">
+          <CalendarView />
+        </div>
         
-        {isFiltering && (
-          <FilterDisplay 
-            filters={activeFilters} 
-            onClearFilters={handleClearFilters} 
+        <div className="w-full lg:w-1/3">
+          <TodayEvents 
+            events={todayEvents}
+            onAddEvent={() => setIsScheduleOpen(true)}
           />
-        )}
-        
-        <div className="flex flex-col lg:flex-row gap-8">
-          <div className="w-full lg:w-2/3">
-            <CalendarView />
-          </div>
-          
-          <div className="w-full lg:w-1/3">
-            <TodayEvents 
-              events={todayEvents}
-              onAddEvent={() => setIsScheduleOpen(true)}
-            />
-          </div>
         </div>
       </div>
 
@@ -76,7 +73,7 @@ const CalendarPage = () => {
           />
         </SheetContent>
       </Sheet>
-    </MainLayout>
+    </div>
   );
 };
 
