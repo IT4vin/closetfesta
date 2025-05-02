@@ -17,7 +17,7 @@ import {
   Minus, 
   Plus, 
   CreditCard, 
-  Cash, 
+  BanknoteIcon, 
   Wallet,
   UserPlus,
   User

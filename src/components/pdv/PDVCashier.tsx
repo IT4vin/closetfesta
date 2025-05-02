@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Card,
@@ -19,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Box, CashRegister, ArrowUp, ArrowDown, LockOpen } from "lucide-react";
+import { Box, Store, ArrowUp, ArrowDown, LockOpen } from "lucide-react";
 import CashierTransactionsTable from "./CashierTransactionsTable";
 
 interface CashierState {

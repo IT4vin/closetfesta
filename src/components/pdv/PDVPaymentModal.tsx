@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Dialog, 
@@ -17,12 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  Cash, 
+  Wallet, 
   CreditCard, 
-  Wallet,
   Receipt,
   Plug,
-  Package
+  Package,
+  BanknoteIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -70,7 +69,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   }, [isOpen]);
 
   const paymentMethods: PaymentMethod[] = [
-    { id: "cash", name: "Dinheiro", icon: <Cash className="h-5 w-5" /> },
+    { id: "cash", name: "Dinheiro", icon: <BanknoteIcon className="h-5 w-5" /> },
     { id: "credit", name: "Cartão de Crédito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "debit", name: "Cartão de Débito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "pix", name: "PIX", icon: <Wallet className="h-5 w-5" /> },
