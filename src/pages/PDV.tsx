@@ -11,30 +11,38 @@ const PDV = () => {
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold mb-2">Ponto de Venda</h1>
-          <p className="text-neutral-500 dark:text-neutral-400 text-base md:text-lg">
+          <p className="text-neutral-500 dark:text-neutral-400 text-base">
             Gestão de vendas, caixa e relatórios
           </p>
         </div>
       </header>
 
       <Tabs defaultValue="venda" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 mb-4 md:mb-8">
-          <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-3 px-2 md:px-6">Venda</TabsTrigger>
-          <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-3 px-2 md:px-6">Caixa</TabsTrigger>
-          <TabsTrigger value="relatorios" className="text-sm md:text-base py-2 md:py-3 px-2 md:px-6">Relatórios</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-3 mb-4 md:mb-6 overflow-x-auto">
+          <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+            Venda
+          </TabsTrigger>
+          <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+            Caixa
+          </TabsTrigger>
+          <TabsTrigger value="relatorios" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+            Relatórios
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="venda" className="space-y-4">
-          <PDVSale />
-        </TabsContent>
-        
-        <TabsContent value="caixa" className="space-y-4">
-          <PDVCashier />
-        </TabsContent>
-        
-        <TabsContent value="relatorios" className="space-y-4">
-          <PDVReports />
-        </TabsContent>
+        <div className="overflow-x-auto">
+          <TabsContent value="venda" className="space-y-4 min-w-[500px] md:min-w-0">
+            <PDVSale />
+          </TabsContent>
+          
+          <TabsContent value="caixa" className="space-y-4 min-w-[500px] md:min-w-0">
+            <PDVCashier />
+          </TabsContent>
+          
+          <TabsContent value="relatorios" className="space-y-4">
+            <PDVReports />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

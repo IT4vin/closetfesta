@@ -1,7 +1,17 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings, ShoppingCart, X } from "lucide-react";
+import { 
+  BarChart, 
+  Users, 
+  ShoppingBag, 
+  Calendar, 
+  Wallet, 
+  LineChart, 
+  Settings, 
+  ShoppingCart, 
+  X 
+} from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
 import { Button } from "@/components/ui/button";
@@ -35,10 +45,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             variant="ghost" 
             size="icon"
             onClick={onClose}
+            aria-label="Fechar menu"
             className="h-8 w-8"
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Fechar</span>
           </Button>
         </div>
       </div>
@@ -57,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               }`
             }
           >
-            <item.icon className="w-4 h-4 flex-shrink-0" />
+            <item.icon className="w-5 h-5 flex-shrink-0" />
             <span className="truncate">{item.name}</span>
           </NavLink>
         ))}
