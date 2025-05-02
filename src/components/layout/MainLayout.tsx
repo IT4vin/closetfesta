@@ -29,7 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Backdrop for mobile - only shows when sidebar is open on mobile */}
       {isMobile && sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30"
+          className="fixed inset-0 bg-black/50 z-30 animate-fade-in"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />

@@ -18,24 +18,26 @@ const PDV = () => {
       </header>
 
       <Tabs defaultValue="venda" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 mb-4 md:mb-6 overflow-x-auto">
-          <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-            Venda
-          </TabsTrigger>
-          <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-            Caixa
-          </TabsTrigger>
-          <TabsTrigger value="relatorios" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-            Relatórios
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto mb-4 md:mb-6">
+          <TabsList className="w-full grid grid-cols-3 min-w-[500px] md:min-w-0">
+            <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+              Venda
+            </TabsTrigger>
+            <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+              Caixa
+            </TabsTrigger>
+            <TabsTrigger value="relatorios" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+              Relatórios
+            </TabsTrigger>
+          </TabsList>
+        </div>
         
-        <div className="overflow-x-auto">
-          <TabsContent value="venda" className="space-y-4 min-w-[500px] md:min-w-0">
+        <div>
+          <TabsContent value="venda" className="space-y-4">
             <PDVSale />
           </TabsContent>
           
-          <TabsContent value="caixa" className="space-y-4 min-w-[500px] md:min-w-0">
+          <TabsContent value="caixa" className="space-y-4">
             <PDVCashier />
           </TabsContent>
           

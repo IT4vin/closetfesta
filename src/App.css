@@ -185,6 +185,11 @@
   .page-header {
     margin-bottom: 1rem;
   }
+
+  /* Adjust grid layouts for mobile */
+  .grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
 }
 
 /* Touch-friendly controls for mobile */
@@ -205,6 +210,12 @@
   .scrollable-container {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Increase touch targets */
+  .nav-link, .action-button, .clickable-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
 }
 
 /* Fix for mobile viewport height issues */
@@ -223,9 +234,38 @@
   .text-xs {
     font-size: 0.7rem;
   }
+
+  /* Better table handling on small screens */
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Page transition effect */
 .page-transition {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* Improved scrollbars for desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
 }
