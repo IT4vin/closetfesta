@@ -209,14 +209,14 @@ const PDVSale = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
       {/* Left side - Products search and list */}
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-1 order-2 lg:order-1">
         <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Produtos</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg md:text-xl">Produtos</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4">
             {/* Barcode scanner */}
             <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
               <div className="relative flex-1">
@@ -232,14 +232,16 @@ const PDVSale = () => {
                   <Search size={18} className="text-gray-500" />
                 </div>
               </div>
-              <Button type="submit" variant="secondary">Adicionar</Button>
+              <Button type="submit" variant="secondary" className="whitespace-nowrap">
+                Adicionar
+              </Button>
             </form>
             
             {/* Product search */}
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Buscar produto por nome ou SKU"
+                placeholder="Buscar produto"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -250,7 +252,7 @@ const PDVSale = () => {
             </div>
             
             {/* Product results */}
-            <div className="h-[calc(100vh-420px)] overflow-y-auto border rounded-md p-2">
+            <div className="h-[calc(100vh-26rem)] sm:h-[calc(100vh-24rem)] lg:h-[calc(100vh-28rem)] overflow-y-auto border rounded-md p-2">
               {productsList
                 .filter(p => 
                   searchTerm ? 
@@ -265,11 +267,11 @@ const PDVSale = () => {
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer flex justify-between items-center mb-2"
                   >
                     <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-gray-500">{product.sku}</p>
+                      <p className="font-medium text-sm md:text-base truncate">{product.name}</p>
+                      <p className="text-xs md:text-sm text-gray-500">{product.sku}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">R$ {product.rentalPrice.toFixed(2)}</p>
+                      <p className="font-semibold text-sm md:text-base">R$ {product.rentalPrice.toFixed(2)}</p>
                       <Badge 
                         variant={product.status === "available" ? "outline" : "destructive"}
                         className="text-xs"
@@ -285,21 +287,21 @@ const PDVSale = () => {
       </div>
       
       {/* Right side - Cart and payment */}
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-2 order-1 lg:order-2">
         <Card className="h-full">
-          <CardHeader className="flex flex-row justify-between items-center">
+          <CardHeader className="flex flex-row justify-between items-start gap-2 p-4">
             <div>
-              <CardTitle>Carrinho de Compras</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Carrinho de Compras</CardTitle>
               {selectedCustomer ? (
                 <div className="flex items-center gap-1 mt-1 text-sm">
                   <User size={14} />
-                  <span>{selectedCustomer.name}</span>
+                  <span className="truncate">{selectedCustomer.name}</span>
                   {selectedCustomer.document && (
-                    <span className="text-gray-500">({selectedCustomer.document})</span>
+                    <span className="text-gray-500 hidden sm:inline">({selectedCustomer.document})</span>
                   )}
                 </div>
               ) : (
-                <span className="text-sm text-gray-500">Cliente não identificado</span>
+                <span className="text-xs sm:text-sm text-gray-500">Cliente não identificado</span>
               )}
             </div>
             
@@ -308,25 +310,30 @@ const PDVSale = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => setIsCustomerModalOpen(true)}
+                className="text-xs whitespace-nowrap"
               >
-                <UserPlus size={16} className="mr-2" />
-                {selectedCustomer ? "Trocar Cliente" : "Cliente"}
+                <UserPlus size={14} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">
+                  {selectedCustomer ? "Trocar Cliente" : "Cliente"}
+                </span>
+                <span className="inline sm:hidden">Cliente</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={clearCart}
                 disabled={cart.length === 0}
+                className="text-xs whitespace-nowrap"
               >
-                <Minus size={16} className="mr-2" />
-                Limpar
+                <Minus size={14} className="mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Limpar</span>
               </Button>
             </div>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="p-4">
             {/* Cart items list */}
-            <div className="h-[calc(100vh-400px)] overflow-y-auto">
+            <div className="h-[calc(100vh-24rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto">
               <PDVProductList 
                 cartItems={cart} 
                 updateQuantity={updateItemQuantity} 
@@ -336,7 +343,7 @@ const PDVSale = () => {
             </div>
           </CardContent>
           
-          <CardFooter className="flex flex-col">
+          <CardFooter className="flex flex-col p-4">
             <Separator className="mb-4" />
             
             <div className="w-full space-y-2">
@@ -358,11 +365,11 @@ const PDVSale = () => {
               </div>
               
               <Button 
-                className="w-full mt-4 py-6 text-lg bg-marsala hover:bg-marsala-700"
+                className="w-full mt-4 py-4 md:py-6 text-base md:text-lg bg-marsala hover:bg-marsala-700"
                 disabled={cart.length === 0}
                 onClick={() => setIsPaymentModalOpen(true)}
               >
-                <CreditCard size={20} className="mr-2" />
+                <CreditCard size={18} className="mr-2" />
                 Finalizar Venda
               </Button>
             </div>

@@ -106,13 +106,6 @@
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .stat-card {
-    min-height: 8rem;
-  }
-}
-
 /* Add styles for our new forms */
 .form-sheet-content {
   max-height: 90vh;
@@ -151,4 +144,65 @@
 
 .hover\:bg-marsala\/10:hover {
   background-color: rgba(128, 0, 32, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stat-card {
+    min-height: 8rem;
+  }
+  
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  .card-title {
+    font-size: 1.125rem !important;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+  }
+}
+
+/* Touch-friendly controls for mobile */
+@media (max-width: 640px) {
+  button, 
+  .btn, 
+  input[type="button"], 
+  .clickable {
+    min-height: 2.5rem;
+  }
+  
+  .input, 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on input */
+  }
+  
+  .scrollable-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Fix for mobile viewport height issues */
+.min-h-screen, 
+.h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent text from being too small on mobile */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .text-xs {
+    font-size: 0.7rem;
+  }
 }

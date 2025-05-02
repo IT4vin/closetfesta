@@ -1,11 +1,16 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings, ShoppingCart } from "lucide-react";
+import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings, ShoppingCart, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
+import { Button } from "@/components/ui/button";
 
-const Sidebar = () => {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart },
     { name: "Clientes", href: "/clients", icon: Users },
@@ -18,10 +23,24 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-full w-64 border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col">
-      <div className="p-4 border-b border-neutral-200 dark:border-neutral-800">
-        <h1 className="text-xl font-bold text-marsala">Closet Manager</h1>
-        <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
+    <div className="h-full w-64 max-w-full border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col">
+      <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold text-marsala">Closet Manager</h1>
+          <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
+        </div>
+        
+        <div className="md:hidden">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onClose}
+            className="h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
       </div>
       
       <nav className="flex-1 p-2 overflow-y-auto">
@@ -29,6 +48,7 @@ const Sidebar = () => {
           <NavLink
             key={item.name}
             to={item.href}
+            onClick={() => onClose && window.innerWidth < 768 ? onClose() : null}
             className={({ isActive }) =>
               `flex items-center space-x-3 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
                 isActive
@@ -37,8 +57,8 @@ const Sidebar = () => {
               }`
             }
           >
-            <item.icon className="w-4 h-4" />
-            <span>{item.name}</span>
+            <item.icon className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">{item.name}</span>
           </NavLink>
         ))}
       </nav>
