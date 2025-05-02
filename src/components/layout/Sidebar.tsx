@@ -1,6 +1,7 @@
+
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings } from "lucide-react";
+import { BarChart, Users, ShoppingBag, Calendar, Wallet, LineChart, Settings, ShoppingCart } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
 
@@ -12,6 +13,7 @@ const Sidebar = () => {
     { name: "Agendamentos", href: "/calendar", icon: Calendar },
     { name: "Financeiro", href: "/financial", icon: Wallet },
     { name: "Estoque", href: "/inventory", icon: LineChart },
+    { name: "PDV", href: "/pdv", icon: ShoppingCart },
     { name: "Configurações", href: "/settings", icon: Settings },
   ];
 
