@@ -71,8 +71,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               }`
             }
           >
-            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-${colorScheme}-600 dark:text-${colorScheme}-400` : ""}`} />
-            <span className="truncate">{item.name}</span>
+            {({ isActive }) => (
+              <>
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-${colorScheme}-600 dark:text-${colorScheme}-400` : ""}`} />
+                <span className="truncate">{item.name}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
