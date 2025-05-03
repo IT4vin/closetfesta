@@ -15,12 +15,15 @@ import {
 import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface SidebarProps {
   onClose?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+  const { colorScheme } = useTheme();
+  
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart },
     { name: "Clientes", href: "/clients", icon: Users },
@@ -36,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     <div className="h-full w-64 max-w-full border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col">
       <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold text-marsala">Closet Manager</h1>
+          <h1 className={`text-xl font-bold text-${colorScheme}`}>Closet Manager</h1>
           <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
         </div>
         
@@ -63,12 +66,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             className={({ isActive }) =>
               `flex items-center space-x-3 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
                 isActive
-                  ? "bg-neutral-100 dark:bg-neutral-800 font-medium"
+                  ? `bg-${colorScheme}-50 text-${colorScheme}-800 dark:bg-neutral-800 dark:text-${colorScheme}-400 font-medium`
                   : ""
               }`
             }
           >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
+            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-${colorScheme}-600 dark:text-${colorScheme}-400` : ""}`} />
             <span className="truncate">{item.name}</span>
           </NavLink>
         ))}

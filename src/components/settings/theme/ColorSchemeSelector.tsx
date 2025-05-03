@@ -19,7 +19,7 @@ const ColorSchemeSelector = () => {
           <RadioGroupItem value="marsala" id="marsala" />
           <Label htmlFor="marsala" className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-marsala"></div>
-            Marsala (padrão)
+            <span className="font-medium">Marsala (padrão)</span>
           </Label>
         </div>
         <div className="flex items-center space-x-2">

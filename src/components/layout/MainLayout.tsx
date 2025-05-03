@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface MainLayoutProps {
   children?: ReactNode;
@@ -13,6 +14,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
+  const { colorScheme } = useTheme();
   
   // Auto-collapse sidebar on mobile
   useEffect(() => {
@@ -56,11 +58,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >
             {isMobile ? 
-              <Menu className="h-4 w-4" /> : 
-              sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />
+              <Menu className={`h-4 w-4 text-${colorScheme}`} /> : 
+              sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />
             }
           </Button>
-          <h2 className="text-lg font-medium">Closet Manager</h2>
+          <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
         </div>
 
         {/* Page content with scrollable area */}

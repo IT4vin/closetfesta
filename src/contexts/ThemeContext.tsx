@@ -49,13 +49,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       applyFontSize(savedFontSize);
     }
     
-    // Apply color scheme
+    // Apply color scheme, defaulting to marsala if none is saved
     const savedColorScheme = localStorage.getItem('colorScheme') as ColorSchemeType | null;
     if (savedColorScheme) {
       setColorSchemeState(savedColorScheme);
       applyColorScheme(savedColorScheme);
     } else {
-      // Default to marsala if no preference saved
+      // Sempre usa marsala como padrão se não houver preferência
       setColorSchemeState("marsala");
       localStorage.setItem('colorScheme', 'marsala');
       applyColorScheme("marsala");
