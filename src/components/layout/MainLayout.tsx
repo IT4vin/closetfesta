@@ -53,13 +53,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Button 
             variant="outline" 
             size="icon" 
-            className={`h-8 w-8 mr-4 text-${colorScheme}`}
+            className="h-8 w-8 mr-4"
             onClick={toggleSidebar}
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >
             {isMobile ? 
-              <Menu className="h-4 w-4" /> : 
-              sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />
+              <Menu className={`h-4 w-4 text-${colorScheme}`} /> : 
+              sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />
             }
           </Button>
           <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>

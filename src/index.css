@@ -1,45 +1,212 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    --primary: 353 69% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 20%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 20%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 20%;
+    
+    --radius: 0.75rem;
+
+    /* Marsala color scheme */
+    --marsala: 353 69% 25%; /* #800020 */
+    --marsala-foreground: 0 0% 100%;
+    --marsala-50: 353 100% 98%;
+    --marsala-100: 353 100% 96%;
+    --marsala-200: 353 95% 90%;
+    --marsala-300: 353 82% 82%;
+    --marsala-400: 353 80% 68%;
+    --marsala-500: 353 75% 55%;
+    --marsala-600: 353 69% 40%;
+    --marsala-700: 353 68% 35%;
+    --marsala-800: 353 69% 25%;
+    --marsala-900: 353 69% 20%;
+    --marsala-950: 353 70% 15%;
+
+    /* Neutral color scheme */
+    --neutral-50: 0 0% 98%;
+    --neutral-100: 0 0% 96%;
+    --neutral-200: 0 0% 90%;
+    --neutral-300: 0 0% 83%;
+    --neutral-400: 0 0% 64%;
+    --neutral-500: 0 0% 45%;
+    --neutral-600: 0 0% 32%;
+    --neutral-700: 0 0% 25%;
+    --neutral-800: 0 0% 20%;
+    --neutral-900: 0 0% 12%;
+    --neutral-950: 0 0% 8%;
+
+    --sidebar-background: 353 69% 20%; /* Dark Marsala */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 353 69% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 353 69% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 353 69% 28%;
+    --sidebar-ring: 353 69% 35%;
+  }
+
+  /* Dark theme colors */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    /* Dark theme sidebar */
+    --sidebar-background: 240 3.7% 15.9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 240 3.7% 20%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 3.7% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 30%;
+    --sidebar-ring: 240 4.9% 83.9%;
+  }
+
+  /* High contrast mode */
+  .high-contrast {
+    --foreground: 0 0% 0%;
+    --background: 0 0% 100%;
+    --primary: 240 100% 20%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 100% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --ring: 240 100% 20%;
+  }
+
+  .dark.high-contrast {
+    --foreground: 0 0% 100%;
+    --background: 0 0% 0%;
+    --primary: 60 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 60 100% 80%;
+    --secondary-foreground: 0 0% 0%;
+    --border: 0 0% 100%;
+    --ring: 60 100% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-montserrat;
+  }
+}
+
 @layer components {
-  /* Estilos de sidebar para cada tema */
-  .sidebar-marsala {
-    @apply bg-marsala text-white;
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg;
   }
   
-  .sidebar-blue {
-    @apply bg-blue text-white;
+  .premium-card {
+    @apply bg-gradient-to-br from-white to-neutral-100 shadow-md border border-neutral-200 rounded-xl transition-all duration-300 hover:shadow-lg;
   }
   
-  .sidebar-green {
-    @apply bg-green text-white;
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-primary/40 rounded-md transition-all duration-300;
   }
   
-  .sidebar-purple {
-    @apply bg-purple text-white;
+  .sidebar-item.active {
+    @apply bg-sidebar-primary text-sidebar-foreground font-medium;
   }
   
-  /* Estilos para o menu ativo em cada tema */
-  .sidebar-marsala .active-menu {
-    @apply bg-marsala-800;
+  .primary-button {
+    @apply bg-marsala text-white hover:bg-marsala-700 px-4 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-sm hover:shadow;
   }
   
-  .sidebar-blue .active-menu {
-    @apply bg-blue-800;
+  .secondary-button {
+    @apply bg-white text-marsala border border-marsala hover:bg-marsala/5 px-4 py-2.5 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2;
   }
   
-  .sidebar-green .active-menu {
-    @apply bg-green-800;
+  .input-field {
+    @apply w-full px-3 py-2.5 rounded-md border border-neutral-200 focus:border-marsala focus:ring-1 focus:ring-marsala outline-none transition-all duration-300;
   }
   
-  .sidebar-purple .active-menu {
-    @apply bg-purple-800;
+  .page-container {
+    @apply p-6 md:p-8 max-w-7xl mx-auto animate-fade-in;
   }
   
-  /* Estilo de transição para a página */
+  .card-hover {
+    @apply hover:translate-y-[-5px] transition-all duration-300;
+  }
+  
   .page-transition {
     @apply animate-fade-in;
+  }
+
+  .calendar-event {
+    @apply px-2 py-1 rounded text-xs font-medium truncate cursor-pointer;
+  }
+
+  .calendar-event.rental {
+    @apply bg-marsala-100 text-marsala-800 border-l-2 border-l-marsala;
+  }
+
+  .calendar-event.fitting {
+    @apply bg-blue-100 text-blue-800 border-l-2 border-l-blue-400;
+  }
+
+  .stat-card {
+    @apply flex flex-col p-6 rounded-xl border border-neutral-200 bg-white shadow-sm;
   }
 }
