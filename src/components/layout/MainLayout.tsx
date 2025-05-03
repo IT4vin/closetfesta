@@ -26,6 +26,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     setSidebarOpen(prev => !prev);
   };
 
+  // Get button color based on color scheme
+  const getButtonColor = () => {
+    return `text-${colorScheme}`;
+  };
+
   return (
     <div className="flex h-screen bg-neutral-50 dark:bg-neutral-900 overflow-hidden">
       {/* Backdrop for mobile - only shows when sidebar is open on mobile */}
@@ -58,8 +63,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >
             {isMobile ? 
-              <Menu className={`h-4 w-4 text-${colorScheme}`} /> : 
-              sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />
+              <Menu className={getButtonColor()} /> : 
+              sidebarOpen ? <X className={getButtonColor()} /> : <Menu className={getButtonColor()} />
             }
           </Button>
           <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
