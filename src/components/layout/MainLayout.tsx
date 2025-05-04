@@ -53,7 +53,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Button 
             variant="outline" 
             size="icon" 
-            className="h-8 w-8 mr-4"
+            className="h-8 w-8 mr-4 menu-toggle"
             onClick={toggleSidebar}
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >
@@ -65,7 +65,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
         </div>
 
-        {/* Page content with scrollable area - Ajustado para garantir que o conteúdo tenha altura correta e rolagem adequada */}
+        {/* Page content with scrollable area */}
         <div className="flex-1 relative w-full overflow-hidden">
           <div className="absolute inset-0 overflow-y-auto p-4 md:p-6">
             {children || <Outlet />}
