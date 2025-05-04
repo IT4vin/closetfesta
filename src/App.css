@@ -1,8 +1,271 @@
 
-/* Import all modularized CSS files */
-@import './styles/base.css';
-@import './styles/animations.css';
-@import './styles/components.css';
-@import './styles/forms.css';
-@import './styles/theme-colors.css';
-@import './styles/responsive.css';
+/* Remove conflicting styles to use Tailwind's utility classes */
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+/* Keep animation styles */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* Global spacing adjustments */
+.premium-card {
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Sidebar styles */
+.sidebar-item {
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 0.25rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.sidebar-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-item.active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Card styles */
+.stat-card {
+  min-height: 8rem;
+  border-radius: 0.75rem;
+  border: 1px solid #eaeaea;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Button styles */
+.primary-button, .secondary-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 0.375rem;
+}
+
+/* Page layout */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.section-spacing {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  border-color: #800020;
+  box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.1);
+  outline: none;
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sheet styles */
+.form-sheet-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Marsala theme colors */
+:root {
+  --marsala: #800020;
+  --marsala-700: #6b001b;
+}
+
+.text-marsala {
+  color: var(--marsala);
+}
+
+.bg-marsala {
+  background-color: var(--marsala);
+}
+
+.bg-marsala-700 {
+  background-color: var(--marsala-700);
+}
+
+.hover\:bg-marsala:hover {
+  background-color: var(--marsala);
+}
+
+.hover\:bg-marsala-700:hover {
+  background-color: var(--marsala-700);
+}
+
+.border-marsala {
+  border-color: var(--marsala);
+}
+
+.hover\:bg-marsala\/10:hover {
+  background-color: rgba(128, 0, 32, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  .card-title {
+    font-size: 1.125rem !important;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+  }
+  
+  /* Improved mobile spacing */
+  .section-spacing {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  /* Adjust grid layouts for mobile */
+  .grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Touch-friendly controls for mobile */
+@media (max-width: 640px) {
+  button, 
+  .btn, 
+  input[type="button"], 
+  .clickable {
+    min-height: 2.75rem;
+  }
+  
+  .input, 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on input */
+  }
+  
+  .scrollable-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Increase touch targets */
+  .nav-link, .action-button, .clickable-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+/* Fix for mobile viewport height issues */
+.min-h-screen, 
+.h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent text from being too small on mobile */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .text-xs {
+    font-size: 0.7rem;
+  }
+
+  /* Better table handling on small screens */
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Page transition effect */
+.page-transition {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Improved scrollbars for desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}

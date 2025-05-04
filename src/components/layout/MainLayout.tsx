@@ -50,36 +50,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <main className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900">
         {/* Header with menu button */}
         <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
-          {/* Mobile-only menu button */}
-          <div className="md:hidden mr-4">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={toggleSidebar}
-              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-            >
-              <Menu className={`h-4 w-4 text-${colorScheme}`} />
-            </Button>
-          </div>
-
-          {/* Desktop-only menu button */}
-          <div className="hidden md:block mr-4">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={toggleSidebar}
-              aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-            >
-              {sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />}
-            </Button>
-          </div>
-          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-8 w-8 mr-4"
+            onClick={toggleSidebar}
+            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+          >
+            {isMobile ? 
+              <Menu className={`h-4 w-4 text-${colorScheme}`} /> : 
+              sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />
+            }
+          </Button>
           <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
         </div>
 
-        {/* Page content with scrollable area */}
+        {/* Page content with scrollable area - Ajustado para garantir que o conteúdo tenha altura correta e rolagem adequada */}
         <div className="flex-1 relative w-full overflow-hidden">
           <div className="absolute inset-0 overflow-y-auto p-4 md:p-6">
             {children || <Outlet />}
