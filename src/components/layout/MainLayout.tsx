@@ -53,7 +53,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <Button 
             variant="outline" 
             size="icon" 
-            className="h-8 w-8 mr-4 menu-toggle"
+            className="menu-toggle h-8 w-8 mr-4"
             onClick={toggleSidebar}
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >

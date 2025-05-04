@@ -243,15 +243,19 @@
   }
 }
 
-/* Menu toggle visibility */
+/* Menu toggle visibility - updated with higher specificity */
 @media (min-width: 768px) {
-  .menu-toggle {
+  button.menu-toggle, 
+  .menu-toggle.btn, 
+  a.menu-toggle {
     display: none !important;
   }
 }
 
 @media (max-width: 767px) {
-  .menu-toggle {
+  button.menu-toggle, 
+  .menu-toggle.btn, 
+  a.menu-toggle {
     display: flex !important;
   }
 }
