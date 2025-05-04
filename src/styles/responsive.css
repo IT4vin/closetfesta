@@ -1,0 +1,107 @@
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  .card-title {
+    font-size: 1.125rem !important;
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+  }
+  
+  /* Improved mobile spacing */
+  .section-spacing {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  /* Adjust grid layouts for mobile */
+  .grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Touch-friendly controls for mobile */
+@media (max-width: 640px) {
+  button, 
+  .btn, 
+  input[type="button"], 
+  .clickable {
+    min-height: 2.75rem;
+  }
+  
+  .input, 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on input */
+  }
+  
+  .scrollable-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Increase touch targets */
+  .nav-link, .action-button, .clickable-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+/* Fix for mobile viewport height issues */
+.min-h-screen, 
+.h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent text from being too small on mobile */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .text-xs {
+    font-size: 0.7rem;
+  }
+
+  /* Better table handling on small screens */
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Improved scrollbars for desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
