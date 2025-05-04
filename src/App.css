@@ -1,3 +1,4 @@
+
 /* Remove conflicting styles to use Tailwind's utility classes */
 #root {
   margin: 0;
@@ -240,23 +241,6 @@
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* Menu toggle visibility - updated with higher specificity */
-@media (min-width: 768px) {
-  button.menu-toggle, 
-  .menu-toggle.btn, 
-  a.menu-toggle {
-    display: none !important;
-  }
-}
-
-@media (max-width: 767px) {
-  button.menu-toggle, 
-  .menu-toggle.btn, 
-  a.menu-toggle {
-    display: flex !important;
   }
 }
 
