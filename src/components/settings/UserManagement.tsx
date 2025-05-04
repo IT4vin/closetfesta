@@ -8,6 +8,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import EmployeeForm from "./EmployeeForm";
 import UserPermissions from "./UserPermissions";
 
@@ -27,13 +28,15 @@ const UserManagement = () => {
             <TabsTrigger value="permissions">Permissões e Acessos</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="employees">
-            <EmployeeForm />
-          </TabsContent>
-          
-          <TabsContent value="permissions">
-            <UserPermissions />
-          </TabsContent>
+          <ScrollArea className="max-h-[600px]">
+            <TabsContent value="employees" className="pr-2">
+              <EmployeeForm />
+            </TabsContent>
+            
+            <TabsContent value="permissions" className="pr-2">
+              <UserPermissions />
+            </TabsContent>
+          </ScrollArea>
         </Tabs>
       </CardContent>
     </Card>

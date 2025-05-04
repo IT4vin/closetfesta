@@ -65,9 +65,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
         </div>
 
-        {/* Page content with scrollable area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          {children || <Outlet />}
+        {/* Page content with scrollable area - Ajustado para garantir que o conteúdo tenha altura correta e rolagem adequada */}
+        <div className="flex-1 relative w-full overflow-hidden">
+          <div className="absolute inset-0 overflow-y-auto p-4 md:p-6">
+            {children || <Outlet />}
+          </div>
         </div>
       </main>
     </div>

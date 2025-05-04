@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Select, 
   SelectContent, 
@@ -73,7 +74,7 @@ const EmployeeForm = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-1/3 space-y-4">
           <div className="text-lg font-medium">Foto do Perfil</div>
