@@ -47,14 +47,14 @@ const MobileMenu = () => {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-10 w-10"
+          className="h-10 w-10 flex items-center justify-center"
           aria-label="Abrir menu"
         >
           <Menu className={`h-5 w-5 text-${colorScheme}-600`} />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90vh] pt-2 flex flex-col">
-        <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
           <div>
             <h1 className={`text-xl font-bold text-${colorScheme}-600`}>Closet Manager</h1>
             <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
@@ -65,7 +65,7 @@ const MobileMenu = () => {
               variant="ghost" 
               size="icon"
               aria-label="Fechar menu"
-              className="h-8 w-8"
+              className="h-8 w-8 flex items-center justify-center"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Fechar</span>
@@ -80,7 +80,7 @@ const MobileMenu = () => {
               to={item.href}
               onClick={handleNavigation}
               className={({ isActive }) =>
-                `flex items-center space-x-3 p-3 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
+                `flex items-center space-x-3 px-3 py-3 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
                   isActive
                     ? `bg-${colorScheme}-50 text-${colorScheme}-800 dark:bg-neutral-800 dark:text-${colorScheme}-400 font-medium`
                     : ""

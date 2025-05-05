@@ -70,7 +70,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900">
         {/* Header with mobile menu trigger and user profile */}
-        <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
           <div className="md:hidden">
             <MobileMenu />
           </div>
@@ -80,7 +80,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <div className="ml-auto">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center space-x-2 rounded-full focus:outline-none" aria-label="Menu de usuário">
+                  <button className="flex items-center space-x-2 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700" aria-label="Menu de usuário">
                     <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-neutral-200 transition-all">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
@@ -117,7 +117,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page content with scrollable area */}
         <div className="flex-1 relative w-full overflow-hidden">
-          <div className="absolute inset-0 overflow-y-auto p-4 md:p-6">
+          <div className="absolute inset-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
             {children || <Outlet />}
           </div>
         </div>
