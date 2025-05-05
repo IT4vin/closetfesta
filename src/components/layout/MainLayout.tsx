@@ -2,8 +2,6 @@
 import React, { ReactNode, useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -14,7 +12,6 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
-  const { colorScheme } = useTheme();
   
   // Auto-collapse sidebar on mobile
   useEffect(() => {
@@ -48,24 +45,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-        {/* Header with menu button */}
-        <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-8 w-8 mr-4"
-            onClick={toggleSidebar}
-            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-          >
-            {isMobile ? 
-              <Menu className={`h-4 w-4 text-${colorScheme}`} /> : 
-              sidebarOpen ? <X className={`h-4 w-4 text-${colorScheme}`} /> : <Menu className={`h-4 w-4 text-${colorScheme}`} />
-            }
-          </Button>
-          <h2 className={`text-lg font-medium text-${colorScheme}`}>Closet Manager</h2>
+        {/* Header - removed menu button and title */}
+        <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800">
+          {/* Empty header area */}
         </div>
 
-        {/* Page content with scrollable area - Ajustado para garantir que o conteúdo tenha altura correta e rolagem adequada */}
+        {/* Page content with scrollable area */}
         <div className="flex-1 relative w-full overflow-hidden">
           <div className="absolute inset-0 overflow-y-auto p-4 md:p-6">
             {children || <Outlet />}
