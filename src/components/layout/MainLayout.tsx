@@ -117,7 +117,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Page content with scrollable area */}
         <div className="flex-1 relative w-full overflow-hidden">
-          <div className="absolute inset-0 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
+          <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
             {children || <Outlet />}
           </div>
         </div>

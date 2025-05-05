@@ -7,6 +7,15 @@
   text-align: left;
 }
 
+body {
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  max-width: 100%;
+}
+
 /* Keep animation styles */
 @keyframes logo-spin {
   from {
@@ -28,6 +37,8 @@
   padding: 1.25rem;
   margin-bottom: 1.25rem;
   border-radius: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Sidebar styles */
@@ -55,6 +66,8 @@
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -101,6 +114,7 @@
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -262,6 +276,7 @@
 @media (max-width: 480px) {
   body {
     font-size: 14px;
+    overflow-x: hidden;
   }
   
   .text-xs {
