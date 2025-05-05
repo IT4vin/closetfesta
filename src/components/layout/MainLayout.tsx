@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
+import MobileMenu from "./MobileMenu";
 
 interface MainLayoutProps {
   children?: ReactNode;
@@ -45,9 +46,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-        {/* Header - removed menu button and title */}
-        <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800">
-          {/* Empty header area */}
+        {/* Header with mobile menu trigger */}
+        <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
+          <div className="md:hidden">
+            <MobileMenu />
+          </div>
         </div>
 
         {/* Page content with scrollable area */}
