@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Mail, Phone, Calendar } from "lucide-react";
@@ -68,6 +69,11 @@ const ClientsPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("");
   
+  // Clear search handler
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+  
   // Filter clients based on search term
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -119,14 +125,20 @@ const ClientsPage = () => {
         </Button>
       </header>
       
-      {/* Filter bar component */}
+      {/* Filter bar component with clear search functionality */}
       <FilterBar
         searchPlaceholder="Buscar clientes por nome, email ou telefone..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         selectFilters={selectFilters}
         showFilterButton={false}
+        onClearSearch={handleClearSearch}
       />
+      
+      {/* Display count of filtered clients */}
+      <div className="mb-4 text-sm text-neutral-600">
+        {filteredClients.length} clientes encontrados
+      </div>
       
       {/* Client cards container */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

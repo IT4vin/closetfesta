@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -28,6 +28,7 @@ interface FilterBarProps {
   };
   onFilterClick?: () => void;
   showFilterButton?: boolean;
+  onClearSearch?: () => void;
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
@@ -38,6 +39,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   dateFilter,
   onFilterClick,
   showFilterButton = true,
+  onClearSearch,
 }) => {
   return (
     <div className="premium-card p-4 mb-6">
@@ -47,10 +49,19 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
-            className="pl-10"
+            className="pl-10 pr-10"
             value={searchValue}
             onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           />
+          {searchValue && onClearSearch && (
+            <button 
+              onClick={onClearSearch}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-neutral-800"
+              aria-label="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* Filters container */}

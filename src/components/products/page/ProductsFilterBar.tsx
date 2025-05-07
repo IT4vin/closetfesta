@@ -26,6 +26,11 @@ const ProductsFilterBar: React.FC<ProductsFilterBarProps> = ({
   viewMode,
   setViewMode
 }) => {
+  // Clear search handler
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   // Create the select filters array for the FilterBar
   const selectFilters = showFilters ? [
     {
@@ -103,6 +108,7 @@ const ProductsFilterBar: React.FC<ProductsFilterBarProps> = ({
         onSearchChange={setSearchTerm}
         selectFilters={selectFilters}
         showFilterButton={false}
+        onClearSearch={handleClearSearch}
       />
       
       {/* View mode controls */}
