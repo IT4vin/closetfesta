@@ -69,9 +69,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-neutral-50 dark:bg-neutral-900">
-        {/* Header with mobile menu trigger and user profile */}
-        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <div className="md:hidden">
+        {/* Header with mobile menu trigger and user profile - Only visible on mobile */}
+        <div className="block md:hidden px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+          <div>
             <MobileMenu />
           </div>
           

@@ -179,6 +179,23 @@ html, body, #root {
   background-color: rgba(128, 0, 32, 0.1);
 }
 
+/* Layout adjustments for mobile/desktop */
+@media (min-width: 768px) {
+  /* Content should start at the top in desktop when header is hidden */
+  .main-content {
+    padding-top: 0;
+  }
+  
+  /* Add any desktop-specific layout adjustments here */
+  .desktop-only {
+    display: block;
+  }
+  
+  .mobile-only {
+    display: none;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   h1 {
@@ -221,6 +238,15 @@ html, body, #root {
   .stat-card {
     padding: 1rem;
     margin-bottom: 1rem;
+  }
+  
+  /* Mobile-only display classes */
+  .desktop-only {
+    display: none;
+  }
+  
+  .mobile-only {
+    display: block;
   }
 }
 
