@@ -1,8 +1,8 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Mail, Phone, Calendar } from "lucide-react";
+import { Plus, Mail, Phone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FilterBar from "@/components/common/FilterBar";
 
 // In a real app, this would come from an API/database
 const clients = [
@@ -65,6 +65,8 @@ const clients = [
 const ClientsPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
   
   // Filter clients based on search term
   const filteredClients = clients.filter(client => 
@@ -72,6 +74,34 @@ const ClientsPage = () => {
     client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone.includes(searchTerm)
   );
+
+  // Define the filter options for the FilterBar
+  const selectFilters = [
+    {
+      name: "status",
+      label: "Status",
+      value: statusFilter,
+      onChange: setStatusFilter,
+      options: [
+        { value: "", label: "Todos os clientes" },
+        { value: "active", label: "Ativos" },
+        { value: "inactive", label: "Inativos" },
+        { value: "vip", label: "VIP" },
+      ]
+    },
+    {
+      name: "sort",
+      label: "Ordenar por",
+      value: sortOrder,
+      onChange: setSortOrder,
+      options: [
+        { value: "name", label: "Nome" },
+        { value: "spent", label: "Maior Gasto" },
+        { value: "frequency", label: "Maior Frequência" },
+        { value: "recent", label: "Mais Recente" },
+      ]
+    }
+  ];
   
   return (
     <div className="page-transition w-full">
@@ -81,64 +111,29 @@ const ClientsPage = () => {
           <p className="text-neutral-500 text-sm md:text-base">Gerencie seus clientes e histórico de aluguéis</p>
         </div>
         
-        <div className="flex gap-2 md:gap-4 mt-2 md:mt-0">
-          <Button 
-            variant="outline" 
-            className="border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-            size="sm"
-            md-size="default"
-          >
-            <Filter size={18} className="mr-1 md:mr-2" />
-            <span>Filtrar</span>
-          </Button>
-          <Button 
-            className="bg-marsala hover:bg-marsala-700"
-            size="sm"
-            md-size="default"
-          >
-            <Plus size={18} className="mr-1 md:mr-2" />
-            <span>Novo Cliente</span>
-          </Button>
-        </div>
+        <Button 
+          className="bg-marsala hover:bg-marsala-700 md:self-start"
+        >
+          <Plus size={18} className="mr-1 md:mr-2" />
+          <span>Novo Cliente</span>
+        </Button>
       </header>
       
-      <div className="premium-card mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-5">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar clientes por nome, email ou telefone..." 
-              className="input-field pl-10 md:pl-12 py-2 md:py-3 text-sm md:text-base w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
-            <select className="input-field py-2 md:py-3 text-sm md:text-base w-1/2 md:w-auto">
-              <option>Todos os clientes</option>
-              <option>Ativos</option>
-              <option>Inativos</option>
-              <option>VIP</option>
-            </select>
-            
-            <select className="input-field py-2 md:py-3 text-sm md:text-base w-1/2 md:w-auto">
-              <option>Ordenar por Nome</option>
-              <option>Maior Gasto</option>
-              <option>Maior Frequência</option>
-              <option>Mais Recente</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Filter bar component */}
+      <FilterBar
+        searchPlaceholder="Buscar clientes por nome, email ou telefone..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectFilters={selectFilters}
+        showFilterButton={false}
+      />
       
       {/* Client cards container */}
-      <div className="flex flex-wrap gap-4 md:gap-6 justify-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredClients.map((client) => (
           <div 
             key={client.id} 
-            className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-1rem)] max-w-[400px] premium-card card-hover"
+            className="premium-card card-hover"
           >
             <div className="p-4 md:p-5">
               <div className="flex justify-between items-start mb-4">

@@ -201,6 +201,67 @@ html, body, #root {
   box-shadow: 0 10px 20px rgba(0,0,0,0.08);
 }
 
+/* Filter styles */
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.filter-input,
+.filter-select {
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  flex: 1 1 180px;
+  min-width: 150px;
+}
+
+.filter-date {
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  flex: 1 1 180px;
+  min-width: 150px;
+}
+
+.filter-button {
+  background-color: var(--marsala);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  flex: 1 1 120px;
+}
+
+.filter-button:hover {
+  background-color: var(--marsala-700);
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-sizing: border-box;
+}
+
+.input-field:focus {
+  border-color: var(--marsala);
+  box-shadow: 0 0 0 2px rgba(128, 0, 32, 0.1);
+  outline: none;
+}
+
 /* Layout adjustments for mobile/desktop */
 @media (min-width: 768px) {
   /* Content should start at the top in desktop when header is hidden */
@@ -216,12 +277,26 @@ html, body, #root {
   .mobile-only {
     display: none;
   }
+  
+  /* Filter responsive adjustments */
+  .filter-row {
+    flex-direction: row;
+  }
 }
 
 /* Extra small devices */
 @media (max-width: 475px) {
   .xs\:flex-row {
     flex-direction: row;
+  }
+  
+  /* Filter responsive adjustments */
+  .filter-container {
+    flex-direction: column;
+  }
+  
+  .filter-button {
+    width: 100%;
   }
 }
 
