@@ -74,7 +74,7 @@ const ClientsPage = () => {
   );
   
   return (
-    <div className="page-transition w-full px-4 md:px-6 overflow-hidden">
+    <div className="page-transition w-full px-4 md:px-6">
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-10">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold mb-1 md:mb-2">Clientes</h1>
@@ -133,46 +133,47 @@ const ClientsPage = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full">
+      {/* Client cards using flex container with wrapping */}
+      <div className="flex flex-wrap gap-4 md:gap-6 justify-start">
         {filteredClients.map((client) => (
-          <div key={client.id} className="premium-card p-4 md:p-6 card-hover w-full">
-            <div className="flex justify-between items-start mb-4 md:mb-5">
+          <div key={client.id} className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-1rem)] max-w-[400px] premium-card p-4 md:p-6 card-hover">
+            <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="font-medium text-lg md:text-xl">{client.name}</h3>
-                <p className="text-sm md:text-base text-neutral-500">Cliente desde {client.lastRental}</p>
+                <p className="text-sm text-neutral-500">Cliente desde {client.lastRental}</p>
               </div>
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-marsala rounded-full flex items-center justify-center text-white font-medium text-lg">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-marsala rounded-full flex items-center justify-center text-white font-medium">
                 {client.name.charAt(0)}
               </div>
             </div>
             
-            <div className="space-y-2 md:space-y-3 mb-4 md:mb-5">
-              <div className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
-                <Mail size={18} className="text-neutral-400 flex-shrink-0" />
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Mail size={16} className="text-neutral-400 flex-shrink-0" />
                 <span className="truncate">{client.email}</span>
               </div>
-              <div className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
-                <Phone size={18} className="text-neutral-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 text-sm">
+                <Phone size={16} className="text-neutral-400 flex-shrink-0" />
                 <span>{client.phone}</span>
               </div>
-              <div className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
-                <Calendar size={18} className="text-neutral-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar size={16} className="text-neutral-400 flex-shrink-0" />
                 <span>Último aluguel: {client.lastRental}</span>
               </div>
             </div>
             
-            <div className="border-t border-neutral-100 pt-3 md:pt-4 flex justify-between">
+            <div className="border-t border-neutral-100 pt-3 flex justify-between mb-4">
               <div>
-                <p className="text-xs md:text-sm text-neutral-500">Total de aluguéis</p>
-                <p className="font-medium text-base md:text-lg">{client.totalRentals}</p>
+                <p className="text-xs text-neutral-500">Total de aluguéis</p>
+                <p className="font-medium">{client.totalRentals}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs md:text-sm text-neutral-500">Valor gasto</p>
-                <p className="font-medium text-base md:text-lg text-marsala">R$ {client.totalSpent.toFixed(2)}</p>
+                <p className="text-xs text-neutral-500">Valor gasto</p>
+                <p className="font-medium text-marsala">R$ {client.totalSpent.toFixed(2)}</p>
               </div>
             </div>
             
-            <div className="mt-4 md:mt-5 flex gap-2 md:gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button 
                 variant="outline" 
                 className="flex-1 py-2 text-sm"
