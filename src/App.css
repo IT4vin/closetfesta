@@ -33,12 +33,20 @@ html, body, #root {
 }
 
 /* Global spacing adjustments */
+.page-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .premium-card {
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
   border-radius: 0.75rem;
   width: 100%;
   box-sizing: border-box;
+  background-color: white;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 /* Sidebar styles */
@@ -179,6 +187,20 @@ html, body, #root {
   background-color: rgba(128, 0, 32, 0.1);
 }
 
+.hover\:bg-marsala-50:hover {
+  background-color: rgba(128, 0, 32, 0.05);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+
 /* Layout adjustments for mobile/desktop */
 @media (min-width: 768px) {
   /* Content should start at the top in desktop when header is hidden */
@@ -193,6 +215,13 @@ html, body, #root {
   
   .mobile-only {
     display: none;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 475px) {
+  .xs\:flex-row {
+    flex-direction: row;
   }
 }
 
@@ -229,17 +258,6 @@ html, body, #root {
     margin-bottom: 1rem;
   }
 
-  /* Adjust grid layouts for mobile */
-  .grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-    gap: 1rem !important;
-  }
-  
-  .stat-card {
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-  
   /* Mobile-only display classes */
   .desktop-only {
     display: none;
@@ -346,16 +364,5 @@ html, body, #root {
   
   ::-webkit-scrollbar-thumb:hover {
     background: #555;
-  }
-  
-  /* Consistent desktop spacing */
-  .page-content {
-    padding: 1.5rem;
-  }
-  
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
   }
 }

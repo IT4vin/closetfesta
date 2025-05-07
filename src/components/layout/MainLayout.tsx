@@ -115,10 +115,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           )}
         </div>
 
-        {/* Page content with scrollable area */}
+        {/* Page content with scrollable area and consistent padding */}
         <div className="flex-1 relative w-full overflow-hidden">
           <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
-            {children || <Outlet />}
+            <div className="page-container px-4 sm:px-6 md:px-8 py-6 md:py-8">
+              {children || <Outlet />}
+            </div>
           </div>
         </div>
       </main>
