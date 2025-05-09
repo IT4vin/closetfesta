@@ -36,11 +36,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="h-full w-64 max-w-full border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col">
-      <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+    <div className="h-full w-64 max-w-full border-r border-marsala-800/20 bg-marsala-900 text-white flex flex-col">
+      <div className="p-4 border-b border-marsala-800/30 flex justify-between items-center">
         <div>
-          <h1 className={`text-xl font-bold text-${colorScheme}`}>Closet Manager</h1>
-          <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
+          <h1 className="text-xl font-bold text-white">Closet Manager</h1>
+          <p className="text-xs text-marsala-200 mt-1">Sistema de Gestão</p>
         </div>
         
         <div className="md:hidden">
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             size="icon"
             onClick={onClose}
             aria-label="Fechar menu"
-            className="h-8 w-8"
+            className="h-8 w-8 text-white hover:bg-marsala-800/50"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Fechar</span>
@@ -64,16 +64,16 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             to={item.href}
             onClick={() => onClose && window.innerWidth < 768 ? onClose() : null}
             className={({ isActive }) =>
-              `flex items-center space-x-3 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
+              `flex items-center space-x-3 p-2 rounded-md transition-colors ${
                 isActive
-                  ? `bg-${colorScheme}-50 text-${colorScheme}-800 dark:bg-neutral-800 dark:text-${colorScheme}-400 font-medium`
-                  : ""
+                  ? `bg-marsala-800 text-white font-medium`
+                  : `text-marsala-100 hover:bg-marsala-800/50 hover:text-white`
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-${colorScheme}-600 dark:text-${colorScheme}-400` : ""}`} />
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-white` : "text-marsala-200"}`} />
                 <span className="truncate">{item.name}</span>
               </>
             )}
@@ -83,8 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       
       <UserProfile />
       
-      <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-        <p className="text-xs text-neutral-500">&copy; 2025 Closet Manager</p>
+      <div className="p-4 border-t border-marsala-800/30 flex justify-between items-center">
+        <p className="text-xs text-marsala-200">&copy; 2025 Closet Manager</p>
         <ThemeToggle />
       </div>
     </div>

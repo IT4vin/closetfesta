@@ -81,7 +81,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center space-x-2 rounded-full focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-700" aria-label="Menu de usuário">
-                    <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-neutral-200 transition-all">
+                    <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-marsala-500/50 transition-all">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                     </Avatar>

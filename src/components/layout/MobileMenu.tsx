@@ -50,14 +50,14 @@ const MobileMenu = () => {
           className="h-10 w-10 flex items-center justify-center"
           aria-label="Abrir menu"
         >
-          <Menu className={`h-5 w-5 text-${colorScheme}-600`} />
+          <Menu className="h-5 w-5 text-marsala-600" />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[90vh] pt-2 flex flex-col">
-        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+      <DrawerContent className="h-[90vh] pt-2 flex flex-col bg-marsala-900 text-white">
+        <div className="px-4 py-3 border-b border-marsala-800/30 flex justify-between items-center">
           <div>
-            <h1 className={`text-xl font-bold text-${colorScheme}-600`}>Closet Manager</h1>
-            <p className="text-xs text-neutral-500 mt-1">Sistema de Gestão</p>
+            <h1 className="text-xl font-bold text-white">Closet Manager</h1>
+            <p className="text-xs text-marsala-200 mt-1">Sistema de Gestão</p>
           </div>
           
           <DrawerClose asChild>
@@ -65,7 +65,7 @@ const MobileMenu = () => {
               variant="ghost" 
               size="icon"
               aria-label="Fechar menu"
-              className="h-8 w-8 flex items-center justify-center"
+              className="h-8 w-8 flex items-center justify-center text-white hover:bg-marsala-800/50"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Fechar</span>
@@ -80,16 +80,16 @@ const MobileMenu = () => {
               to={item.href}
               onClick={handleNavigation}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-3 py-3 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors ${
+                `flex items-center space-x-3 px-3 py-3 rounded-md transition-colors ${
                   isActive
-                    ? `bg-${colorScheme}-50 text-${colorScheme}-800 dark:bg-neutral-800 dark:text-${colorScheme}-400 font-medium`
-                    : ""
+                    ? `bg-marsala-800 text-white font-medium`
+                    : `text-marsala-100 hover:bg-marsala-800/50 hover:text-white`
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-${colorScheme}-600 dark:text-${colorScheme}-400` : ""}`} />
+                  <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-white` : "text-marsala-200"}`} />
                   <span className="truncate">{item.name}</span>
                 </>
               )}
@@ -97,8 +97,8 @@ const MobileMenu = () => {
           ))}
         </nav>
         
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 text-center">
-          <p className="text-xs text-neutral-500">&copy; 2025 Closet Manager</p>
+        <div className="p-4 border-t border-marsala-800/30 text-center">
+          <p className="text-xs text-marsala-200">&copy; 2025 Closet Manager</p>
         </div>
       </DrawerContent>
     </Drawer>
