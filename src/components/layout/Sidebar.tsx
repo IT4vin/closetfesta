@@ -1,4 +1,3 @@
-
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { 
@@ -24,6 +23,8 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { colorScheme } = useTheme();
   
+  // Link fixo para o catálogo, sempre em /catalogo
+  const catalogHref = '/catalogo';
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart },
     { name: "Clientes", href: "/clients", icon: Users },
@@ -33,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: "Estoque", href: "/inventory", icon: LineChart },
     { name: "PDV", href: "/pdv", icon: ShoppingCart },
     { name: "Configurações", href: "/settings", icon: Settings },
+    { name: "Catálogo", href: catalogHref, icon: ShoppingBag, external: true },
   ];
 
   return (
@@ -59,25 +61,40 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       
       <nav className="flex-1 p-2 overflow-y-auto">
         {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            onClick={() => onClose && window.innerWidth < 768 ? onClose() : null}
-            className={({ isActive }) =>
-              `flex items-center space-x-3 p-2 rounded-md transition-colors ${
-                isActive
-                  ? `bg-marsala-800 text-white font-medium`
-                  : `text-marsala-100 hover:bg-marsala-800/50 hover:text-white`
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-white` : "text-marsala-200"}`} />
-                <span className="truncate">{item.name}</span>
-              </>
-            )}
-          </NavLink>
+          item.external ? (
+            <a
+              key={item.name}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={
+                "flex items-center space-x-3 p-2 rounded-md transition-colors text-marsala-100 hover:bg-marsala-800/50 hover:text-white"
+              }
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0 text-marsala-200" />
+              <span className="truncate">{item.name}</span>
+            </a>
+          ) : (
+            <NavLink
+              key={item.name}
+              to={item.href}
+              onClick={() => onClose && window.innerWidth < 768 ? onClose() : null}
+              className={({ isActive }) =>
+                `flex items-center space-x-3 p-2 rounded-md transition-colors ${
+                  isActive
+                    ? `bg-marsala-800 text-white font-medium`
+                    : `text-marsala-100 hover:bg-marsala-800/50 hover:text-white`
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? `text-white` : "text-marsala-200"}`} />
+                  <span className="truncate">{item.name}</span>
+                </>
+              )}
+            </NavLink>
+          )
         ))}
       </nav>
       
