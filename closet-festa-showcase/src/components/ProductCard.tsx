@@ -1,10 +1,8 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Product } from "@/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import ProductDetail from "./ProductDetail";
 import { Button } from "@/components/ui/button";
-import { getProductImages, ProductImage } from "@/services/imageService";
 
 interface ProductCardProps {
   product: Product;
@@ -12,21 +10,6 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [productImages, setProductImages] = useState<ProductImage[]>([]);
-  
-  useEffect(() => {
-    const loadImages = async () => {
-      try {
-        const images = await getProductImages(product.id);
-        setProductImages(images);
-      } catch (error) {
-        console.error('Failed to load product images:', error);
-        setProductImages([]);
-      }
-    };
-
-    loadImages();
-  }, [product.id]);
   
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', {
@@ -35,7 +18,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
-  const mainImage = productImages.length > 0 ? productImages[0].url : '/placeholder.svg';
+  // Gerar URL da imagem do Supabase storage ou usar placeholder
+  const getImageUrl = (imagePath?: string) => {
+    if (!imagePath) return '/placeholder.svg';
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${imagePath}`;
+  };
+
+  const mainImage = getImageUrl((product as any).image_path);
   
   return (
     <>
@@ -46,6 +35,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = '/placeholder.svg';
+            }}
           />
           
           {/* Tags */}
@@ -62,19 +55,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
               )}
             </div>
           )}
-
-          {/* Image count indicator */}
-          {productImages.length > 1 && (
-            <div className="absolute bottom-2 right-2">
-              <span className="bg-black/70 text-white text-xs px-2 py-1 rounded">
-                +{productImages.length - 1}
-              </span>
-            </div>
-          )}
         </div>
         
         <div className="p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-1">{product.name}</h3>
+          
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
           
           <div className="flex flex-col gap-1 mb-3">
             <div className="flex justify-between items-center">
@@ -90,6 +76,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
             )}
           </div>
           
+          <div className="text-xs text-gray-500 mb-3">
+            Categoria: {product.category}
+          </div>
+          
           <Button 
             onClick={() => setIsDetailOpen(true)}
             className="w-full bg-marsala hover:bg-marsala-dark"
@@ -101,7 +91,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="sm:max-w-3xl">
-          <ProductDetail product={product} images={productImages} />
+          <ProductDetail product={product} />
         </DialogContent>
       </Dialog>
     </>

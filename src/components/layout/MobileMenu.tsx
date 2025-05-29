@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Menu } from "lucide-react";
@@ -30,6 +29,7 @@ const MobileMenu = () => {
     { name: "Dashboard", href: "/", icon: BarChart },
     { name: "Clientes", href: "/clients", icon: Users },
     { name: "Produtos", href: "/products", icon: ShoppingBag },
+    { name: "Catálogo", href: "/catalog", icon: ShoppingBag },
     { name: "Agendamentos", href: "/calendar", icon: Calendar },
     { name: "Financeiro", href: "/financial", icon: Wallet },
     { name: "Estoque", href: "/inventory", icon: LineChart },

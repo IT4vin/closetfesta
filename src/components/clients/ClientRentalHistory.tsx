@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Calendar, ShoppingBag, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";

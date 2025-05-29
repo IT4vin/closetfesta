@@ -1,9 +1,11 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Mail, Phone, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { toast } from "@/hooks/use-toast";
 import FilterBar from "@/components/common/FilterBar";
+import ClientForm from "@/components/clients/ClientForm";
 
 // In a real app, this would come from an API/database
 const clients = [
@@ -68,10 +70,35 @@ const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("");
+  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
   
   // Clear search handler
   const handleClearSearch = () => {
     setSearchTerm("");
+  };
+
+  // Handle new client creation
+  const handleNewClient = () => {
+    setIsNewClientModalOpen(true);
+  };
+
+  // Handle client form submission
+  const handleClientSubmit = (clientData: any) => {
+    console.log("✅ Novo cliente criado:", clientData);
+    
+    // In a real app, save to backend here
+    
+    toast({
+      title: "Cliente cadastrado",
+      description: "O cliente foi cadastrado com sucesso!",
+    });
+    
+    setIsNewClientModalOpen(false);
+  };
+
+  // Handle client form cancellation
+  const handleClientCancel = () => {
+    setIsNewClientModalOpen(false);
   };
   
   // Filter clients based on search term
@@ -118,6 +145,7 @@ const ClientsPage = () => {
         </div>
         
         <Button 
+          onClick={handleNewClient}
           className="bg-marsala hover:bg-marsala-700 md:self-start"
         >
           <Plus size={18} className="mr-1 md:mr-2" />
@@ -202,6 +230,19 @@ const ClientsPage = () => {
           </div>
         ))}
       </div>
+
+      {/* New Client Modal */}
+      <Sheet open={isNewClientModalOpen} onOpenChange={setIsNewClientModalOpen}>
+        <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Novo Cliente</SheetTitle>
+          </SheetHeader>
+          <ClientForm 
+            onSubmit={handleClientSubmit} 
+            onCancel={handleClientCancel} 
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

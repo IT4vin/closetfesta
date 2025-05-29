@@ -1,0 +1,49 @@
+{
+  "name": "closet-festa-backend",
+  "version": "1.0.0",
+  "description": "Backend Node.js para o sistema Closet Festa",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build": "echo 'Build completed'",
+    "migrate": "node src/database/migrate.js",
+    "seed": "node src/database/seed.js",
+    "reset": "rm -rf data && npm run migrate && npm run seed",
+    "test": "jest"
+  },
+  "keywords": [
+    "closet",
+    "festa",
+    "api",
+    "node",
+    "express"
+  ],
+  "author": "Closet Festa",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.11.3",
+    "sharp": "^0.32.6",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

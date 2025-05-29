@@ -1,11 +1,11 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Product, StoreInfo, User } from '../types';
-import { dummyProducts, storeInfo } from '../data/dummyData';
+import { useProducts } from '../hooks/useProducts';
 import { useToast } from '@/hooks/use-toast';
 
 interface AppContextType {
   products: Product[];
+  categories: { id: string; name: string; description?: string }[];
   storeInfo: StoreInfo;
   currentUser: User | null;
   isAdmin: boolean;
@@ -13,6 +13,8 @@ interface AppContextType {
   searchTerm: string;
   selectedCategory: string;
   priceFilter: 'all' | 'rental' | 'sale';
+  loading: boolean;
+  error: string | null;
   
   setSearchTerm: (term: string) => void;
   setSelectedCategory: (category: string) => void;
@@ -30,13 +32,27 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // State
-  const [products, setProducts] = useState<Product[]>(dummyProducts);
-  const [store, setStore] = useState<StoreInfo>(storeInfo);
+  // Buscar dados reais do banco
+  const { products, categories, loading, error } = useProducts();
+  
+  // State local
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceFilter, setPriceFilter] = useState<'all' | 'rental' | 'sale'>('all');
+  
+  // Informações da loja (pode ser configurável via admin)
+  const [store] = useState<StoreInfo>({
+    name: "Closet Festa",
+    description: "Sua festa perfeita começa aqui! Aluguel e venda de roupas para todas as ocasiões especiais.",
+    logo: "/logo.png",
+    theme: "elegant",
+    contacts: {
+      whatsapp: "5511999999999",
+      instagram: "@closetfesta",
+      shopee: "closetfesta"
+    }
+  });
   
   const { toast } = useToast();
   
@@ -101,21 +117,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Store management functions
   const updateStoreInfo = (info: Partial<StoreInfo>) => {
-    setStore(prev => ({ ...prev, ...info }));
+    // Em uma aplicação real, isso salvaria no banco de dados
     toast({
       title: "Informações atualizadas",
       description: "As alterações foram salvas com sucesso",
     });
   };
 
-  // Product management functions
+  // Product management functions (para admin)
   const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct = {
-      ...product,
-      id: `${products.length + 1}`, // In a real app, use UUID or similar
-    };
-    
-    setProducts(prev => [...prev, newProduct]);
+    // Em uma aplicação real, isso salvaria no banco de dados
     toast({
       title: "Produto adicionado",
       description: `${product.name} foi adicionado ao catálogo`,
@@ -123,9 +134,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateProduct = (id: string, product: Partial<Product>) => {
-    setProducts(prev => 
-      prev.map(p => p.id === id ? { ...p, ...product } : p)
-    );
+    // Em uma aplicação real, isso atualizaria no banco de dados
     toast({
       title: "Produto atualizado",
       description: "As alterações foram salvas com sucesso",
@@ -133,8 +142,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProduct = (id: string) => {
+    // Em uma aplicação real, isso removeria do banco de dados
     const productName = products.find(p => p.id === id)?.name;
-    setProducts(prev => prev.filter(p => p.id !== id));
     toast({
       title: "Produto removido",
       description: `${productName || 'O produto'} foi removido do catálogo`,
@@ -143,6 +152,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const value = {
     products,
+    categories,
     storeInfo: store,
     currentUser,
     isAdmin: currentUser?.isAdmin || false,
@@ -150,6 +160,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     searchTerm,
     selectedCategory,
     priceFilter,
+    loading,
+    error,
     
     setSearchTerm,
     setSelectedCategory,

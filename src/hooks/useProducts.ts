@@ -1,256 +1,238 @@
+import { useState, useEffect } from 'react';
+import { productsApi, type Product, type ApiResponse, ApiError } from '@/lib/api';
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-
-export interface Product {
-  id: number;
-  name: string;
-  description: string;
-  type: string;
-  subtype: string;
-  price: number;
-  rentalPrice: number;
-  image: string;
-  status: string;
-  size: string;
-  color: string;
-  sku: string;
-  dateAdded: string;
+interface UseProductsOptions {
+  category_id?: string;
+  featured?: boolean;
+  in_stock?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  autoFetch?: boolean;
 }
 
-export interface ProductFilters {
-  type: string;
-  status: string;
-  size: string;
-  priceMin: string;
-  priceMax: string;
-  color: string;
-}
+export function useProducts(options: UseProductsOptions = {}) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
-// Mock data - in a real app this would come from an API
-const initialProducts = [
-  {
-    id: 1,
-    name: "Vestido de Noiva Elegance",
-    description: "Vestido longo de cetim com bordados",
-    type: "Vestido",
-    subtype: "Noiva",
-    price: 1200,
-    rentalPrice: 300,
-    image: "https://images.unsplash.com/photo-1594552072238-5b1076134e85?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "available",
-    size: "M",
-    color: "Branco",
-    sku: "VEST-001",
-    dateAdded: "2023-10-12"
-  },
-  {
-    id: 2,
-    name: "Terno Preto Classic",
-    description: "Terno preto em lã fria",
-    type: "Terno",
-    subtype: "Social",
-    price: 900,
-    rentalPrice: 180,
-    image: "https://images.unsplash.com/photo-1598808503746-f34c53b9323e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "rented",
-    size: "42",
-    color: "Preto",
-    sku: "TERN-001",
-    dateAdded: "2023-09-05"
-  },
-  {
-    id: 3,
-    name: "Vestido Madrinha Rose",
-    description: "Vestido longo em chiffon",
-    type: "Vestido",
-    subtype: "Madrinha",
-    price: 850,
-    rentalPrice: 150,
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "available",
-    size: "G",
-    color: "Rose",
-    sku: "VEST-002",
-    dateAdded: "2023-11-20"
-  },
-  {
-    id: 4,
-    name: "Smoking Azul Marinho",
-    description: "Smoking em lã premium",
-    type: "Terno",
-    subtype: "Smoking",
-    price: 1100,
-    rentalPrice: 220,
-    image: "https://images.unsplash.com/photo-1592878849122-facb97520f9e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "available",
-    size: "44",
-    color: "Azul Marinho",
-    sku: "TERN-002",
-    dateAdded: "2023-08-15"
-  },
-  {
-    id: 5,
-    name: "Vestido de Festa Dourado",
-    description: "Vestido curto com paetês",
-    type: "Vestido",
-    subtype: "Festa",
-    price: 780,
-    rentalPrice: 140,
-    image: "https://images.unsplash.com/photo-1566174053879-31528523f8c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "available",
-    size: "P",
-    color: "Dourado",
-    sku: "VEST-003",
-    dateAdded: "2023-12-03"
-  },
-  {
-    id: 6,
-    name: "Terno Cinza Slim",
-    description: "Terno slim fit em cinza",
-    type: "Terno",
-    subtype: "Social",
-    price: 920,
-    rentalPrice: 170,
-    image: "https://images.unsplash.com/photo-1593032465175-481ac7f401a0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "rented",
-    size: "40",
-    color: "Cinza",
-    sku: "TERN-003",
-    dateAdded: "2023-10-18"
-  },
-];
+  const { autoFetch = true, ...apiOptions } = options;
 
-export const useProducts = () => {
-  const { toast } = useToast();
-  const [productsList, setProductsList] = useState<Product[]>(initialProducts);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<ProductFilters>({
-    type: "",
-    status: "",
-    size: "",
-    priceMin: "",
-    priceMax: "",
-    color: ""
-  });
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  // Handle adding a new product
-  const handleAddProduct = () => {
-    setEditingProduct(null);
-  };
-  
-  // Handle editing an existing product
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-  };
-  
-  // Handle form submission
-  const handleFormSubmit = (productData: any) => {
-    // For this demo, we'll update the local state
-    if (editingProduct) {
-      setProductsList(prev => 
-        prev.map(p => p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p)
-      );
-      toast({
-        title: "Produto atualizado",
-        description: `${productData.name} foi atualizado com sucesso`,
-      });
-    } else {
-      const newProduct = {
-        ...productData,
-        id: Date.now(), // Generate a temporary ID
-        dateAdded: new Date().toISOString().split('T')[0]
-      };
-      setProductsList(prev => [...prev, newProduct]);
-      toast({
-        title: "Produto adicionado",
-        description: `${productData.name} foi adicionado com sucesso`,
-      });
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response: ApiResponse<Product[]> = await productsApi.findAll(apiOptions);
+      
+      if (response.success) {
+        setProducts(response.data);
+        setTotal(response.total || response.data.length);
+      } else {
+        throw new Error(response.message || 'Erro ao buscar produtos');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao carregar produtos';
+      
+      setError(errorMessage);
+      console.error('Erro ao buscar produtos:', err);
+    } finally {
+      setLoading(false);
     }
   };
-  
-  // Handle import confirmation
-  const handleImportConfirm = (importedProducts: any[]) => {
-    // In a real app, you would send this to your backend
-    const newProducts = importedProducts.map((product, index) => ({
-      ...product,
-      id: Date.now() + index, // Generate temporary IDs
-      dateAdded: new Date().toISOString().split('T')[0]
-    }));
-    
-    setProductsList(prev => [...prev, ...newProducts]);
+
+  const createProduct = async (productData: {
+    name: string;
+    description?: string;
+    price: number;
+    quantity: number;
+    category_id: string;
+    sizes?: string;
+    featured?: boolean;
+  }) => {
+    try {
+      const response: ApiResponse<Product> = await productsApi.create(productData);
+      
+      if (response.success) {
+        await fetchProducts(); // Recarregar lista
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao criar produto');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao criar produto';
+      
+      setError(errorMessage);
+      throw err;
+    }
   };
-  
-  // Filter products based on search and filters
-  const filteredProducts = productsList.filter(product => {
-    // Search filter
-    if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !product.sku.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !product.type.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
+
+  const updateProduct = async (id: string, productData: Partial<{
+    name: string;
+    description: string;
+    price: number;
+    quantity: number;
+    category_id: string;
+    sizes: string;
+    featured: boolean;
+  }>) => {
+    try {
+      const response: ApiResponse<Product> = await productsApi.update(id, productData);
+      
+      if (response.success) {
+        await fetchProducts(); // Recarregar lista
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao atualizar produto');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao atualizar produto';
+      
+      setError(errorMessage);
+      throw err;
     }
-    
-    // Type filter
-    if (filters.type && product.type !== filters.type) {
-      return false;
-    }
-    
-    // Status filter
-    if (filters.status && product.status !== filters.status) {
-      return false;
-    }
-    
-    // Size filter
-    if (filters.size && product.size !== filters.size) {
-      return false;
-    }
-    
-    // Price min filter
-    if (filters.priceMin && product.rentalPrice < parseInt(filters.priceMin)) {
-      return false;
-    }
-    
-    // Price max filter
-    if (filters.priceMax && product.rentalPrice > parseInt(filters.priceMax)) {
-      return false;
-    }
-    
-    // Color filter
-    if (filters.color && product.color !== filters.color) {
-      return false;
-    }
-    
-    return true;
-  });
-  
-  // Handle filter changes
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
-  
-  // Check if any filters are applied
-  const hasActiveFilters = () => {
-    return Object.values(filters).some(value => value !== "");
+
+  const deleteProduct = async (id: string, hardDelete = false) => {
+    try {
+      const response = await productsApi.delete(id, hardDelete);
+      
+      if (response.success) {
+        await fetchProducts(); // Recarregar lista
+        return true;
+      } else {
+        throw new Error(response.message || 'Erro ao deletar produto');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao deletar produto';
+      
+      setError(errorMessage);
+      throw err;
+    }
   };
+
+  const uploadImages = async (productId: string, files: File[]) => {
+    try {
+      const response = await productsApi.uploadImages(productId, files);
+      
+      if (response.success) {
+        await fetchProducts(); // Recarregar lista para atualizar imagens
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Erro ao fazer upload das imagens');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao fazer upload das imagens';
+      
+      setError(errorMessage);
+      throw err;
+    }
+  };
+
+  const removeImage = async (productId: string, imageId: string) => {
+    try {
+      const response = await productsApi.removeImage(productId, imageId);
+      
+      if (response.success) {
+        await fetchProducts(); // Recarregar lista para atualizar imagens
+        return true;
+      } else {
+        throw new Error(response.message || 'Erro ao remover imagem');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao remover imagem';
+      
+      setError(errorMessage);
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    if (autoFetch) {
+      fetchProducts();
+    }
+  }, [
+    apiOptions.category_id,
+    apiOptions.featured, 
+    apiOptions.in_stock,
+    apiOptions.search,
+    apiOptions.limit,
+    apiOptions.offset
+  ]);
 
   return {
-    productsList,
-    searchTerm,
-    setSearchTerm,
-    filters,
-    filteredProducts,
-    editingProduct,
-    setEditingProduct,
-    handleAddProduct,
-    handleEditProduct,
-    handleFormSubmit,
-    handleImportConfirm,
-    handleFilterChange,
-    hasActiveFilters
+    products,
+    loading,
+    error,
+    total,
+    refetch: fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    uploadImages,
+    removeImage,
+    clearError: () => setError(null)
   };
-};
+}
+
+// Hook para buscar um produto específico
+export function useProduct(id: string | undefined) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProduct = async () => {
+    if (!id) {
+      setProduct(null);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response: ApiResponse<Product> = await productsApi.findById(id);
+      
+      if (response.success) {
+        setProduct(response.data);
+      } else {
+        throw new Error(response.message || 'Erro ao buscar produto');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof ApiError 
+        ? err.message 
+        : 'Erro ao carregar produto';
+      
+      setError(errorMessage);
+      setProduct(null);
+      console.error('Erro ao buscar produto:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProduct();
+  }, [id]);
+
+  return {
+    product,
+    loading,
+    error,
+    refetch: fetchProduct,
+    clearError: () => setError(null)
+  };
+}

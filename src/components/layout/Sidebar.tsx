@@ -23,18 +23,18 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { colorScheme } = useTheme();
   
-  // Link fixo para o catálogo, sempre em /catalogo
-  const catalogHref = '/catalogo';
+  // Link fixo para o catálogo, sempre em /catalog
+  const catalogHref = '/catalog';
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart },
     { name: "Clientes", href: "/clients", icon: Users },
     { name: "Produtos", href: "/products", icon: ShoppingBag },
+    { name: "Catálogo", href: "/catalog", icon: ShoppingBag },
     { name: "Agendamentos", href: "/calendar", icon: Calendar },
     { name: "Financeiro", href: "/financial", icon: Wallet },
     { name: "Estoque", href: "/inventory", icon: LineChart },
     { name: "PDV", href: "/pdv", icon: ShoppingCart },
     { name: "Configurações", href: "/settings", icon: Settings },
-    { name: "Catálogo", href: catalogHref, icon: ShoppingBag, external: true },
   ];
 
   return (

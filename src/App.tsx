@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -21,6 +20,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Inventory from "./pages/Inventory";
 import PDV from "./pages/PDV";
+import Catalog from "./pages/Catalog";
 import NotFound from "./pages/NotFound";
 
 // Create a client
@@ -58,6 +58,7 @@ const App = () => {
                     <Route path="financial" element={<Financial />} />
                     <Route path="inventory" element={<Inventory />} />
                     <Route path="pdv" element={<PDV />} />
+                    <Route path="catalog" element={<Catalog />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="settings" element={<Settings />} />
                   </Route>

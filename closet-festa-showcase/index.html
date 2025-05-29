@@ -1,27 +1,76 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Closet Festa - Vestidos para Festas</title>
-    <meta name="description" content="Catálogo de vestidos para festas - Venda e aluguel de vestidos elegantes para madrinha, formatura e eventos especiais." />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Closet Festa" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Closet Festa - Catálogo de Roupas para Aluguel</title>
+    <meta name="description" content="Catálogo completo de roupas elegantes para aluguel. Vestidos, blusas, saias e muito mais para suas ocasiões especiais. Entre em contato via WhatsApp!" />
+    <meta name="keywords" content="aluguel de roupas, vestidos para festa, roupas femininas, closet festa, moda, aluguel, vestidos elegantes" />
     <meta name="author" content="Closet Festa" />
-
-    <meta property="og:title" content="Closet Festa - Vestidos para Festas" />
-    <meta property="og:description" content="Catálogo de vestidos para festas - Venda e aluguel de vestidos elegantes para madrinha, formatura e eventos especiais." />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph Meta Tags (Facebook) -->
+    <meta property="og:title" content="Closet Festa - Catálogo de Roupas para Aluguel" />
+    <meta property="og:description" content="Descubra nossa coleção de roupas elegantes para aluguel. Perfeitas para suas ocasiões especiais!" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
+    <meta property="og:url" content="https://closetfesta.com" />
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Closet Festa" />
+    
+    <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="Closet Festa - Catálogo de Roupas para Aluguel" />
+    <meta name="twitter:description" content="Descubra nossa coleção de roupas elegantes para aluguel. Perfeitas para suas ocasiões especiais!" />
+    <meta name="twitter:image" content="/og-image.jpg" />
+    <meta name="twitter:creator" content="@closetfesta" />
+    
+    <!-- WhatsApp Meta Tags -->
+    <meta property="og:image:alt" content="Catálogo Closet Festa - Roupas elegantes para aluguel" />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="theme-color" content="#8B4B6B" />
+    <meta name="msapplication-TileColor" content="#8B4B6B" />
+    <link rel="canonical" href="https://closetfesta.com" />
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Closet Festa",
+      "description": "Aluguel de roupas elegantes para ocasiões especiais",
+      "url": "https://closetfesta.com",
+      "image": "/og-image.jpg",
+      "telephone": "+55-11-99999-9999",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "BR",
+        "addressLocality": "São Paulo"
+      },
+      "openingHours": "Mo-Fr 09:00-18:00, Sa 09:00-15:00",
+      "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "Pix"],
+      "currenciesAccepted": "BRL",
+      "priceRange": "$$"
+    }
+    </script>
   </head>
-
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

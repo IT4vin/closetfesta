@@ -1,19 +1,8 @@
-
-import { useEffect, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 
 const CategoryFilter = () => {
-  const { products, selectedCategory, setSelectedCategory } = useAppContext();
-  const [categories, setCategories] = useState<string[]>([]);
-  
-  useEffect(() => {
-    // Extract unique categories from products
-    const uniqueCategories = Array.from(
-      new Set(products.map((product) => product.category))
-    );
-    setCategories(uniqueCategories);
-  }, [products]);
+  const { categories, selectedCategory, setSelectedCategory } = useAppContext();
   
   return (
     <div className="flex flex-wrap gap-2 my-4">
@@ -27,12 +16,12 @@ const CategoryFilter = () => {
       
       {categories.map((category) => (
         <Button
-          key={category}
-          variant={selectedCategory === category ? "default" : "outline"}
-          onClick={() => setSelectedCategory(category)}
-          className={selectedCategory === category ? "bg-marsala hover:bg-marsala-dark" : ""}
+          key={category.id}
+          variant={selectedCategory === category.name ? "default" : "outline"}
+          onClick={() => setSelectedCategory(category.name)}
+          className={selectedCategory === category.name ? "bg-marsala hover:bg-marsala-dark" : ""}
         >
-          {category}
+          {category.name}
         </Button>
       ))}
     </div>

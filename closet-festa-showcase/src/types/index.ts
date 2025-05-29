@@ -1,4 +1,3 @@
-
 export type Size = "PP" | "P" | "M" | "G" | "GG" | "XG" | "único";
 
 export interface Product {
@@ -16,6 +15,7 @@ export interface Product {
     instagram?: string;
     shopee?: string;
   };
+  images?: string[];
 }
 
 export interface StoreInfo {

@@ -1,19 +1,15 @@
-
 import { Product } from "@/types";
 import { Instagram, MessageCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/context/AppContext";
-import { ProductImage } from "@/services/imageService";
 import { useState } from "react";
 
 interface ProductDetailProps {
   product: Product;
-  images?: ProductImage[];
 }
 
-const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
+const ProductDetail = ({ product }: ProductDetailProps) => {
   const { isAdmin } = useAppContext();
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   const formatPrice = (price: number | null) => {
     if (price === null) return "Não disponível";
@@ -23,7 +19,13 @@ const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
     });
   };
 
-  const mainImage = images.length > 0 ? images[selectedImageIndex].url : '/placeholder.svg';
+  // Gerar URL da imagem do Supabase storage ou usar placeholder
+  const getImageUrl = (imagePath?: string) => {
+    if (!imagePath) return '/placeholder.svg';
+    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${imagePath}`;
+  };
+
+  const mainImage = getImageUrl((product as any).image_path);
   
   return (
     <div className="flex flex-col md:flex-row gap-6">
@@ -33,29 +35,12 @@ const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
             src={mainImage}
             alt={product.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = '/placeholder.svg';
+            }}
           />
         </div>
-        
-        {/* Image thumbnails */}
-        {images.length > 1 && (
-          <div className="grid grid-cols-5 gap-2">
-            {images.map((image, index) => (
-              <button
-                key={image.id}
-                onClick={() => setSelectedImageIndex(index)}
-                className={`aspect-square rounded overflow-hidden border-2 transition-colors ${
-                  selectedImageIndex === index ? 'border-marsala' : 'border-gray-200'
-                }`}
-              >
-                <img
-                  src={image.url}
-                  alt={`${product.name} ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
       
       <div className="w-full md:w-1/2 flex flex-col justify-between">
@@ -117,14 +102,6 @@ const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
                 </div>
               )}
             </div>
-
-            {images.length > 0 && (
-              <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  {images.length} imagem{images.length !== 1 ? 's' : ''} disponível{images.length !== 1 ? 'eis' : ''}
-                </h3>
-              </div>
-            )}
           </div>
         </div>
         
@@ -134,7 +111,7 @@ const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
             {product.contactLinks?.whatsapp && (
               <Button asChild className="bg-green-500 hover:bg-green-600 gap-2">
                 <a 
-                  href={`https://wa.me/${product.contactLinks.whatsapp}?text=Olá! Tenho interesse no vestido ${product.name}. Poderia me dar mais informações?`}
+                  href={`https://wa.me/${product.contactLinks.whatsapp}?text=Olá! Tenho interesse no produto ${product.name}. Poderia me dar mais informações?`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -168,6 +145,33 @@ const ProductDetail = ({ product, images = [] }: ProductDetailProps) => {
                   <span>Shopee</span>
                 </a>
               </Button>
+            )}
+            
+            {/* Links padrão se não há links específicos do produto */}
+            {(!product.contactLinks?.whatsapp && !product.contactLinks?.instagram) && (
+              <>
+                <Button asChild className="bg-green-500 hover:bg-green-600 gap-2">
+                  <a 
+                    href={`https://wa.me/5511999999999?text=Olá! Tenho interesse no produto ${product.name}. Poderia me dar mais informações?`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle size={18} />
+                    <span>WhatsApp</span>
+                  </a>
+                </Button>
+                
+                <Button asChild className="bg-[#E1306C] hover:bg-[#C13584] gap-2">
+                  <a 
+                    href="https://instagram.com/closetfesta"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Instagram size={18} />
+                    <span>Instagram</span>
+                  </a>
+                </Button>
+              </>
             )}
           </div>
           
