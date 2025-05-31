@@ -14,9 +14,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const isAuthenticated = PermissionManager.isAuthenticated();
   const session = PermissionManager.getCurrentSession();
 
-  // Se não estiver autenticado, redirecionar para login
+  // Se não estiver autenticado, mostrar loading enquanto o App.tsx gerencia o redirecionamento
   if (!isAuthenticated || !session) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-marsala mx-auto mb-4" />
+          <p className="text-gray-600">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
   }
 
   // Renderizar o conteúdo protegido

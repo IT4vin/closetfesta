@@ -313,12 +313,21 @@ export class PermissionManager {
       
       // Emitir evento personalizado para notificar a aplicação
       console.log('📡 Emitindo evento user-logout...');
-      const logoutEvent = new CustomEvent('user-logout');
+      const logoutEvent = new CustomEvent('user-logout', {
+        detail: { timestamp: new Date().toISOString() }
+      });
       window.dispatchEvent(logoutEvent);
       console.log('📡 Evento user-logout emitido com sucesso');
       
+      // Forçar uma pequena delay para garantir que o evento seja processado
+      setTimeout(() => {
+        console.log('🔄 Verificação pós-logout executada');
+      }, 100);
+      
     } catch (error) {
       console.error('❌ Erro no logout:', error);
+      // Em caso de erro, forçar recarregamento da página como fallback
+      window.location.reload();
     }
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -23,86 +23,26 @@ import Settings from "./pages/Settings";
 import Catalog from "./pages/Catalog";
 import NotFound from "./pages/NotFound";
 import LoginForm from '@/components/auth/LoginForm';
-import PermissionManager from '@/lib/permissions';
+import { useAuth, initializeAuthStore } from '@/stores/authStore';
 
 // Create a client
 const queryClient = new QueryClient();
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showNewLogin, setShowNewLogin] = useState(false);
+  const { isAuthenticated, isLoading, error } = useAuth();
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Inicializar sistema de permissões
-        PermissionManager.initialize();
-        
-        // Verificar se já existe uma sessão ativa
-        const session = PermissionManager.getCurrentSession();
-        setIsAuthenticated(!!session);
-        
-      } catch (error) {
-        console.error('❌ Erro na inicialização da aplicação:', error);
-        setError((error as Error).message);
-        setShowNewLogin(true); // Forçar login em caso de erro
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Listener para eventos de logout
-    const handleUserLogout = (event: Event) => {
-      console.log('🚪 Evento de logout detectado no App.tsx');
-      setIsAuthenticated(false);
-      setShowNewLogin(true);
-      setError(null);
-    };
-
-    // Verificação periódica do estado de autenticação
-    const checkAuthStatus = () => {
-      const session = PermissionManager.getCurrentSession();
-      if (!session && isAuthenticated) {
-        console.log('🔍 Verificação periódica: usuário não está mais autenticado');
-        setIsAuthenticated(false);
-        setShowNewLogin(true);
-        setError(null);
-      }
-    };
-
-    // Adicionar listener para logout
-    console.log('🎧 Adicionando listener para user-logout...');
-    window.addEventListener('user-logout', handleUserLogout as EventListener);
-
-    // Verificar status de autenticação a cada 2 segundos
-    const authCheckInterval = setInterval(checkAuthStatus, 2000);
-
-    initializeApp();
-
-    // Cleanup
-    return () => {
-      console.log('🧹 Removendo listener user-logout...');
-      window.removeEventListener('user-logout', handleUserLogout as EventListener);
-      clearInterval(authCheckInterval);
-    };
-  }, [isAuthenticated]);
+    // Inicializar AuthStore na montagem do componente
+    initializeAuthStore();
+  }, []);
 
   const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
-    setError(null);
-    setShowNewLogin(false);
-  };
-
-  const handleLogout = () => {
-    PermissionManager.logout();
-    setIsAuthenticated(false);
-    setShowNewLogin(true);
+    // O Zustand já gerencia automaticamente o estado após login bem-sucedido
+    console.log('✅ Login bem-sucedido detectado no App.tsx');
   };
 
   // Tela de loading
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -114,7 +54,7 @@ function App() {
   }
 
   // Tela de erro crítico
-  if (error && !showNewLogin) {
+  if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-red-50">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
@@ -122,17 +62,8 @@ function App() {
           <p className="text-gray-700 mb-4">{error}</p>
           <div className="space-y-2">
             <button 
-              onClick={() => {
-                setError(null);
-                setShowNewLogin(true);
-              }} 
-              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Ir para Login
-            </button>
-            <button 
               onClick={() => window.location.reload()} 
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Recarregar Página
             </button>
@@ -142,8 +73,8 @@ function App() {
     );
   }
 
-  // Mostrar sistema de login se configurado ou não autenticado
-  if (showNewLogin || (!isAuthenticated && PermissionManager.getCurrentSession() === null)) {
+  // Mostrar sistema de login se não estiver autenticado
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50">
         <LoginForm onLoginSuccess={handleLoginSuccess} />
@@ -162,8 +93,8 @@ function App() {
               <Sonner />
               <Router>
                 <Routes>
-                  {/* Rota pública */}
-                  <Route path="/login" element={<Login />} />
+                  {/* Rota pública de login */}
+                  <Route path="/login" element={<Navigate to="/" replace />} />
                   
                   {/* Rotas protegidas */}
                   <Route 

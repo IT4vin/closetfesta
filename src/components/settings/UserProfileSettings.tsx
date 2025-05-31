@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/stores/authStore";
 import { 
   Card, 
   CardContent, 
@@ -83,12 +82,11 @@ const UserProfileSettings = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center space-x-4 mb-6">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={user?.avatar} />
-              <AvatarFallback className="text-lg">{user ? getInitials(user.name) : "U"}</AvatarFallback>
+              <AvatarFallback className="text-lg">{user ? getInitials(user.full_name) : "U"}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-medium">{user?.name}</h3>
-              <p className="text-sm text-gray-500">{user?.role === "admin" ? "Administrador" : "Usuário"}</p>
+              <h3 className="text-lg font-medium">{user?.full_name}</h3>
+              <p className="text-sm text-gray-500">{user?.role.name}</p>
             </div>
           </div>
           

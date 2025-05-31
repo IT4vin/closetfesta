@@ -20,15 +20,29 @@ const PDV = () => {
   const [showLogin, setShowLogin] = useState(false);
   const { user, isAuthenticated, logout } = usePermissions();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      console.log('🚪 Fazendo logout...');
+      console.log('🚪 Fazendo logout na página PDV...');
+      
+      // Mostrar feedback imediato (se necessário, podemos adicionar um estado de loading)
       logout();
-      console.log('✅ Logout executado');
+      
+      console.log('✅ Logout executado com sucesso na página PDV');
+      
+      // O redirecionamento será gerenciado pelo App.tsx através do evento
+      
     } catch (error) {
       console.error('❌ Erro no logout:', error);
-      // Em caso de erro, forçar recarregamento como fallback
-      window.location.reload();
+      
+      // Em caso de erro, tentar forçar o logout manualmente
+      try {
+        localStorage.removeItem('closetfesta_session');
+        window.location.reload();
+      } catch (fallbackError) {
+        console.error('❌ Erro no fallback de logout:', fallbackError);
+        alert('Erro ao fazer logout. A página será recarregada.');
+        window.location.reload();
+      }
     }
   };
 

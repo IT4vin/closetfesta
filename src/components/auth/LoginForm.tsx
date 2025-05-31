@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Shield, LogIn, User, Key } from "lucide-react";
+import { Shield, LogIn, User, Key, Sparkles, RefreshCw, Stethoscope } from "lucide-react";
+import { useAuthActions } from "@/stores/authStore";
 import PermissionManager from "@/lib/permissions";
 
 interface LoginFormProps {
@@ -18,12 +19,42 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDemo, setShowDemo] = useState(true);
+  
+  const { login } = useAuthActions();
 
   const demoCredentials = [
-    { username: 'admin', password: 'admin123', role: 'Administrador', description: 'Acesso total', color: 'bg-red-50 border-red-200' },
-    { username: 'manager', password: 'manager123', role: 'Gerente', description: 'Vendas e relatórios', color: 'bg-blue-50 border-blue-200' },
-    { username: 'seller', password: 'seller123', role: 'Vendedor', description: 'Apenas vendas', color: 'bg-green-50 border-green-200' },
-    { username: 'viewer', password: 'viewer123', role: 'Visualizador', description: 'Apenas consulta', color: 'bg-gray-50 border-gray-200' }
+    { 
+      username: 'admin', 
+      password: 'admin123', 
+      role: 'Administrador', 
+      description: 'Acesso total ao sistema',
+      icon: '👑',
+      bgColor: 'bg-marsala-50 border-marsala-200 hover:bg-marsala-100'
+    },
+    { 
+      username: 'manager', 
+      password: 'manager123', 
+      role: 'Gerente', 
+      description: 'Vendas e relatórios',
+      icon: '📊',
+      bgColor: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+    },
+    { 
+      username: 'seller', 
+      password: 'seller123', 
+      role: 'Vendedor', 
+      description: 'Apenas vendas',
+      icon: '🛍️',
+      bgColor: 'bg-green-50 border-green-200 hover:bg-green-100'
+    },
+    { 
+      username: 'viewer', 
+      password: 'viewer123', 
+      role: 'Visualizador', 
+      description: 'Apenas consulta',
+      icon: '👁️',
+      bgColor: 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+    }
   ];
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -31,14 +62,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
     setLoading(true);
     setError('');
 
-    console.log('🔑 Tentativa de login:', { username, password: password.replace(/./g, '*') });
+    console.log('🔑 Tentativa de login via AuthStore:', { username, password: password.replace(/./g, '*') });
 
     try {
-      await PermissionManager.login(username, password);
-      console.log('✅ Login realizado com sucesso');
-      onLoginSuccess();
+      const success = await login(username, password);
+      
+      if (success) {
+        console.log('✅ Login realizado com sucesso via AuthStore');
+        onLoginSuccess();
+      } else {
+        setError('Falha no login. Verifique suas credenciais.');
+      }
     } catch (err) {
-      console.error('❌ Erro de login:', err);
+      console.error('❌ Erro de login via AuthStore:', err);
       setError((err as Error).message);
     } finally {
       setLoading(false);
@@ -88,178 +124,183 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo/Título */}
-        <div className="text-center">
-          <div className="bg-white p-4 rounded-full w-16 h-16 mx-auto mb-4 shadow-lg">
-            <Shield className="h-8 w-8 text-purple-600 mx-auto" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">ClosetFesta</h1>
-          <p className="text-gray-600">Sistema de Gestão Híbrido</p>
-        </div>
-
-        {/* Formulário de Login */}
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LogIn className="h-5 w-5" />
-              Fazer Login
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Usuário
-                </Label>
-                <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Digite seu usuário"
-                  required
-                />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-marsala-50 via-neutral-50 to-marsala-100 p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%2260%22%20height=%2260%22%20viewBox=%220%200%2060%2060%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%20fill=%22none%22%20fill-rule=%22evenodd%22%3E%3Cg%20fill=%22%23800020%22%20fill-opacity=%220.03%22%3E%3Ccircle%20cx=%2230%22%20cy=%2230%22%20r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      
+      <div className="relative w-full max-w-5xl">
+        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-lg overflow-hidden">
+          {/* Header com gradiente marsala */}
+          <div className="relative bg-gradient-to-r from-marsala-600 to-marsala-800 p-8 text-white">
+            <div className="absolute inset-0 bg-black/10"></div>
+            <CardHeader className="relative text-center pb-0">
+              <div className="mx-auto mb-6 h-20 w-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-4 ring-white/30">
+                <Shield className="h-10 w-10 text-white" />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Senha
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Digite sua senha"
-                  required
-                />
-              </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                disabled={loading}
-              >
-                {loading ? 'Entrando...' : 'Entrar'}
-              </Button>
-
-              {error && (
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  className="w-full text-sm"
-                  onClick={handleReset}
-                >
-                  🔄 Resetar Sistema (caso persistam problemas)
-                </Button>
-              )}
-
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  variant="ghost" 
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={handleDiagnose}
-                >
-                  🔍 Diagnóstico
-                </Button>
-                <Button 
-                  type="button"
-                  variant="ghost" 
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={() => {
-                    setUsername('admin');
-                    setPassword('admin123');
-                  }}
-                >
-                  ⚡ Login Rápido
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Credenciais de Demonstração */}
-        {showDemo && (
-          <Card className="shadow-lg border-purple-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
-                Credenciais de Demonstração
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDemo(false)}
-                >
-                  ✕
-                </Button>
+              <CardTitle className="text-4xl font-bold text-white mb-2">
+                Closet Festa Manager
               </CardTitle>
+              <div className="flex items-center justify-center gap-2 text-marsala-100">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-lg">Sistema de Gestão de Aluguel de Roupas</p>
+                <Sparkles className="h-4 w-4" />
+              </div>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {demoCredentials.map((cred, index) => (
-                <div 
-                  key={index}
-                  className={`flex items-center justify-between p-4 border-2 rounded-lg hover:shadow-md cursor-pointer transition-all ${cred.color}`}
-                  onClick={() => quickLogin(cred)}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="font-bold text-lg">{cred.username}</div>
-                      <Badge variant="outline" className="text-xs">{cred.role}</Badge>
-                    </div>
-                    <div className="text-sm text-gray-600 mb-1">{cred.description}</div>
-                    <div className="text-xs bg-white px-2 py-1 rounded border">
-                      <span className="text-gray-500">Senha: </span>
-                      <span className="font-mono font-bold text-purple-600">{cred.password}</span>
-                    </div>
+          </div>
+
+          <CardContent className="p-8 space-y-8">
+            {error && (
+              <Alert variant="destructive" className="border-red-200 bg-red-50">
+                <AlertDescription className="text-red-800">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Formulário de Login */}
+            <div className="max-w-md mx-auto">
+              <form onSubmit={handleLogin} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="flex items-center gap-2 text-gray-700 font-medium">
+                    <User className="h-4 w-4 text-marsala-600" />
+                    Usuário
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Digite seu usuário"
+                      className="h-12 pl-4 pr-4 border-gray-200 focus:border-marsala-400 focus:ring-marsala-400/20 bg-white/70"
+                      required
+                    />
                   </div>
-                  <Button size="sm" variant="outline" className="ml-3">
-                    ↗ Usar
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center gap-2 text-gray-700 font-medium">
+                    <Key className="h-4 w-4 text-marsala-600" />
+                    Senha
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Digite sua senha"
+                      className="h-12 pl-4 pr-4 border-gray-200 focus:border-marsala-400 focus:ring-marsala-400/20 bg-white/70"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-to-r from-marsala-600 to-marsala-700 hover:from-marsala-700 hover:to-marsala-800 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Entrando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <LogIn className="h-5 w-5" />
+                      Entrar no Sistema
+                    </div>
+                  )}
+                </Button>
+              </form>
+            </div>
+
+            {/* Seção de Demonstração */}
+            {showDemo && (
+              <div className="mt-10 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 bg-gradient-to-r from-marsala-500 to-marsala-600 rounded-lg flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-800">Usuários para Demonstração</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDemo(false)}
+                    className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  >
+                    Ocultar
                   </Button>
                 </div>
-              ))}
-              
-              <div className="text-xs text-center text-gray-500 mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                💡 <strong>Dica:</strong> Clique em qualquer cartão acima para preencher automaticamente.<br/>
-                As senhas são exatamente como mostrado (admin123, manager123, etc.)
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {demoCredentials.map((user, index) => (
+                    <div 
+                      key={index}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${user.bgColor}`}
+                      onClick={() => quickLogin(user)}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{user.icon}</span>
+                          <Badge variant="outline" className="text-xs font-medium border-current">
+                            {user.role}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">Clique para usar</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3 text-gray-600" />
+                          <span className="text-sm font-medium">{user.username}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Key className="h-3 w-3 text-gray-600" />
+                          <span className="text-sm font-mono">{user.password}</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2 pl-5">{user.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* Recursos do Sistema */}
-        <Card className="shadow-lg border-green-200">
-          <CardHeader>
-            <CardTitle className="text-lg text-green-800">🚀 Otimizações Implementadas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Compressão de Dados
+            {/* Ferramentas de Desenvolvimento */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleReset}
+                  className="flex-1 h-11 border-marsala-200 text-marsala-700 hover:bg-marsala-50 hover:border-marsala-300"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Resetar Sistema
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDiagnose}
+                  className="flex-1 h-11 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                >
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  Diagnóstico
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                Sync Diferencial
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                Dashboard Executivo
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                Sistema de Permissões
+            </div>
+
+            {/* Footer */}
+            <div className="text-center border-t border-gray-100 pt-6">
+              <div className="text-xs text-gray-500 space-y-1">
+                <p className="font-medium">© 2025 Closet Festa Manager - Sistema de Demonstração</p>
+                <p>Desenvolvido para gestão completa de aluguel de roupas</p>
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  <span>Feito com</span>
+                  <span className="text-marsala-500">♥</span>
+                  <span>usando React, TypeScript & Tailwind CSS</span>
+                </div>
               </div>
             </div>
           </CardContent>

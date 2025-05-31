@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -17,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Dialog, 
   DialogContent, 
@@ -451,15 +451,6 @@ const UserPermissions = () => {
         </DialogContent>
       </Dialog>
     </div>
-  );
-};
-
-// Missing Label component
-const Label = ({ htmlFor, className, children }: { htmlFor?: string, className?: string, children: React.ReactNode }) => {
-  return (
-    <label htmlFor={htmlFor} className={`text-sm font-medium ${className}`}>
-      {children}
-    </label>
   );
 };
 

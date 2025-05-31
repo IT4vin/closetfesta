@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
 import MobileMenu from "./MobileMenu";
 import NotificationCenter from "./NotificationCenter";
-import { usePermissions } from "@/lib/permissions";
+import { useAuth, useAuthActions } from "@/stores/authStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   DropdownMenu, 
@@ -25,7 +25,8 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
-  const { user, logout } = usePermissions();
+  const { user } = useAuth();
+  const { logout } = useAuthActions();
   const navigate = useNavigate();
   
   // Auto-collapse sidebar on mobile
@@ -47,14 +48,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       .toUpperCase();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      console.log('🚪 Fazendo logout no MainLayout...');
+      console.log('🚪 Fazendo logout no MainLayout via AuthStore...');
+      
+      // Usar a ação de logout da AuthStore
       logout();
-      console.log('✅ Logout executado');
+      
+      console.log('✅ Logout executado com sucesso no MainLayout');
+      
     } catch (error) {
       console.error('❌ Erro no logout:', error);
-      // Em caso de erro, forçar recarregamento como fallback
+      
+      // Em caso de erro crítico, forçar recarregamento
+      alert('Erro ao fazer logout. A página será recarregada.');
       window.location.reload();
     }
   };
