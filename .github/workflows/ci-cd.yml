@@ -1,0 +1,267 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===============================
+  # TESTES E QUALIDADE DE CÓDIGO
+  # ===============================
+  test:
+    name: Tests & Code Quality
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: closetfesta_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: ./backend
+        run: |
+          npm ci
+          npm install -g @babel/core @babel/preset-env babel-jest
+
+      - name: Verificar lint
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: Executar testes unitários
+        working-directory: ./backend
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: closetfesta_test
+          DB_USER: test_user
+          DB_PASS: test_password
+          CACHE_HOST: localhost
+          CACHE_PORT: 6379
+
+      - name: Executar testes de integração
+        working-directory: ./backend
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: closetfesta_test
+          DB_USER: test_user
+          DB_PASS: test_password
+          CACHE_HOST: localhost
+          CACHE_PORT: 6379
+
+      - name: Gerar relatório de cobertura
+        working-directory: ./backend
+        run: npm run test -- --coverage --coverageReporters=lcov
+
+      - name: Upload cobertura para Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./backend/coverage
+          fail_ci_if_error: true
+
+      - name: Análise de segurança
+        working-directory: ./backend
+        run: npm audit --audit-level moderate
+
+  # ===============================
+  # BUILD DA APLICAÇÃO
+  # ===============================
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: ./backend
+        run: npm ci --only=production
+
+      - name: Criar build otimizado
+        working-directory: ./backend
+        run: |
+          # Criar diretório de produção
+          mkdir -p dist
+          
+          # Copiar arquivos necessários
+          cp -r src dist/
+          cp package*.json dist/
+          cp -r node_modules dist/
+          
+          # Remover arquivos desnecessários
+          find dist -name "*.test.js" -delete
+          find dist -name "*.spec.js" -delete
+          find dist -name "__tests__" -type d -exec rm -rf {} +
+
+      - name: Login no Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extrair metadados
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build e push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===============================
+  # DEPLOY PARA STAGING
+  # ===============================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Deploy para staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop"
+          
+          # Aqui você adicionaria os comandos específicos do seu provedor
+          # Exemplos: AWS ECS, Google Cloud Run, Azure Container Instances, etc.
+
+      - name: Executar smoke tests
+        run: |
+          echo "🧪 Running smoke tests..."
+          # Adicionar testes básicos para verificar se o deploy funcionou
+          
+      - name: Notificar equipe
+        if: always()
+        run: |
+          echo "📢 Notificando equipe sobre deploy staging..."
+
+  # ===============================
+  # DEPLOY PARA PRODUÇÃO
+  # ===============================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Deploy para produção
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          
+          # Comandos específicos para deploy em produção
+          # Incluir rollback strategy se algo der errado
+
+      - name: Executar health checks
+        run: |
+          echo "🏥 Running production health checks..."
+          
+      - name: Notificar sucesso
+        if: success()
+        run: |
+          echo "✅ Deploy realizado com sucesso!"
+          
+      - name: Rollback em caso de falha
+        if: failure()
+        run: |
+          echo "❌ Deploy falhou, iniciando rollback..."
+
+  # ===============================
+  # RELATÓRIOS E NOTIFICAÇÕES
+  # ===============================
+  report:
+    name: Generate Reports
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: always()
+    
+    steps:
+      - name: Gerar relatório de pipeline
+        run: |
+          echo "📊 Gerando relatório do pipeline..."
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          
+      - name: Notificar via Slack/Teams
+        if: failure()
+        run: |
+          echo "📢 Pipeline falhou - notificando equipe..." 

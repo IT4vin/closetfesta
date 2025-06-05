@@ -1,11 +1,33 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
+
+// Configurações e logging
+const config = require('./config/config');
+const { createLogger, createRequestLogger, morganStream } = require('./config/logger');
+const logger = createLogger(__filename);
+
+// Database e migrações
 const { Database } = require('./config/database');
 const runMigrations = require('./migrations');
+
+// Cache Redis (opcional)
+let redisCache = null;
+let cacheMiddleware = null;
+if (config.cache.enabled) {
+  try {
+    const { RedisCache, cacheMiddleware: redisCacheMiddleware } = require('./config/cache-redis');
+    redisCache = new RedisCache();
+    cacheMiddleware = redisCacheMiddleware;
+    logger.info('Redis cache enabled');
+  } catch (error) {
+    logger.warn('Redis cache disabled - Redis not available', error.message);
+  }
+}
 
 // Importar rotas
 const productsRoutes = require('./routes/products');
@@ -13,86 +35,309 @@ const categoriesRoutes = require('./routes/categories');
 const authRoutes = require('./routes/auth');
 const ordersRoutes = require('./routes/orders');
 
+// Criar aplicação Express
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-console.log('🚀 Iniciando servidor Closet Festa...');
+// Configuração de timezone
+process.env.TZ = config.app.timezone;
 
-// Conectar ao banco de dados
-Database.getInstance();
+logger.system('Starting Closet Festa Backend Server', {
+  version: config.app.version,
+  environment: config.server.env,
+  port: config.server.port,
+  timezone: config.app.timezone
+});
 
-// Executar migrações
-(async () => {
+// Inicializar banco de dados
+const initializeDatabase = async () => {
   try {
+    logger.info('Initializing database connection...');
+    Database.getInstance();
+    
+    logger.info('Running database migrations...');
     await runMigrations();
+    
+    logger.system('Database initialized successfully');
   } catch (error) {
-    console.error('❌ Erro ao executar migrações:', error);
+    logger.error('Failed to initialize database', error);
     process.exit(1);
   }
-})();
+};
 
-// Configurar middlewares de segurança
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false
-}));
+// Inicializar banco
+initializeDatabase();
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100 // máximo 100 requests por IP
+// Criar diretórios necessários
+const createDirectories = () => {
+  const dirs = [
+    config.upload.uploadDir,
+    config.upload.tempDir,
+    path.join(config.upload.uploadDir, 'products'),
+    path.join(config.upload.uploadDir, 'products', 'thumbnails'),
+    path.dirname(config.logging.file)
+  ];
+
+  dirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      logger.debug(`Created directory: ${dir}`);
+    }
+  });
+};
+
+createDirectories();
+
+// Middlewares de segurança
+if (config.security.enableHelmet) {
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "blob:", "*"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        fontSrc: ["'self'", "data:"]
+      }
+    }
+  }));
+}
+
+// Compressão
+if (config.security.enableCompression) {
+  app.use(compression());
+}
+
+// Rate limiting para API
+const apiLimiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  message: {
+    success: false,
+    message: 'Muitas requisições. Tente novamente em alguns minutos.',
+    retryAfter: Math.ceil(config.rateLimit.windowMs / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('Rate limit exceeded', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      endpoint: req.originalUrl
+    });
+    res.status(429).json({
+      success: false,
+      message: 'Muitas requisições. Tente novamente em alguns minutos.'
+    });
+  }
 });
-app.use('/api/', limiter);
+
+// Rate limiting específico para autenticação
+const authLimiter = rateLimit({
+  windowMs: config.rateLimit.authWindowMs,
+  max: config.rateLimit.authMax,
+  message: {
+    success: false,
+    message: 'Muitas tentativas de login. Tente novamente em 15 minutos.',
+    retryAfter: Math.ceil(config.rateLimit.authWindowMs / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('Auth rate limit exceeded', {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      endpoint: req.originalUrl
+    });
+    res.status(429).json({
+      success: false,
+      message: 'Muitas tentativas de login. Tente novamente em 15 minutos.'
+    });
+  }
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/auth/', authLimiter);
 
 // CORS
 app.use(cors({
-  origin: [
-    'http://localhost:8080',
-    'http://localhost:8081',
-    'http://localhost:8082',
-    'http://localhost:8083',
-    'http://localhost:8084',
-    'http://localhost:8085',
-    'http://localhost:8086',
-    'http://localhost:8087',
-    'http://localhost:8088',
-    'http://localhost:8089',
-    'http://localhost:8090',
-    'http://localhost:8091',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
-  credentials: true
+  origin: config.server.cors.origins,
+  credentials: config.server.cors.credentials,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
 
-// Parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Parsing do body
+app.use(express.json({ 
+  limit: config.upload.maxFileSize,
+  verify: (req, res, buf) => {
+    // Verificar tamanho do payload
+    if (buf.length > config.upload.maxFileSize) {
+      const error = new Error('Payload muito grande');
+      error.status = 413;
+      throw error;
+    }
+  }
+}));
 
-// Logging
-app.use(morgan('combined'));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: config.upload.maxFileSize 
+}));
 
-// Servir imagens estáticas
-app.use('/api/images', express.static(path.join(__dirname, '../uploads')));
+// Logging de requisições
+app.use(createRequestLogger());
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
+// Trust proxy para obter IP real
+app.set('trust proxy', 1);
+
+// Servir arquivos estáticos (imagens)
+app.use('/api/images', express.static(config.upload.uploadDir, {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+  cacheControl: true
+}));
+
+// Health check endpoints
+app.get('/health', async (req, res) => {
+  const healthData = {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: process.env.DB_TYPE || 'sqlite'
-  });
+    version: config.app.version,
+    environment: config.server.env,
+    database: config.database.type,
+    memory: process.memoryUsage(),
+    cpu: process.cpuUsage()
+  };
+
+  // Adicionar status do cache Redis se disponível
+  if (redisCache) {
+    try {
+      const cacheHealth = await redisCache.healthCheck();
+      healthData.cache = cacheHealth;
+    } catch (error) {
+      healthData.cache = { status: 'error', error: error.message };
+    }
+  }
+  
+  logger.debug('Health check requested', { endpoint: '/health' });
+  res.json(healthData);
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({
+  const healthData = {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: process.env.DB_TYPE || 'sqlite'
+    version: config.app.version,
+    environment: config.server.env,
+    database: config.database.type
+  };
+  
+  logger.debug('API health check requested', { endpoint: '/api/health' });
+  res.json(healthData);
+});
+
+// Info endpoint
+app.get('/api/info', (req, res) => {
+  res.json({
+    name: config.app.name,
+    version: config.app.version,
+    description: config.app.description,
+    environment: config.server.env,
+    timezone: config.app.timezone,
+    currency: config.app.currency,
+    locale: config.app.locale,
+    features: {
+      authentication: true,
+      fileUpload: true,
+      rateLimit: true,
+      logging: true,
+      compression: config.security.enableCompression,
+      helmet: config.security.enableHelmet,
+      cache: config.cache.enabled && redisCache !== null
+    }
   });
 });
+
+// Cache management endpoints (apenas para admins)
+app.delete('/api/cache', async (req, res) => {
+  if (!redisCache) {
+    return res.status(404).json({
+      success: false,
+      message: 'Cache não está habilitado'
+    });
+  }
+
+  try {
+    const pattern = req.query.pattern || '*';
+    const deletedCount = await redisCache.delPattern(pattern);
+    
+    logger.info('Cache cleared', { pattern, deletedCount });
+    
+    res.json({
+      success: true,
+      message: 'Cache limpo com sucesso',
+      deletedKeys: deletedCount
+    });
+  } catch (error) {
+    logger.error('Error clearing cache', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao limpar cache'
+    });
+  }
+});
+
+app.get('/api/cache/stats', async (req, res) => {
+  if (!redisCache) {
+    return res.status(404).json({
+      success: false,
+      message: 'Cache não está habilitado'
+    });
+  }
+
+  try {
+    const stats = await redisCache.getStats();
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Error getting cache stats', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao obter estatísticas do cache'
+    });
+  }
+});
+
+// Cache middleware para rotas GET (se Redis estiver disponível)
+if (cacheMiddleware) {
+  app.use('/api/products', (req, res, next) => {
+    if (req.method === 'GET') {
+      return cacheMiddleware(300)(req, res, next); // Cache por 5 minutos
+    }
+    next();
+  });
+  
+  app.use('/api/categories', (req, res, next) => {
+    if (req.method === 'GET') {
+      return cacheMiddleware(600)(req, res, next); // Cache por 10 minutos
+    }
+    next();
+  });
+
+  app.use('/api/catalog', (req, res, next) => {
+    if (req.method === 'GET') {
+      return cacheMiddleware(900)(req, res, next); // Cache por 15 minutos
+    }
+    next();
+  });
+}
 
 // Rotas da API
 app.use('/api/auth', authRoutes);
@@ -100,7 +345,7 @@ app.use('/api/products', productsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/orders', ordersRoutes);
 
-// Catálogo público (para showcase)
+// Catálogo público para showcase
 app.get('/api/catalog/products', async (req, res) => {
   try {
     const Product = require('./models/Product');
@@ -110,9 +355,11 @@ app.get('/api/catalog/products', async (req, res) => {
       includeImages: true,
       category_id: req.query.category_id,
       search: req.query.search,
-      limit: parseInt(req.query.limit) || 20,
+      limit: Math.min(parseInt(req.query.limit) || 20, 100), // Máximo 100
       offset: parseInt(req.query.offset) || 0
     };
+
+    logger.debug('Catalog request', { filters });
 
     const products = await Product.findAll(filters);
     
@@ -133,14 +380,24 @@ app.get('/api/catalog/products', async (req, res) => {
       return productJson;
     });
     
+    logger.info('Catalog products retrieved', { 
+      count: productsWithUrls.length,
+      filters 
+    });
+    
     res.json({
       success: true,
       data: productsWithUrls,
-      total: productsWithUrls.length
+      total: productsWithUrls.length,
+      pagination: {
+        limit: filters.limit,
+        offset: filters.offset,
+        hasMore: productsWithUrls.length === filters.limit
+      }
     });
     
   } catch (error) {
-    console.error('Erro no catálogo:', error);
+    logger.error('Error retrieving catalog products', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
@@ -150,49 +407,145 @@ app.get('/api/catalog/products', async (req, res) => {
 
 // Middleware de tratamento de erros
 app.use((error, req, res, next) => {
-  console.error('Erro não tratado:', error);
-  res.status(500).json({
+  logger.error('Unhandled error', error, {
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+
+  // Erro de payload muito grande
+  if (error.status === 413) {
+    return res.status(413).json({
+      success: false,
+      message: 'Arquivo muito grande',
+      maxSize: `${Math.round(config.upload.maxFileSize / 1024 / 1024)}MB`
+    });
+  }
+
+  // Erro de JSON malformado
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({
+      success: false,
+      message: 'JSON inválido'
+    });
+  }
+
+  // Erro genérico
+  res.status(error.status || 500).json({
     success: false,
-    message: 'Erro interno do servidor'
+    message: config.server.env === 'production' 
+      ? 'Erro interno do servidor' 
+      : error.message,
+    ...(config.server.env !== 'production' && { stack: error.stack })
   });
 });
 
 // 404 handler
 app.use('*', (req, res) => {
+  logger.warn('Route not found', {
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip
+  });
+
   res.status(404).json({
     success: false,
-    message: 'Endpoint não encontrado'
+    message: 'Endpoint não encontrado',
+    availableEndpoints: [
+      'GET /health',
+      'GET /api/health',
+      'GET /api/info',
+      'POST /api/auth/login',
+      'POST /api/auth/register',
+      'GET /api/auth/me',
+      'POST /api/auth/refresh',
+      'GET /api/products',
+      'POST /api/products',
+      'GET /api/products/:id',
+      'PUT /api/products/:id',
+      'DELETE /api/products/:id',
+      'POST /api/products/:id/images',
+      'GET /api/categories',
+      'POST /api/categories',
+      'GET /api/orders',
+      'POST /api/orders',
+      'GET /api/catalog/products'
+    ]
   });
 });
 
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  logger.system(`Received ${signal}, starting graceful shutdown...`);
+  
+  const server = app.listen(config.server.port, () => {
+    logger.system('Server closed, exiting process');
+    process.exit(0);
+  });
+
+  // Force close after 10 seconds
+  setTimeout(() => {
+    logger.error('Forcing server close after timeout');
+    server.close(() => {
+      process.exit(1);
+    });
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando na porta ${PORT}`);
-  console.log(`🌐 API: http://localhost:${PORT}/api`);
-  console.log(`📊 Health: http://localhost:${PORT}/health`);
-  console.log(`🖼️  Imagens: http://localhost:${PORT}/api/images`);
-  console.log(`📁 Database: ${process.env.DB_TYPE || 'sqlite'}`);
-  console.log(`📋 Rotas disponíveis:`);
-  console.log(`   POST /api/auth/login`);
-  console.log(`   POST /api/auth/register`);
-  console.log(`   GET  /api/auth/me`);
-  console.log(`   POST /api/auth/refresh`);
-  console.log(`   GET  /api/products`);
-  console.log(`   POST /api/products`);
-  console.log(`   GET  /api/products/:id`);
-  console.log(`   PUT  /api/products/:id`);
-  console.log(`   DEL  /api/products/:id`);
-  console.log(`   POST /api/products/:id/images`);
-  console.log(`   GET  /api/categories`);
-  console.log(`   POST /api/categories`);
-  console.log(`   GET  /api/orders`);
-  console.log(`   POST /api/orders`);
-  console.log(`   GET  /api/orders/stats`);
-  console.log(`   GET  /api/orders/:id`);
-  console.log(`   PUT  /api/orders/:id`);
-  console.log(`   PATCH /api/orders/:id/status`);
-  console.log(`   POST /api/orders/check-availability`);
-  console.log(`   GET  /api/catalog/products (para showcase)`);
+const server = app.listen(config.server.port, config.server.host, () => {
+  logger.system('Server started successfully', {
+    port: config.server.port,
+    host: config.server.host,
+    environment: config.server.env,
+    baseUrl: `http://${config.server.host}:${config.server.port}`,
+    apiUrl: `http://${config.server.host}:${config.server.port}/api`,
+    healthUrl: `http://${config.server.host}:${config.server.port}/health`,
+    imagesUrl: `http://${config.server.host}:${config.server.port}/api/images`,
+    catalogUrl: `http://${config.server.host}:${config.server.port}/api/catalog/products`
+  });
+
+  logger.info('Available API endpoints:', {
+    auth: [
+      'POST /api/auth/login',
+      'POST /api/auth/register', 
+      'GET /api/auth/me',
+      'POST /api/auth/refresh'
+    ],
+    products: [
+      'GET /api/products',
+      'POST /api/products',
+      'GET /api/products/:id',
+      'PUT /api/products/:id',
+      'DELETE /api/products/:id',
+      'POST /api/products/:id/images'
+    ],
+    categories: [
+      'GET /api/categories',
+      'POST /api/categories',
+      'GET /api/categories/:id',
+      'PUT /api/categories/:id',
+      'DELETE /api/categories/:id'
+    ],
+    orders: [
+      'GET /api/orders',
+      'POST /api/orders',
+      'GET /api/orders/stats',
+      'GET /api/orders/:id',
+      'PUT /api/orders/:id',
+      'PATCH /api/orders/:id/status'
+    ],
+    public: [
+      'GET /api/catalog/products'
+    ]
+  });
 });
+
+// Configurar timeout do servidor
+server.timeout = 30000; // 30 segundos
 
 module.exports = app;

@@ -1,15 +1,6 @@
-
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { toast } from "@/components/ui/use-toast";
-
-// Definir o tipo de usuário
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "user";
-  avatar?: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { api, User, checkTokenExpiry } from "@/services/api";
 
 // Definir o contexto de autenticação
 interface AuthContextType {
@@ -22,96 +13,94 @@ interface AuthContextType {
   updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock de usuários para demonstração
-const MOCK_USERS = [
-  {
-    id: "1",
-    name: "Administrador",
-    email: "admin@closetmanager.com",
-    password: "admin123",
-    role: "admin" as const,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-  },
-  {
-    id: "2",
-    name: "Usuário",
-    email: "usuario@closetmanager.com",
-    password: "user123",
-    role: "user" as const,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lily",
-  },
-  {
-    id: "3",
-    name: "Gustavo",
-    email: "I.gustavosza@gmail.com",
-    password: "123456",
-    role: "admin" as const,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Gustavo",
-  },
-];
+// Hook para usar o contexto
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
+  return context;
+};
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+// Provider do contexto
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Verificar se há um usuário salvo no sessionStorage
+  // Verificar se há um usuário autenticado ao carregar
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("user");
-    if (storedUser) {
+    const checkAuth = async () => {
       try {
-        setUser(JSON.parse(storedUser));
+        // Verificar se há token no localStorage
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        // Tentar obter dados do usuário atual
+        const userData = await api.getMe();
+        setUser(userData);
+        
+        console.log('✅ Usuário autenticado:', userData.email);
       } catch (error) {
-        console.error("Erro ao recuperar usuário:", error);
-        sessionStorage.removeItem("user");
+        console.log('ℹ️ Nenhuma sessão ativa encontrada');
+        
+        // Se houver erro de autenticação, limpar token
+        if (error && typeof error === 'object' && 'status' in error) {
+          checkTokenExpiry(error as any);
+        }
+        
+        // Limpar dados locais
+        localStorage.removeItem('auth_token');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    checkAuth();
   }, []);
 
   // Função para fazer login
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true);
     
-    // Simular atraso de rede
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     try {
-      // Verificar se o usuário existe
-      const foundUser = MOCK_USERS.find(
-        (u) => u.email === email && u.password === password
-      );
+      console.log('🔑 Tentativa de login:', email);
       
-      if (foundUser) {
-        // Remover senha antes de salvar
-        const { password: _, ...userWithoutPassword } = foundUser;
-        
-        // Salvar no estado e no sessionStorage
-        setUser(userWithoutPassword);
-        sessionStorage.setItem("user", JSON.stringify(userWithoutPassword));
-        
-        toast({
-          title: "Login bem-sucedido",
-          description: `Bem-vindo, ${userWithoutPassword.name}!`,
-        });
-        
-        return true;
-      } else {
-        toast({
-          title: "Erro de autenticação",
-          description: "Email ou senha incorretos",
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error("Erro ao fazer login:", error);
+      const result = await api.login(email, password);
+      
+      setUser(result.user);
+      
       toast({
-        title: "Erro de sistema",
-        description: "Ocorreu um erro ao tentar fazer login",
+        title: "Login bem-sucedido",
+        description: `Bem-vindo, ${result.user.name}!`,
+      });
+      
+      console.log('✅ Login realizado com sucesso:', result.user.email);
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro de login:', error);
+      
+      let errorMessage = 'Erro ao fazer login';
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erro de autenticação",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       return false;
     } finally {
       setLoading(false);
@@ -120,40 +109,86 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Função para atualizar email
   const updateEmail = async (email: string, password: string): Promise<boolean> => {
-    // Simulação de API para atualização de email
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    if (user) {
-      // Em uma implementação real, verificaria a senha antes de atualizar
-      const updatedUser = {
-        ...user,
-        email
-      };
+    try {
+      // Implementar quando o backend tiver endpoint para atualizar email
+      console.log('🔄 Atualização de email não implementada ainda');
       
-      setUser(updatedUser);
-      sessionStorage.setItem("user", JSON.stringify(updatedUser));
-      return true;
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: "A atualização de email será implementada em breve",
+        variant: "destructive",
+      });
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar email:', error);
+      
+      toast({
+        title: "Erro ao atualizar email",
+        description: "Ocorreu um erro ao tentar atualizar o email",
+        variant: "destructive",
+      });
+      
+      return false;
     }
-    return false;
   };
   
   // Função para atualizar senha
   const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    // Simulação de API para atualização de senha
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Em uma implementação real, verificaria a senha atual antes de atualizar
-    return true;
+    try {
+      // Implementar quando o backend tiver endpoint para atualizar senha
+      console.log('🔄 Atualização de senha não implementada ainda');
+      
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: "A atualização de senha será implementada em breve",
+        variant: "destructive",
+      });
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar senha:', error);
+      
+      toast({
+        title: "Erro ao atualizar senha",
+        description: "Ocorreu um erro ao tentar atualizar a senha",
+        variant: "destructive",
+      });
+      
+      return false;
+    }
   };
 
   // Função para fazer logout
   const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem("user");
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso",
-    });
+    try {
+      console.log('🚪 Fazendo logout...');
+      
+      // Limpar dados da API
+      api.logout();
+      
+      // Limpar estado local
+      setUser(null);
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+      
+      console.log('✅ Logout concluído');
+      
+    } catch (error) {
+      console.error('❌ Erro no logout:', error);
+      
+      // Forçar limpeza mesmo com erro
+      setUser(null);
+      localStorage.removeItem('auth_token');
+      
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado",
+      });
+    }
   };
 
   return (
@@ -171,13 +206,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-// Hook personalizado para usar o contexto de autenticação
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
-  return context;
 };
