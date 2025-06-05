@@ -18,10 +18,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
     });
   };
 
-  // Gerar URL da imagem do Supabase storage ou usar placeholder
+  // Gerar URL da imagem do backend Node.js ou usar placeholder
   const getImageUrl = (imagePath?: string) => {
     if (!imagePath) return '/placeholder.svg';
-    return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${imagePath}`;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    return `${baseUrl}/uploads/${imagePath}`;
   };
 
   const mainImage = getImageUrl((product as any).image_path);

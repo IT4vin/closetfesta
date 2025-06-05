@@ -8,7 +8,7 @@ As seguintes funcionalidades foram implementadas para melhorar a experiência do
 - Carousel interativo com navegação por setas
 - Indicadores visuais para múltiplas imagens
 - Fallback para placeholder quando não há imagens
-- URLs otimizadas para o storage do Supabase
+- URLs otimizadas para o storage local
 - Contador de imagens exibido nos cards
 
 ### ✅ **2. Integração WhatsApp**
@@ -50,7 +50,7 @@ As seguintes funcionalidades foram implementadas para melhorar a experiência do
 ### **Sistema de Imagens**
 
 ```typescript
-// As imagens são carregadas automaticamente do Supabase
+// As imagens são carregadas automaticamente do storage local
 // Estrutura esperada no banco:
 {
   product_images: [
