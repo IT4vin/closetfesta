@@ -8,22 +8,27 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import MainLayout from "./components/layout/MainLayout";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Calendar from "./pages/Calendar";
-import Products from "./pages/Products";
-import ProductDetail from "./pages/ProductDetail";
-import Clients from "./pages/Clients";
-import ClientDetail from "./pages/ClientDetail";
-import Financial from "./pages/Financial";
-import Inventory from "./pages/Inventory";
-import PDV from "./pages/PDV";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import Catalog from "./pages/Catalog";
-import NotFound from "./pages/NotFound";
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth, initializeAuthStore } from '@/stores/authStore';
+import ErrorBoundary from './components/common/ErrorBoundary';
+
+// Importar páginas lazy-loaded
+import {
+  LazyIndex,
+  LazyCalendar,
+  LazyProducts,
+  LazyProductDetail,
+  LazyClients,
+  LazyClientDetail,
+  LazyFinancial,
+  LazyInventory,
+  LazyPDV,
+  LazyReports,
+  LazySettings,
+  LazyCatalog,
+  Login,
+  NotFound
+} from './pages/lazy';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -85,48 +90,100 @@ function App() {
   // Aplicação principal com todas as rotas
   return (
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              <Toaster />
-              <Sonner />
-              <Router>
-                <Routes>
-                  {/* Rota pública de login */}
-                  <Route path="/login" element={<Navigate to="/" replace />} />
-                  
-                  {/* Rotas protegidas */}
-                  <Route 
-                    path="/" 
-                    element={
-                      <ProtectedRoute>
-                        <MainLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route index element={<Index />} />
-                    <Route path="calendar" element={<Calendar />} />
-                    <Route path="products" element={<Products />} />
-                    <Route path="products/:id" element={<ProductDetail />} />
-                    <Route path="clients" element={<Clients />} />
-                    <Route path="clients/:id" element={<ClientDetail />} />
-                    <Route path="financial" element={<Financial />} />
-                    <Route path="inventory" element={<Inventory />} />
-                    <Route path="pdv" element={<PDV />} />
-                    <Route path="catalog" element={<Catalog />} />
-                    <Route path="reports" element={<Reports />} />
-                    <Route path="settings" element={<Settings />} />
-                  </Route>
-                  
-                  {/* Catch-all route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Router>
-            </ThemeProvider>
-          </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ErrorBoundary level="critical" enableRecovery={false}>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <ThemeProvider>
+                <Toaster />
+                <Sonner />
+                <Router>
+                  <ErrorBoundary level="page" enableRecovery={true}>
+                    <Routes>
+                      {/* Rota pública de login */}
+                      <Route path="/login" element={<Navigate to="/" replace />} />
+                      
+                      {/* Rotas protegidas */}
+                      <Route 
+                        path="/" 
+                        element={
+                          <ProtectedRoute>
+                            <MainLayout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        <Route index element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyIndex />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="calendar" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyCalendar />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="products" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyProducts />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="products/:id" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyProductDetail />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="clients" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyClients />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="clients/:id" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyClientDetail />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="financial" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyFinancial />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="inventory" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyInventory />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="pdv" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyPDV />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="catalog" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyCatalog />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="reports" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyReports />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="settings" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazySettings />
+                          </ErrorBoundary>
+                        } />
+                      </Route>
+                      
+                      {/* Catch-all route */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </ErrorBoundary>
+                </Router>
+              </ThemeProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 }

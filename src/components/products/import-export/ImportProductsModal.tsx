@@ -1,22 +1,17 @@
 
-import { useState, useRef } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { 
-  Download, Upload, FileText, X, CheckCircle, 
-  AlertCircle, ArrowDown, FileX 
-} from 'lucide-react';
-import { 
-  Table, TableBody, TableCaption, TableCell, 
-  TableHead, TableHeader, TableRow 
-} from '@/components/ui/table';
-import { 
-  downloadTemplate, 
-  parseImportedExcel, 
-  convertTemplateRowsToProducts, 
-  ProductTemplateRow 
-} from '@/utils/excelUtils';
+import { Download } from 'lucide-react';
+import { downloadTemplate } from '@/utils/excelUtils';
 import { useToast } from '@/hooks/use-toast';
+
+// Hooks e componentes refatorados
+import { useFileUpload } from './hooks/useFileUpload';
+import { useImportValidation } from './hooks/useImportValidation';
+import { FileDropzone } from './components/FileDropzone';
+import { ImportPreview } from './components/ImportPreview';
+import { ImportErrors } from './components/ImportErrors';
 
 interface ImportProductsModalProps {
   open: boolean;
@@ -24,138 +19,65 @@ interface ImportProductsModalProps {
   onImportConfirm: (products: any[]) => void;
 }
 
-const ImportProductsModal = ({ 
+const ImportProductsModal: React.FC<ImportProductsModalProps> = ({ 
   open, 
   onOpenChange, 
   onImportConfirm 
-}: ImportProductsModalProps) => {
+}) => {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importStage, setImportStage] = useState<'upload' | 'preview' | 'errors'>('upload');
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ row: number; column: string; message: string }[]>([]);
-  const [validData, setValidData] = useState<ProductTemplateRow[]>([]);
   
-  // Handle file drag events
-  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
+  // Hook para upload de arquivos
+  const fileUpload = useFileUpload({
+    acceptedTypes: ['.xlsx', '.xls'],
+    maxSize: 10 * 1024 * 1024, // 10MB
+    onFileSelect: handleFileSelect,
+  });
   
-  // Handle dropped file
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
-    }
-  };
+  // Hook para validação de importação
+  const validation = useImportValidation();
   
-  // Handle selected file from input
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
-    }
-  };
-  
-  // Process the selected file
-  const handleFile = async (file: File) => {
-    // Check if file is Excel
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      toast({
-        title: 'Formato não suportado',
-        description: 'Por favor, selecione um arquivo Excel (.xlsx ou .xls).',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    setFileName(file.name);
-    setImporting(true);
-    
+  // Processar arquivo selecionado
+  async function handleFileSelect(file: File) {
     try {
-      const result = await parseImportedExcel(file);
-      setValidData(result.validData);
-      
-      if (result.errors.length > 0) {
-        setErrors(result.errors);
-        setImportStage('errors');
-      } else if (result.validData.length > 0) {
-        setImportStage('preview');
-      } else {
-        toast({
-          title: 'Arquivo vazio',
-          description: 'O arquivo não contém dados válidos para importação.',
-          variant: 'destructive',
-        });
-        resetImportState();
-      }
+      await validation.processExcelFile(file);
     } catch (error) {
-      toast({
-        title: 'Erro na importação',
-        description: error instanceof Error ? error.message : 'Erro desconhecido.',
-        variant: 'destructive',
-      });
-      resetImportState();
+      // Erro já tratado no hook
     } finally {
-      setImporting(false);
+      fileUpload.finishUpload();
     }
-  };
+  }
   
-  // Reset the import state
-  const resetImportState = () => {
-    setImporting(false);
-    setImportStage('upload');
-    setFileName(null);
-    setErrors([]);
-    setValidData([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  
-  // Confirm the import
-  const confirmImport = () => {
+  // Confirmar importação
+  const handleConfirmImport = () => {
     try {
-      const products = convertTemplateRowsToProducts(validData);
+      const products = validation.convertToProducts();
       onImportConfirm(products);
+      
       toast({
         title: 'Importação concluída',
         description: `${products.length} produtos importados com sucesso.`,
       });
-      onOpenChange(false);
-      resetImportState();
+      
+      handleClose();
     } catch (error) {
-      toast({
-        title: 'Erro ao importar',
-        description: 'Não foi possível concluir a importação. Tente novamente.',
-        variant: 'destructive',
-      });
+      // Erro já tratado no hook
     }
   };
   
-  // Handle cancel
-  const handleCancel = () => {
-    resetImportState();
+  // Fechar modal e resetar estado
+  const handleClose = () => {
+    fileUpload.reset();
+    validation.reset();
     onOpenChange(false);
   };
   
-  // Return to upload stage
-  const backToUpload = () => {
-    setImportStage('upload');
+  // Voltar para upload
+  const handleBackToUpload = () => {
+    validation.goToStage('upload');
+    fileUpload.reset();
   };
   
-  // Download the template file
+  // Download do template
   const handleDownloadTemplate = () => {
     downloadTemplate();
   };
@@ -167,43 +89,17 @@ const ImportProductsModal = ({
           <DialogTitle>Importar Produtos</DialogTitle>
         </DialogHeader>
         
-        {importStage === 'upload' && (
+        {/* Estágio de Upload */}
+        {validation.stage === 'upload' && (
           <div className="space-y-6">
-            <div 
-              className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors
-                ${dragActive ? 'border-marsala bg-marsala/5' : 'border-neutral-300 hover:border-neutral-400'}`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleFileInput}
-              />
-              
-              {fileName ? (
-                <div className="space-y-2">
-                  <FileText size={48} className="mx-auto text-neutral-500" />
-                  <p className="font-medium">{fileName}</p>
-                  {importing ? (
-                    <p>Processando arquivo...</p>
-                  ) : (
-                    <p className="text-sm text-neutral-500">Arquivo selecionado</p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Upload size={48} className="mx-auto text-neutral-500" />
-                  <p className="font-medium">Arraste o arquivo Excel ou clique para selecionar</p>
-                  <p className="text-sm text-neutral-500">Arquivo Excel (.xlsx ou .xls)</p>
-                </div>
-              )}
-            </div>
+            <FileDropzone
+              dragActive={fileUpload.dragActive}
+              fileName={fileUpload.fileName}
+              isUploading={fileUpload.isUploading || validation.isProcessing}
+              acceptedTypes={['.xlsx', '.xls']}
+              dropzoneProps={fileUpload.getDropzoneProps()}
+              inputProps={fileUpload.getInputProps()}
+            />
             
             <div className="flex justify-center">
               <Button 
@@ -218,124 +114,42 @@ const ImportProductsModal = ({
           </div>
         )}
         
-        {importStage === 'preview' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <CheckCircle size={20} className="text-green-600" />
-                <span>Validação concluída</span>
-              </h3>
-              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                {validData.length} produtos
-              </span>
-            </div>
-            
-            <div className="max-h-[400px] overflow-y-auto border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Preço Venda</TableHead>
-                    <TableHead>Preço Aluguel</TableHead>
-                    <TableHead>Ativo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {validData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{row.Nome}</TableCell>
-                      <TableCell>{row.SKU}</TableCell>
-                      <TableCell>{row.Categoria}</TableCell>
-                      <TableCell>R$ {row['Preço Venda']}</TableCell>
-                      <TableCell>R$ {row['Preço Aluguel'] || '-'}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          row.Ativo === 'SIM' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {row.Ativo}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            <p className="text-sm text-neutral-500">
-              Todos os {validData.length} produtos foram validados e estão prontos para importação. 
-              <br/>
-              Clique em "Confirmar Importação" para concluir ou "Voltar" para selecionar outro arquivo.
-            </p>
-          </div>
+        {/* Estágio de Preview */}
+        {validation.stage === 'preview' && (
+          <ImportPreview validData={validation.validData} />
         )}
         
-        {importStage === 'errors' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <AlertCircle size={20} className="text-red-600" />
-                <span>Erros encontrados</span>
-              </h3>
-              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                {errors.length} problemas
-              </span>
-            </div>
-            
-            <div className="max-h-[400px] overflow-y-auto border rounded-md">
-              <Table>
-                <TableCaption>Corrija os erros e tente novamente</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Linha</TableHead>
-                    <TableHead>Coluna</TableHead>
-                    <TableHead>Problema</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {errors.map((error, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{error.row}</TableCell>
-                      <TableCell>{error.column}</TableCell>
-                      <TableCell>{error.message}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            <p className="text-sm text-neutral-500">
-              Foram encontrados erros no arquivo. Corrija os problemas indicados e tente novamente.
-              <br/>
-              Baixe o modelo para garantir a estrutura correta do arquivo.
-            </p>
-          </div>
+        {/* Estágio de Erros */}
+        {validation.stage === 'errors' && (
+          <ImportErrors 
+            errors={validation.errors}
+            onDownloadTemplate={handleDownloadTemplate}
+          />
         )}
         
+        {/* Footer com botões */}
         <DialogFooter className="gap-2 mt-6">
-          {importStage === 'upload' ? (
-            <Button onClick={handleCancel} variant="outline">
+          {validation.stage === 'upload' ? (
+            <Button onClick={handleClose} variant="outline">
               Cancelar
             </Button>
           ) : (
-            <Button onClick={backToUpload} variant="outline">
+            <Button onClick={handleBackToUpload} variant="outline">
               Voltar
             </Button>
           )}
           
-          {importStage === 'preview' && (
+          {validation.stage === 'preview' && (
             <Button 
-              onClick={confirmImport} 
-              className="bg-marsala hover:bg-marsala/90"
+              onClick={handleConfirmImport} 
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={!validation.stats.canProceed}
             >
               Confirmar Importação
             </Button>
           )}
           
-          {importStage === 'errors' && (
+          {validation.stage === 'errors' && (
             <Button 
               onClick={handleDownloadTemplate} 
               variant="outline" 

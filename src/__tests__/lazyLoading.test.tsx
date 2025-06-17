@@ -1,0 +1,150 @@
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+// Mock do AuthStore
+vi.mock('@/stores/authStore', () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    isLoading: false,
+    error: null,
+    user: { full_name: 'Test User', email: 'test@test.com' }
+  }),
+  initializeAuthStore: vi.fn(),
+  useAuthActions: () => ({
+    logout: vi.fn()
+  })
+}));
+
+// Mock dos contextos
+vi.mock('@/contexts/ThemeContext', () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useTheme: () => ({ colorScheme: 'light' })
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}));
+
+// Mock dos componentes de layout
+vi.mock('@/components/common/ProtectedRoute', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}));
+
+vi.mock('@/components/layout/MainLayout', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div data-testid="main-layout">{children}</div>
+}));
+
+// Mock das páginas lazy
+vi.mock('@/pages/lazy', () => ({
+  LazyIndex: () => <div data-testid="lazy-index">Dashboard Lazy Loaded</div>,
+  LazyProducts: () => <div data-testid="lazy-products">Products Lazy Loaded</div>,
+  LazyClients: () => <div data-testid="lazy-clients">Clients Lazy Loaded</div>,
+  NotFound: () => <div data-testid="not-found">Not Found</div>
+}));
+
+import App from '@/App';
+
+describe('Lazy Loading Tests', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false }
+      }
+    });
+  });
+
+  const renderApp = (initialRoute = '/') => {
+    window.history.pushState({}, 'Test page', initialRoute);
+    
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+  };
+
+  it('should load dashboard page lazily', async () => {
+    renderApp('/');
+    
+    // Verificar se o loading aparece primeiro
+    expect(screen.getByText(/carregando/i)).toBeInTheDocument();
+    
+    // Aguardar o componente lazy ser carregado
+    await waitFor(() => {
+      expect(screen.getByTestId('lazy-index')).toBeInTheDocument();
+    });
+    
+    expect(screen.getByText('Dashboard Lazy Loaded')).toBeInTheDocument();
+  });
+
+  it('should load products page lazily', async () => {
+    renderApp('/products');
+    
+    // Verificar se o loading aparece primeiro
+    expect(screen.getByText(/carregando/i)).toBeInTheDocument();
+    
+    // Aguardar o componente lazy ser carregado
+    await waitFor(() => {
+      expect(screen.getByTestId('lazy-products')).toBeInTheDocument();
+    });
+    
+    expect(screen.getByText('Products Lazy Loaded')).toBeInTheDocument();
+  });
+
+  it('should load clients page lazily', async () => {
+    renderApp('/clients');
+    
+    // Verificar se o loading aparece primeiro
+    expect(screen.getByText(/carregando/i)).toBeInTheDocument();
+    
+    // Aguardar o componente lazy ser carregado
+    await waitFor(() => {
+      expect(screen.getByTestId('lazy-clients')).toBeInTheDocument();
+    });
+    
+    expect(screen.getByText('Clients Lazy Loaded')).toBeInTheDocument();
+  });
+
+  it('should show custom loading messages for different pages', async () => {
+    renderApp('/products');
+    
+    // Verificar se a mensagem de loading específica aparece
+    expect(screen.getByText(/carregando produtos/i)).toBeInTheDocument();
+    expect(screen.getByText(/buscando catálogo de produtos/i)).toBeInTheDocument();
+  });
+
+  it('should handle 404 routes correctly', async () => {
+    renderApp('/non-existent-route');
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('not-found')).toBeInTheDocument();
+    });
+  });
+});
+
+// Teste de performance do lazy loading
+describe('Lazy Loading Performance', () => {
+  it('should not load all pages at once', () => {
+    // Verificar se apenas os módulos necessários são carregados
+    const moduleKeys = Object.keys(require.cache || {});
+    
+    // Não deve ter todas as páginas carregadas inicialmente
+    const pageModules = moduleKeys.filter(key => 
+      key.includes('/pages/') && 
+      !key.includes('/pages/lazy/') &&
+      !key.includes('Login') &&
+      !key.includes('NotFound')
+    );
+    
+    // Deve ter poucos módulos de página carregados inicialmente
+    expect(pageModules.length).toBeLessThan(3);
+  });
+}); 

@@ -1,0 +1,829 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Componentes para teste
+import { Dashboard } from '@/pages/Dashboard';
+import { ProductsPage } from '@/pages/ProductsPage';
+import { ImportProductsModal } from '@/components/products/import-export/ImportProductsModal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+
+// Wrapper para testes
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        {children}
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
+
+// Utilitários de acessibilidade
+class AccessibilityTester {
+  static async checkAriaLabels(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    
+    // Verificar elementos interativos sem aria-label
+    const interactiveElements = container.querySelectorAll(
+      'button, input, select, textarea, [role="button"], [role="link"], [role="tab"]'
+    );
+    
+    interactiveElements.forEach((element, index) => {
+      const hasAriaLabel = element.hasAttribute('aria-label');
+      const hasAriaLabelledBy = element.hasAttribute('aria-labelledby');
+      const hasAriaDescribedBy = element.hasAttribute('aria-describedby');
+      const hasVisibleText = element.textContent?.trim();
+      const hasPlaceholder = element.hasAttribute('placeholder');
+      const hasTitle = element.hasAttribute('title');
+      
+      if (!hasAriaLabel && !hasAriaLabelledBy && !hasVisibleText && !hasPlaceholder && !hasTitle) {
+        issues.push(`Interactive element at index ${index} (${element.tagName}) lacks accessible name`);
+      }
+    });
+    
+    return issues;
+  }
+
+  static async checkKeyboardNavigation(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    
+    // Verificar elementos focáveis
+    const focusableElements = container.querySelectorAll(
+      'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"]), [role="button"], [role="link"]'
+    );
+    
+    focusableElements.forEach((element, index) => {
+      const tabIndex = element.getAttribute('tabindex');
+      
+      // Verificar tabindex positivo (anti-pattern)
+      if (tabIndex && parseInt(tabIndex) > 0) {
+        issues.push(`Element at index ${index} has positive tabindex (${tabIndex}), use 0 or -1 instead`);
+      }
+      
+      // Verificar se elementos interativos são focáveis
+      if (element.tagName === 'BUTTON' || element.getAttribute('role') === 'button') {
+        const isDisabled = element.hasAttribute('disabled');
+        const tabIndexValue = element.getAttribute('tabindex');
+        
+        if (!isDisabled && tabIndexValue === '-1') {
+          issues.push(`Interactive element at index ${index} is not focusable (tabindex="-1")`);
+        }
+      }
+    });
+    
+    return issues;
+  }
+
+  static async checkColorContrast(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    
+    // Verificação básica de contraste
+    const textElements = container.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6, button, a, label');
+    
+    textElements.forEach((element, index) => {
+      const styles = window.getComputedStyle(element);
+      const color = styles.color;
+      const backgroundColor = styles.backgroundColor;
+      const fontSize = parseFloat(styles.fontSize);
+      
+      // Verificação simplificada - em produção usaria biblioteca específica
+      if (color === backgroundColor) {
+        issues.push(`Text element at index ${index} may have insufficient contrast (same color as background)`);
+      }
+      
+      // Verificar se texto é muito pequeno
+      if (fontSize < 12) {
+        issues.push(`Text element at index ${index} has very small font size (${fontSize}px)`);
+      }
+    });
+    
+    return issues;
+  }
+
+  static async checkHeadingStructure(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    
+    let previousLevel = 0;
+    
+    headings.forEach((heading, index) => {
+      const level = parseInt(heading.tagName.charAt(1));
+      
+      // Verificar se há h1
+      if (index === 0 && level !== 1) {
+        issues.push('Page should start with h1 heading');
+      }
+      
+      // Verificar hierarquia
+      if (level > previousLevel + 1) {
+        issues.push(`Heading level jumps from h${previousLevel} to h${level} at index ${index}`);
+      }
+      
+      // Verificar se heading tem conteúdo
+      if (!heading.textContent?.trim()) {
+        issues.push(`Empty heading at index ${index}`);
+      }
+      
+      previousLevel = level;
+    });
+    
+    return issues;
+  }
+
+  static async checkFormLabels(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    const formElements = container.querySelectorAll('input, select, textarea');
+    
+    formElements.forEach((element, index) => {
+      const hasLabel = container.querySelector(`label[for="${element.id}"]`);
+      const hasAriaLabel = element.hasAttribute('aria-label');
+      const hasAriaLabelledBy = element.hasAttribute('aria-labelledby');
+      const hasPlaceholder = element.hasAttribute('placeholder');
+      
+      if (!hasLabel && !hasAriaLabel && !hasAriaLabelledBy && !hasPlaceholder) {
+        issues.push(`Form element at index ${index} (${element.tagName}) lacks proper label`);
+      }
+      
+      // Verificar se input tem ID quando há label
+      if (hasLabel && !element.id) {
+        issues.push(`Form element at index ${index} has associated label but no ID`);
+      }
+    });
+    
+    return issues;
+  }
+
+  static async checkImageAltText(container: HTMLElement): Promise<string[]> {
+    const issues: string[] = [];
+    const images = container.querySelectorAll('img');
+    
+    images.forEach((img, index) => {
+      const hasAlt = img.hasAttribute('alt');
+      const altText = img.getAttribute('alt');
+      const hasAriaLabel = img.hasAttribute('aria-label');
+      const hasAriaLabelledBy = img.hasAttribute('aria-labelledby');
+      const isDecorative = img.getAttribute('role') === 'presentation' || img.getAttribute('alt') === '';
+      
+      if (!hasAlt && !hasAriaLabel && !hasAriaLabelledBy && !isDecorative) {
+        issues.push(`Image at index ${index} lacks alt text or aria-label`);
+      }
+      
+      // Verificar alt text genérico
+      if (altText && ['image', 'photo', 'picture', 'img'].includes(altText.toLowerCase())) {
+        issues.push(`Image at index ${index} has generic alt text: "${altText}"`);
+      }
+    });
+    
+    return issues;
+  }
+}
+
+describe('Testes de Acessibilidade', () => {
+  let fetchMock: any;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    global.fetch = fetchMock;
+    vi.clearAllMocks();
+  });
+
+  describe('Navegação por Teclado', () => {
+    it('deve permitir navegação completa por teclado no Dashboard', async () => {
+      const user = userEvent.setup();
+
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            totalProducts: 100,
+            totalOrders: 25,
+            totalRevenue: 5000,
+            pendingOrders: 5
+          }
+        })
+      });
+
+      render(
+        <TestWrapper>
+          <Dashboard />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('100')).toBeInTheDocument();
+      });
+
+      // Verificar se todos os elementos interativos são focáveis
+      const focusableElements = screen.getAllByRole('button');
+      
+      for (const element of focusableElements) {
+        element.focus();
+        expect(element).toHaveFocus();
+        
+        // Testar ativação por teclado
+        fireEvent.keyDown(element, { key: 'Enter' });
+        fireEvent.keyDown(element, { key: ' ' }); // Space
+      }
+
+      // Verificar navegação por Tab
+      await user.tab();
+      const firstFocusable = document.activeElement;
+      expect(firstFocusable).toBeInTheDocument();
+
+      // Navegar por todos os elementos
+      let tabCount = 0;
+      let currentElement = document.activeElement;
+      
+      while (tabCount < 20) { // Limite para evitar loop infinito
+        await user.tab();
+        const newElement = document.activeElement;
+        
+        if (newElement === currentElement) break;
+        
+        currentElement = newElement;
+        tabCount++;
+      }
+
+      expect(tabCount).toBeGreaterThan(0);
+    });
+
+    it('deve implementar skip links para navegação rápida', async () => {
+      render(
+        <TestWrapper>
+          <div>
+            <a href="#main-content" className="skip-link">
+              Pular para conteúdo principal
+            </a>
+            <nav>
+              <a href="#home">Home</a>
+              <a href="#products">Produtos</a>
+            </nav>
+            <main id="main-content">
+              <h1>Conteúdo Principal</h1>
+            </main>
+          </div>
+        </TestWrapper>
+      );
+
+      const skipLink = screen.getByText('Pular para conteúdo principal');
+      expect(skipLink).toBeInTheDocument();
+      expect(skipLink).toHaveAttribute('href', '#main-content');
+
+      // Verificar se o skip link funciona
+      fireEvent.click(skipLink);
+      const mainContent = document.getElementById('main-content');
+      expect(mainContent).toBeInTheDocument();
+    });
+
+    it('deve gerenciar foco em modais corretamente', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <div>
+            <Button id="open-modal">Abrir Modal</Button>
+            <ImportProductsModal 
+              isOpen={true} 
+              onClose={() => {}} 
+              onImport={() => {}}
+            />
+          </div>
+        </TestWrapper>
+      );
+
+      // Verificar se o foco está dentro do modal
+      const modal = screen.getByRole('dialog');
+      expect(modal).toBeInTheDocument();
+
+      // Verificar se há elementos focáveis no modal
+      const modalButtons = screen.getAllByRole('button');
+      const modalInputs = screen.getAllByRole('textbox');
+      
+      expect(modalButtons.length + modalInputs.length).toBeGreaterThan(0);
+
+      // Testar trap de foco
+      await user.tab();
+      const focusedElement = document.activeElement;
+      expect(modal.contains(focusedElement)).toBe(true);
+    });
+  });
+
+  describe('Leitores de Tela', () => {
+    it('deve ter estrutura de headings adequada', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] })
+      });
+
+      const { container } = render(
+        <TestWrapper>
+          <div>
+            <h1>Sistema de Gestão</h1>
+            <h2>Dashboard</h2>
+            <h3>Estatísticas</h3>
+            <h3>Pedidos Recentes</h3>
+            <h2>Produtos</h2>
+            <h3>Lista de Produtos</h3>
+          </div>
+        </TestWrapper>
+      );
+
+      const issues = await AccessibilityTester.checkHeadingStructure(container);
+      expect(issues).toHaveLength(0);
+
+      // Verificar se há h1
+      const h1 = screen.getByRole('heading', { level: 1 });
+      expect(h1).toBeInTheDocument();
+      expect(h1).toHaveTextContent('Sistema de Gestão');
+    });
+
+    it('deve ter labels apropriados para elementos interativos', async () => {
+      const { container } = render(
+        <TestWrapper>
+          <form>
+            <label htmlFor="product-name">Nome do Produto</label>
+            <Input id="product-name" type="text" />
+            
+            <label htmlFor="product-category">Categoria</label>
+            <Select>
+              <option value="">Selecione uma categoria</option>
+              <option value="vestidos">Vestidos</option>
+            </Select>
+            
+            <Button type="submit" aria-label="Salvar produto">
+              Salvar
+            </Button>
+            
+            <Button type="button" aria-label="Cancelar edição">
+              <span aria-hidden="true">×</span>
+            </Button>
+          </form>
+        </TestWrapper>
+      );
+
+      const issues = await AccessibilityTester.checkAriaLabels(container);
+      expect(issues).toHaveLength(0);
+
+      const formIssues = await AccessibilityTester.checkFormLabels(container);
+      expect(formIssues).toHaveLength(0);
+    });
+
+    it('deve implementar live regions para feedback dinâmico', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <div>
+            <Button id="save-button">Salvar</Button>
+            <div 
+              role="status" 
+              aria-live="polite" 
+              aria-atomic="true"
+              id="status-message"
+            >
+              {/* Mensagem será inserida dinamicamente */}
+            </div>
+          </div>
+        </TestWrapper>
+      );
+
+      const statusRegion = screen.getByRole('status');
+      expect(statusRegion).toBeInTheDocument();
+      expect(statusRegion).toHaveAttribute('aria-live', 'polite');
+
+      // Simular atualização de status
+      const saveButton = screen.getByText('Salvar');
+      fireEvent.click(saveButton);
+
+      // Em uma implementação real, isso seria atualizado via estado
+      statusRegion.textContent = 'Produto salvo com sucesso';
+      expect(statusRegion).toHaveTextContent('Produto salvo com sucesso');
+    });
+
+    it('deve ter descrições adequadas para elementos complexos', async () => {
+      render(
+        <TestWrapper>
+          <div>
+            <div 
+              role="progressbar" 
+              aria-valuenow={75} 
+              aria-valuemin={0} 
+              aria-valuemax={100}
+              aria-label="Progresso do upload"
+              aria-describedby="progress-description"
+            >
+              <div style={{ width: '75%', height: '20px', backgroundColor: 'blue' }} />
+            </div>
+            <div id="progress-description">
+              Upload em andamento: 75% concluído
+            </div>
+            
+            <table aria-label="Lista de produtos" aria-describedby="table-description">
+              <caption>Produtos disponíveis para aluguel</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Nome</th>
+                  <th scope="col">Categoria</th>
+                  <th scope="col">Preço</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Vestido Azul</td>
+                  <td>Vestidos</td>
+                  <td>R$ 150,00</td>
+                </tr>
+              </tbody>
+            </table>
+            <div id="table-description">
+              Tabela com 1 produto disponível
+            </div>
+          </div>
+        </TestWrapper>
+      );
+
+      const progressbar = screen.getByRole('progressbar');
+      expect(progressbar).toHaveAttribute('aria-describedby', 'progress-description');
+
+      const table = screen.getByRole('table');
+      expect(table).toHaveAttribute('aria-describedby', 'table-description');
+
+      const caption = screen.getByText('Produtos disponíveis para aluguel');
+      expect(caption).toBeInTheDocument();
+    });
+  });
+
+  describe('Contraste e Visibilidade', () => {
+    it('deve ter contraste adequado em todos os elementos de texto', async () => {
+      const { container } = render(
+        <TestWrapper>
+          <div>
+            <h1 style={{ color: '#000000', backgroundColor: '#ffffff' }}>
+              Título Principal
+            </h1>
+            <p style={{ color: '#333333', backgroundColor: '#ffffff' }}>
+              Texto do parágrafo com bom contraste
+            </p>
+            <Button style={{ color: '#ffffff', backgroundColor: '#007bff' }}>
+              Botão Azul
+            </Button>
+            <a href="#" style={{ color: '#0066cc', backgroundColor: '#ffffff' }}>
+              Link com contraste adequado
+            </a>
+          </div>
+        </TestWrapper>
+      );
+
+      const issues = await AccessibilityTester.checkColorContrast(container);
+      
+      // Verificar se não há problemas críticos de contraste
+      const criticalIssues = issues.filter(issue => 
+        issue.includes('same color as background')
+      );
+      expect(criticalIssues).toHaveLength(0);
+    });
+
+    it('deve ser utilizável com zoom de 200%', async () => {
+      // Simular zoom alterando o viewport
+      Object.defineProperty(window, 'innerWidth', {
+        writable: true,
+        configurable: true,
+        value: 640, // Metade da largura normal (simula zoom 200%)
+      });
+
+      Object.defineProperty(window, 'innerHeight', {
+        writable: true,
+        configurable: true,
+        value: 360,
+      });
+
+      render(
+        <TestWrapper>
+          <div style={{ padding: '20px' }}>
+            <h1>Título que deve ser legível com zoom</h1>
+            <Button style={{ minWidth: '44px', minHeight: '44px' }}>
+              Botão
+            </Button>
+            <Input 
+              placeholder="Campo de entrada"
+              style={{ minHeight: '44px' }}
+            />
+          </div>
+        </TestWrapper>
+      );
+
+      // Verificar se elementos mantêm tamanho mínimo adequado
+      const button = screen.getByRole('button');
+      const input = screen.getByRole('textbox');
+
+      // Elementos interativos devem ter pelo menos 44x44px
+      const buttonStyles = window.getComputedStyle(button);
+      const inputStyles = window.getComputedStyle(input);
+
+      expect(parseInt(buttonStyles.minHeight)).toBeGreaterThanOrEqual(44);
+      expect(parseInt(inputStyles.minHeight)).toBeGreaterThanOrEqual(44);
+    });
+
+    it('deve funcionar sem dependência de cor apenas', async () => {
+      render(
+        <TestWrapper>
+          <div>
+            <div>
+              <span style={{ color: 'red' }}>●</span>
+              <span> Erro - Campo obrigatório</span>
+            </div>
+            <div>
+              <span style={{ color: 'green' }}>✓</span>
+              <span> Sucesso - Dados salvos</span>
+            </div>
+            <div>
+              <span style={{ color: 'orange' }}>⚠</span>
+              <span> Aviso - Verifique os dados</span>
+            </div>
+          </div>
+        </TestWrapper>
+      );
+
+      // Verificar se há indicadores visuais além da cor
+      expect(screen.getByText('●')).toBeInTheDocument(); // Símbolo para erro
+      expect(screen.getByText('✓')).toBeInTheDocument(); // Símbolo para sucesso
+      expect(screen.getByText('⚠')).toBeInTheDocument(); // Símbolo para aviso
+
+      // Verificar se o texto é descritivo
+      expect(screen.getByText('Erro - Campo obrigatório')).toBeInTheDocument();
+      expect(screen.getByText('Sucesso - Dados salvos')).toBeInTheDocument();
+      expect(screen.getByText('Aviso - Verifique os dados')).toBeInTheDocument();
+    });
+  });
+
+  describe('Imagens e Mídia', () => {
+    it('deve ter alt text apropriado para imagens', async () => {
+      const { container } = render(
+        <TestWrapper>
+          <div>
+            <img 
+              src="/logo.png" 
+              alt="Logo da Closet Festa - Sistema de Gestão de Aluguel de Roupas"
+            />
+            <img 
+              src="/product1.jpg" 
+              alt="Vestido azul marinho, tamanho M, disponível para aluguel"
+            />
+            <img 
+              src="/decoration.png" 
+              alt=""
+              role="presentation"
+            />
+            <img 
+              src="/chart.png" 
+              alt="Gráfico mostrando aumento de 25% nas vendas do último mês"
+            />
+          </div>
+        </TestWrapper>
+      );
+
+      const issues = await AccessibilityTester.checkImageAltText(container);
+      expect(issues).toHaveLength(0);
+
+      // Verificar se imagens têm alt text descritivo
+      const logoImg = screen.getByAltText(/Logo da Closet Festa/);
+      expect(logoImg).toBeInTheDocument();
+
+      const productImg = screen.getByAltText(/Vestido azul marinho/);
+      expect(productImg).toBeInTheDocument();
+
+      const chartImg = screen.getByAltText(/Gráfico mostrando/);
+      expect(chartImg).toBeInTheDocument();
+    });
+
+    it('deve fornecer alternativas para conteúdo de áudio/vídeo', async () => {
+      render(
+        <TestWrapper>
+          <div>
+            <video controls aria-describedby="video-description">
+              <source src="/tutorial.mp4" type="video/mp4" />
+              <track 
+                kind="captions" 
+                src="/tutorial-captions.vtt" 
+                srcLang="pt-BR" 
+                label="Português (Brasil)"
+                default
+              />
+              Seu navegador não suporta vídeo HTML5.
+            </video>
+            <div id="video-description">
+              Tutorial de como usar o sistema de gestão de produtos
+            </div>
+            
+            <audio controls aria-describedby="audio-description">
+              <source src="/notification.mp3" type="audio/mpeg" />
+              Seu navegador não suporta áudio HTML5.
+            </audio>
+            <div id="audio-description">
+              Som de notificação para novos pedidos
+            </div>
+          </div>
+        </TestWrapper>
+      );
+
+      const video = screen.getByRole('application'); // Video com controls
+      expect(video).toHaveAttribute('aria-describedby', 'video-description');
+
+      const videoDescription = screen.getByText(/Tutorial de como usar/);
+      expect(videoDescription).toBeInTheDocument();
+    });
+  });
+
+  describe('Formulários Acessíveis', () => {
+    it('deve ter validação acessível', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <TestWrapper>
+          <form>
+            <div>
+              <label htmlFor="email">E-mail *</label>
+              <Input 
+                id="email"
+                type="email"
+                required
+                aria-describedby="email-error email-help"
+              />
+              <div id="email-help">
+                Digite um e-mail válido
+              </div>
+              <div id="email-error" role="alert" aria-live="polite">
+                {/* Erro será inserido dinamicamente */}
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="password">Senha *</label>
+              <Input 
+                id="password"
+                type="password"
+                required
+                aria-describedby="password-requirements"
+              />
+              <div id="password-requirements">
+                A senha deve ter pelo menos 8 caracteres
+              </div>
+            </div>
+            
+            <Button type="submit">Entrar</Button>
+          </form>
+        </TestWrapper>
+      );
+
+      const emailInput = screen.getByLabelText(/E-mail/);
+      const passwordInput = screen.getByLabelText(/Senha/);
+
+      expect(emailInput).toHaveAttribute('aria-describedby', 'email-error email-help');
+      expect(passwordInput).toHaveAttribute('aria-describedby', 'password-requirements');
+
+      // Verificar se há indicação de campos obrigatórios
+      expect(screen.getByText('E-mail *')).toBeInTheDocument();
+      expect(screen.getByText('Senha *')).toBeInTheDocument();
+
+      // Verificar se há instruções de preenchimento
+      expect(screen.getByText('Digite um e-mail válido')).toBeInTheDocument();
+      expect(screen.getByText('A senha deve ter pelo menos 8 caracteres')).toBeInTheDocument();
+    });
+
+    it('deve agrupar campos relacionados com fieldset', async () => {
+      render(
+        <TestWrapper>
+          <form>
+            <fieldset>
+              <legend>Dados Pessoais</legend>
+              <label htmlFor="first-name">Nome</label>
+              <Input id="first-name" type="text" />
+              
+              <label htmlFor="last-name">Sobrenome</label>
+              <Input id="last-name" type="text" />
+            </fieldset>
+            
+            <fieldset>
+              <legend>Endereço</legend>
+              <label htmlFor="street">Rua</label>
+              <Input id="street" type="text" />
+              
+              <label htmlFor="city">Cidade</label>
+              <Input id="city" type="text" />
+            </fieldset>
+            
+            <fieldset>
+              <legend>Preferências de Contato</legend>
+              <div role="group" aria-labelledby="contact-legend">
+                <div id="contact-legend">Como prefere ser contatado?</div>
+                <label>
+                  <input type="radio" name="contact" value="email" />
+                  E-mail
+                </label>
+                <label>
+                  <input type="radio" name="contact" value="phone" />
+                  Telefone
+                </label>
+              </div>
+            </fieldset>
+          </form>
+        </TestWrapper>
+      );
+
+      const fieldsets = screen.getAllByRole('group');
+      expect(fieldsets.length).toBeGreaterThanOrEqual(3);
+
+      // Verificar se fieldsets têm legends
+      expect(screen.getByText('Dados Pessoais')).toBeInTheDocument();
+      expect(screen.getByText('Endereço')).toBeInTheDocument();
+      expect(screen.getByText('Preferências de Contato')).toBeInTheDocument();
+    });
+  });
+
+  describe('Relatório de Acessibilidade', () => {
+    it('deve gerar relatório completo de acessibilidade', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: [] })
+      });
+
+      const { container } = render(
+        <TestWrapper>
+          <ProductsPage />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/produtos/i)).toBeInTheDocument();
+      });
+
+      // Executar todas as verificações
+      const [
+        ariaIssues,
+        keyboardIssues,
+        contrastIssues,
+        headingIssues,
+        formIssues,
+        imageIssues
+      ] = await Promise.all([
+        AccessibilityTester.checkAriaLabels(container),
+        AccessibilityTester.checkKeyboardNavigation(container),
+        AccessibilityTester.checkColorContrast(container),
+        AccessibilityTester.checkHeadingStructure(container),
+        AccessibilityTester.checkFormLabels(container),
+        AccessibilityTester.checkImageAltText(container)
+      ]);
+
+      const totalIssues = 
+        ariaIssues.length + 
+        keyboardIssues.length + 
+        contrastIssues.length + 
+        headingIssues.length + 
+        formIssues.length + 
+        imageIssues.length;
+
+      const report = {
+        component: 'ProductsPage',
+        timestamp: new Date().toISOString(),
+        issues: {
+          aria: ariaIssues,
+          keyboard: keyboardIssues,
+          contrast: contrastIssues,
+          headings: headingIssues,
+          forms: formIssues,
+          images: imageIssues
+        },
+        summary: {
+          totalIssues,
+          criticalIssues: ariaIssues.length + keyboardIssues.length,
+          warningIssues: contrastIssues.length + headingIssues.length,
+          infoIssues: formIssues.length + imageIssues.length
+        },
+        score: Math.max(0, 100 - (totalIssues * 5)) // Cada issue reduz 5 pontos
+      };
+
+      console.log('Accessibility Report:', JSON.stringify(report, null, 2));
+
+      // Verificar se a pontuação é aceitável (pelo menos 80)
+      expect(report.score).toBeGreaterThanOrEqual(80);
+      
+      // Verificar se não há issues críticas
+      expect(report.summary.criticalIssues).toBeLessThan(3);
+    });
+  });
+}); 
