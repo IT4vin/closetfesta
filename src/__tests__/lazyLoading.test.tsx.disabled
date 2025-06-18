@@ -40,8 +40,18 @@ vi.mock('@/components/layout/MainLayout', () => ({
 // Mock das páginas lazy
 vi.mock('@/pages/lazy', () => ({
   LazyIndex: () => <div data-testid="lazy-index">Dashboard Lazy Loaded</div>,
+  LazyCalendar: () => <div data-testid="lazy-calendar">Calendar Lazy Loaded</div>,
   LazyProducts: () => <div data-testid="lazy-products">Products Lazy Loaded</div>,
+  LazyProductDetail: () => <div data-testid="lazy-product-detail">Product Detail Lazy Loaded</div>,
   LazyClients: () => <div data-testid="lazy-clients">Clients Lazy Loaded</div>,
+  LazyClientDetail: () => <div data-testid="lazy-client-detail">Client Detail Lazy Loaded</div>,
+  LazyFinancial: () => <div data-testid="lazy-financial">Financial Lazy Loaded</div>,
+  LazyInventory: () => <div data-testid="lazy-inventory">Inventory Lazy Loaded</div>,
+  LazyPDV: () => <div data-testid="lazy-pdv">PDV Lazy Loaded</div>,
+  LazyReports: () => <div data-testid="lazy-reports">Reports Lazy Loaded</div>,
+  LazySettings: () => <div data-testid="lazy-settings">Settings Lazy Loaded</div>,
+  LazyCatalog: () => <div data-testid="lazy-catalog">Catalog Lazy Loaded</div>,
+  Login: () => <div data-testid="login">Login Page</div>,
   NotFound: () => <div data-testid="not-found">Not Found</div>
 }));
 
