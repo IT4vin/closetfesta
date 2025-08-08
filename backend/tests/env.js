@@ -1,5 +1,10 @@
 // Configuração de ambiente para testes
-require('dotenv').config({ path: '.env.test' });
+// Tentar carregar .env.test, mas não falhar se não existir
+try {
+  require('dotenv').config({ path: '.env.test' });
+} catch (error) {
+  console.log('⚠️ Arquivo .env.test não encontrado, usando configurações padrão');
+}
 
 // Configurar variáveis de ambiente específicas para testes
 process.env.NODE_ENV = 'test';
@@ -17,5 +22,16 @@ process.env.COMPRESSION_ENABLED = 'false';
 // Configurações de upload para testes
 process.env.UPLOAD_MAX_FILE_SIZE = '5242880'; // 5MB
 process.env.UPLOAD_ALLOWED_TYPES = 'image/jpeg,image/png,image/webp';
+
+// Configurações adicionais para testes em CI/CD
+if (process.env.CI) {
+  process.env.DB_HOST = 'localhost';
+  process.env.DB_PORT = '5432';
+  process.env.DB_NAME = 'closetfesta_test';
+  process.env.DB_USER = 'test_user';
+  process.env.DB_PASS = 'test_password';
+  process.env.CACHE_HOST = 'localhost';
+  process.env.CACHE_PORT = '6379';
+}
 
 console.log('🧪 Test environment variables configured'); 

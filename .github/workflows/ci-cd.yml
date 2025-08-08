@@ -60,7 +60,10 @@ jobs:
         working-directory: ./backend
         run: |
           npm ci
-          npm install -g @babel/core @babel/preset-env babel-jest
+          # Verificar se babel está disponível no package.json local
+          if ! npm list babel-jest >/dev/null 2>&1; then
+            npm install --save-dev @babel/core @babel/preset-env babel-jest
+          fi
 
       - name: Verificar lint
         working-directory: ./backend
@@ -139,21 +142,37 @@ jobs:
         working-directory: ./backend
         run: npm ci --only=production
 
+      - name: Validar estrutura do projeto
+        working-directory: ./backend
+        run: |
+          chmod +x scripts/validate-build.sh
+          ./scripts/validate-build.sh
+
       - name: Criar build otimizado
         working-directory: ./backend
         run: |
+          # Verificar se os arquivos necessários existem
+          if [ ! -d "src" ]; then
+            echo "❌ Diretório src não encontrado!"
+            exit 1
+          fi
+          
           # Criar diretório de produção
           mkdir -p dist
           
           # Copiar arquivos necessários
           cp -r src dist/
           cp package*.json dist/
-          cp -r node_modules dist/
+          
+          # Instalar apenas dependências de produção no dist
+          cd dist && npm ci --only=production --silent
           
           # Remover arquivos desnecessários
-          find dist -name "*.test.js" -delete
-          find dist -name "*.spec.js" -delete
-          find dist -name "__tests__" -type d -exec rm -rf {} +
+          find dist -name "*.test.js" -delete 2>/dev/null || true
+          find dist -name "*.spec.js" -delete 2>/dev/null || true
+          find dist -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          echo "✅ Build otimizado criado com sucesso"
 
       - name: Login no Registry
         if: github.event_name != 'pull_request'
@@ -174,6 +193,9 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build e push Docker image
         id: build
         uses: docker/build-push-action@v5
@@ -184,6 +206,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE=${{ github.run_id }}
+            VCS_REF=${{ github.sha }}
 
   # ===============================
   # DEPLOY PARA STAGING

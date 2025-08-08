@@ -22,6 +22,9 @@ COPY package*.json ./
 # Instalar dependências
 RUN npm ci --only=production && npm cache clean --force
 
+# Verificar se os módulos foram instalados corretamente
+RUN ls -la node_modules/ | head -10
+
 # Stage 2: Build
 FROM node:18-alpine AS build
 LABEL stage=build
@@ -32,17 +35,30 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-# Remover arquivos desnecessários
+# Remover arquivos desnecessários para produção
 RUN find . -name "*.test.js" -delete && \
     find . -name "*.spec.js" -delete && \
-    find . -name "__tests__" -type d -exec rm -rf {} + && \
-    rm -rf tests/ coverage/ .git/ .github/
+    find . -name "__tests__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    rm -rf tests/ coverage/ .git/ .github/ temp/ uploads/temp/ || true
+
+# Verificar estrutura final
+RUN ls -la src/ && echo "Build stage completed successfully"
 
 # Stage 3: Production
 FROM node:18-alpine AS production
+
+# Build arguments
+ARG NODE_ENV=production
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Labels para metadados
 LABEL maintainer="ClosetFesta Team"
 LABEL version="1.0.0"
 LABEL description="Backend API para ClosetFesta - Sistema de Gerenciamento de Loja"
+LABEL build-date=$BUILD_DATE
+LABEL vcs-ref=$VCS_REF
+LABEL node-env=$NODE_ENV
 
 # Instalar dependências do sistema para produção
 RUN apk add --no-cache \
