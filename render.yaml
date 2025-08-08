@@ -7,7 +7,7 @@ services:
   - type: web
     name: closetfesta-frontend
     env: static
-    buildCommand: bun install && bun run build
+    buildCommand: bun install && bun run build:render
     staticPublishPath: ./closetfesta
     pullRequestPreviewsEnabled: true
     envVars:
