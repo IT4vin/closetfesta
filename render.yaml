@@ -1,0 +1,46 @@
+# ===============================
+# CONFIGURAÇÃO DO RENDER.COM
+# ===============================
+
+services:
+  # Frontend React (Static Site)
+  - type: web
+    name: closetfesta-frontend
+    env: static
+    buildCommand: bun install && bun run build
+    staticPublishPath: ./closetfesta
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://closetfesta-backend.onrender.com
+    
+  # Backend Node.js (Web Service)
+  - type: web
+    name: closetfesta-backend
+    env: node
+    buildCommand: cd backend && npm ci --only=production --silent
+    startCommand: cd backend && npm start
+    plan: free
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DB_TYPE
+        value: sqlite
+      - key: DB_PATH
+        value: ./data/closetfesta.db
+    disk:
+      name: backend-data
+      mountPath: /opt/render/project/src/backend/data
+      sizeGB: 1
+
+databases:
+  # PostgreSQL Database (para produção futura)
+  - name: closetfesta-db
+    databaseName: closetfesta
+    user: closetfesta_user
+    plan: free

@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    // Diretório de saída para o Render
+    outDir: 'closetfesta',
+    // Limpar diretório antes do build
+    emptyOutDir: true,
     // Otimizações de build para melhor code splitting
     rollupOptions: {
       output: {
@@ -40,12 +44,7 @@ export default defineConfig(({ mode }) => ({
           'chart-vendor': ['recharts'],
           'utils-vendor': ['date-fns', 'clsx', 'tailwind-merge', 'lucide-react'],
           
-          // App chunks - código da aplicação
-          'auth': ['./src/stores/authStore', './src/contexts/AuthContext'],
-          'components-ui': ['./src/components/ui'],
-          'components-common': ['./src/components/common'],
-          'services': ['./src/services'],
-          'utils': ['./src/utils', './src/lib']
+          // App chunks - código da aplicação (removido para evitar problemas de resolução)
         },
         // Nomes de arquivo otimizados
         chunkFileNames: (chunkInfo) => {
