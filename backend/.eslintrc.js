@@ -19,8 +19,7 @@ module.exports = {
     'semi': ['error', 'always'],
     
     // Regras de qualidade de código
-    'no-console': 'warn',
-    'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
+    'no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
     'no-var': 'error',
     'prefer-const': 'error',
     
@@ -28,9 +27,8 @@ module.exports = {
     'no-process-exit': 'error',
     'handle-callback-err': 'error',
     
-    // Temporariamente desabilitadas para não quebrar o CI
-    'no-console': 'off',
-    'no-unused-vars': 'warn'
+    // Console permitido em ambiente de desenvolvimento/produção
+    'no-console': 'off'
   },
   ignorePatterns: [
     'node_modules/',

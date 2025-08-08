@@ -11,6 +11,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
+# Permissões necessárias para o GitHub Actions
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
 jobs:
   # ===============================
   # TESTES E QUALIDADE DE CÓDIGO
@@ -59,10 +66,10 @@ jobs:
       - name: Instalar dependências
         working-directory: ./backend
         run: |
-          npm ci
+          npm ci --silent --no-audit --no-fund
           # Verificar se babel está disponível no package.json local
           if ! npm list babel-jest >/dev/null 2>&1; then
-            npm install --save-dev @babel/core @babel/preset-env babel-jest
+            npm install --save-dev --silent @babel/core @babel/preset-env babel-jest
           fi
 
       - name: Verificar lint
@@ -140,7 +147,7 @@ jobs:
 
       - name: Instalar dependências
         working-directory: ./backend
-        run: npm ci --only=production
+        run: npm ci --only=production --silent --no-audit --no-fund
 
       - name: Validar estrutura do projeto
         working-directory: ./backend
@@ -165,7 +172,7 @@ jobs:
           cp package*.json dist/
           
           # Instalar apenas dependências de produção no dist
-          cd dist && npm ci --only=production --silent
+          cd dist && npm ci --only=production --silent --no-audit --no-fund
           
           # Remover arquivos desnecessários
           find dist -name "*.test.js" -delete 2>/dev/null || true
@@ -174,7 +181,7 @@ jobs:
           
           echo "✅ Build otimizado criado com sucesso"
 
-      - name: Login no Registry
+      - name: Login no GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
@@ -186,12 +193,17 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/closetfesta
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=ClosetFesta Backend
+            org.opencontainers.image.description=Sistema de Gerenciamento para Loja de Roupas
+            org.opencontainers.image.vendor=ClosetFesta Team
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -211,6 +223,22 @@ jobs:
             NODE_ENV=production
             BUILD_DATE=${{ github.run_id }}
             VCS_REF=${{ github.sha }}
+
+      - name: Scan de segurança da imagem Docker
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload resultados do scan de segurança
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
 
   # ===============================
   # DEPLOY PARA STAGING

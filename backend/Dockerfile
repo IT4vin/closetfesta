@@ -20,7 +20,7 @@ RUN apk add --no-cache \
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --silent --no-audit --no-fund && npm cache clean --force
 
 # Verificar se os módulos foram instalados corretamente
 RUN ls -la node_modules/ | head -10
