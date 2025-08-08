@@ -133,22 +133,35 @@ router.get('/:id', async (req, res) => {
 // POST /api/products - Criar produto
 router.post('/', async (req, res) => {
   try {
+    console.log('📦 Recebendo dados para criar produto:', req.body);
+    
     // Validar dados
     const { error, value } = productSchema.validate(req.body);
     if (error) {
+      console.log('❌ Validação falhou:', error.details);
       return res.status(400).json({
         success: false,
         message: 'Dados inválidos',
-        errors: error.details.map(detail => detail.message)
+        errors: error.details.map(detail => detail.message),
+        received_data: req.body
       });
     }
 
     // Verificar se a categoria existe
     const category = await Category.findById(value.category_id);
     if (!category) {
+      // Listar categorias disponíveis para debug
+      const availableCategories = await Category.findAll();
       return res.status(400).json({
         success: false,
-        message: 'Categoria não encontrada'
+        message: 'Categoria não encontrada',
+        debug: {
+          requested_category_id: value.category_id,
+          available_categories: availableCategories.map(cat => ({
+            id: cat.id,
+            name: cat.name
+          }))
+        }
       });
     }
 

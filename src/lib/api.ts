@@ -21,10 +21,17 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   try {
+    console.log('🌐 Fazendo requisição para:', url);
     const response = await fetch(url, config);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('❌ Erro na API:', {
+        status: response.status,
+        url,
+        errorData
+      });
+      
       throw new ApiError(
         response.status, 
         errorData.message || `HTTP ${response.status}`,
@@ -33,14 +40,20 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     const data = await response.json();
+    console.log('✅ Resposta da API:', data);
     return data;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
     
-    console.error('API Request failed:', error);
-    throw new ApiError(0, 'Erro de conexão com o servidor');
+    console.error('❌ Falha na requisição:', {
+      url,
+      error: error.message,
+      type: error.name
+    });
+    
+    throw new ApiError(0, `Erro de conexão: ${error.message}`);
   }
 };
 

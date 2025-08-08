@@ -57,10 +57,27 @@ const initializeDatabase = async () => {
     logger.info('Running database migrations...');
     await runMigrations();
     
+    // Verificar se há categorias no banco
+    const database = Database.getInstance();
+    const categories = await database.query('SELECT COUNT(*) as count FROM product_categories WHERE deleted_at IS NULL');
+    
+    if (categories[0].count === 0) {
+      logger.warn('No categories found, database might need seeding');
+      logger.info('Consider running: npm run seed');
+    } else {
+      logger.info(`Found ${categories[0].count} categories in database`);
+    }
+    
     logger.system('Database initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize database', error);
-    process.exit(1);
+    
+    // Em produção, tentar continuar mesmo com erro de banco
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn('Continuing server startup despite database error (production mode)');
+    } else {
+      process.exit(1);
+    }
   }
 };
 
@@ -161,7 +178,27 @@ app.use('/api/auth/', authLimiter);
 
 // CORS
 app.use(cors({
-  origin: config.server.cors.origins,
+  origin: (origin, callback) => {
+    // Permitir requisições sem origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Verificar se a origin está na lista permitida
+    const isAllowed = config.server.cors.origins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        // Converter wildcard para regex
+        const regex = new RegExp(allowedOrigin.replace(/\*/g, '.*'));
+        return regex.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS blocked request', { origin, allowedOrigins: config.server.cors.origins });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: config.server.cors.credentials,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -227,18 +264,39 @@ app.get('/health', async (req, res) => {
   res.json(healthData);
 });
 
-app.get('/api/health', (req, res) => {
-  const healthData = {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    version: config.app.version,
-    environment: config.server.env,
-    database: config.database.type
-  };
-  
-  logger.debug('API health check requested', { endpoint: '/api/health' });
-  res.json(healthData);
+app.get('/api/health', async (req, res) => {
+  try {
+    const database = Database.getInstance();
+    
+    // Verificar categorias
+    const categories = await database.query('SELECT COUNT(*) as count FROM product_categories WHERE deleted_at IS NULL');
+    const products = await database.query('SELECT COUNT(*) as count FROM products WHERE deleted_at IS NULL');
+    
+    const healthData = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: config.app.version,
+      environment: config.server.env,
+      database: {
+        type: config.database.type,
+        categories_count: categories[0].count,
+        products_count: products[0].count,
+        path: config.database.path
+      },
+      cors_origins: config.server.cors.origins
+    };
+    
+    logger.debug('API health check requested', { endpoint: '/api/health' });
+    res.json(healthData);
+  } catch (error) {
+    logger.error('Health check failed', error);
+    res.status(500).json({
+      status: 'ERROR',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Info endpoint
@@ -261,6 +319,46 @@ app.get('/api/info', (req, res) => {
       cache: config.cache.enabled && redisCache !== null
     }
   });
+});
+
+// Debug endpoint para verificar estado do sistema
+app.get('/api/debug', async (req, res) => {
+  try {
+    const database = Database.getInstance();
+    
+    // Buscar categorias
+    const categories = await database.query('SELECT * FROM product_categories WHERE deleted_at IS NULL LIMIT 10');
+    const products = await database.query('SELECT * FROM products WHERE deleted_at IS NULL LIMIT 5');
+    
+    res.json({
+      success: true,
+      debug_info: {
+        environment: config.server.env,
+        database_type: config.database.type,
+        database_path: config.database.path,
+        cors_origins: config.server.cors.origins,
+        categories: {
+          count: categories.length,
+          list: categories.map(cat => ({ id: cat.id, name: cat.name }))
+        },
+        products: {
+          count: products.length,
+          list: products.map(prod => ({ id: prod.id, name: prod.name, category_id: prod.category_id }))
+        },
+        server_info: {
+          port: config.server.port,
+          host: config.server.host,
+          uptime: process.uptime()
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao obter informações de debug',
+      error: error.message
+    });
+  }
 });
 
 // Cache management endpoints (apenas para admins)

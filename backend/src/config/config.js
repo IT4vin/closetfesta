@@ -11,6 +11,7 @@ const config = {
       origins: process.env.CORS_ORIGINS 
         ? process.env.CORS_ORIGINS.split(',')
         : [
+            // URLs locais para desenvolvimento
             'http://localhost:3000',
             'http://localhost:5173',
             'http://localhost:8080',
@@ -18,7 +19,12 @@ const config = {
             'http://localhost:8082',
             'http://localhost:8083',
             'http://localhost:8084',
-            'http://localhost:8085'
+            'http://localhost:8085',
+            // URLs do Render para produção
+            'https://closetfesta-frontend.onrender.com',
+            'https://closetfesta.onrender.com',
+            // URLs genéricas do Render
+            'https://*.onrender.com'
           ],
       credentials: true
     }

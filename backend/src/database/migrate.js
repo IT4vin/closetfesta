@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
-import { runMigrations } from './migrations.js';
-import database from '../config/database.js';
+const dotenv = require('dotenv');
+const runMigrations = require('./migrations');
+const { Database } = require('../config/database');
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -13,9 +13,6 @@ async function migrate() {
   } catch (error) {
     console.error('❌ Erro durante as migrações:', error);
     process.exit(1);
-  } finally {
-    await database.close();
-    process.exit(0);
   }
 }
 

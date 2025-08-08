@@ -17,7 +17,9 @@
     "test:e2e": "jest --testPathPattern=e2e",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
-    "start:prod": "NODE_ENV=production node src/server.js"
+    "start:prod": "NODE_ENV=production node src/server.js",
+    "test:connection": "node scripts/test-connection.js",
+    "debug": "node scripts/test-connection.js"
   },
   "keywords": [
     "closet",

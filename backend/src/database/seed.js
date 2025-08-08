@@ -1,13 +1,10 @@
-import dotenv from 'dotenv';
-import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcryptjs';
-import database from '../config/database.js';
-import { runMigrations } from './migrations.js';
-import { fileURLToPath } from 'url';
+const dotenv = require('dotenv');
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
+const { Database } = require('../config/database');
+const runMigrations = require('./migrations');
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
 
 async function generateId() {
   return uuidv4();
@@ -17,8 +14,8 @@ async function seed() {
   try {
     console.log('🌱 Iniciando seed do banco de dados...');
     
-    // Executar migrações primeiro
-    await database.connect();
+    // Obter instância do banco
+    const database = Database.getInstance();
     
     // Criar usuário admin padrão
     console.log('👤 Criando usuário admin...');
@@ -131,23 +128,20 @@ async function seed() {
   } catch (error) {
     console.error('❌ Erro durante o seed:', error);
     throw error;
-  } finally {
-    await database.close();
   }
 }
 
 // Executar se chamado diretamente
-console.log('Script executado. Filename:', __filename);
-console.log('Process argv[1]:', process.argv[1]);
+if (require.main === module) {
+  seed()
+    .then(() => {
+      console.log('Seed finalizado com sucesso');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Erro no seed:', error);
+      process.exit(1);
+    });
+}
 
-seed()
-  .then(() => {
-    console.log('Seed finalizado com sucesso');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Erro no seed:', error);
-    process.exit(1);
-  });
-
-export default seed; 
+module.exports = seed; 

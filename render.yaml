@@ -14,14 +14,14 @@ services:
       - key: NODE_ENV
         value: production
       - key: VITE_API_URL
-        value: https://closetfesta-backend.onrender.com
+        value: https://closetfesta-backend.onrender.com/api
     
   # Backend Node.js (Web Service)
   - type: web
     name: closetfesta-backend
     env: node
     buildCommand: cd backend && npm ci --only=production --silent
-    startCommand: cd backend && npm start
+    startCommand: cd backend && chmod +x scripts/init-render.sh && ./scripts/init-render.sh
     plan: free
     pullRequestPreviewsEnabled: false
     envVars:
@@ -29,14 +29,23 @@ services:
         value: production
       - key: PORT
         value: 3001
+      - key: HOST
+        value: 0.0.0.0
       - key: DB_TYPE
         value: sqlite
       - key: DB_PATH
         value: ./data/closetfesta.db
+      - key: CORS_ORIGINS
+        value: https://closetfesta-frontend.onrender.com,https://closetfesta.onrender.com
+      - key: JWT_SECRET
+        value: closet-festa-render-secret-key-2024-production
+      - key: LOG_LEVEL
+        value: info
     disk:
       name: backend-data
       mountPath: /opt/render/project/src/backend/data
       sizeGB: 1
+    healthCheckPath: /health
 
 databases:
   # PostgreSQL Database (para produção futura)
