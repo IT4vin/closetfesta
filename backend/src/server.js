@@ -577,10 +577,12 @@ app.use('*', (req, res) => {
 const gracefulShutdown = (signal) => {
   logger.system(`Received ${signal}, starting graceful shutdown...`);
   
-  const server = app.listen(config.server.port, () => {
-    logger.system('Server closed, exiting process');
-    process.exit(0);
-  });
+  const PORT = process.env.PORT || config.server.port || 3000;
+
+const server = app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
+
 
   // Force close after 10 seconds
   setTimeout(() => {
@@ -595,16 +597,12 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Iniciar servidor
-const server = app.listen(config.server.port, config.server.host, () => {
+const PORT = process.env.PORT || config.server.port || 3000;
+
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.system('Server started successfully', {
-    port: config.server.port,
-    host: config.server.host,
+    port: PORT,
     environment: config.server.env,
-    baseUrl: `http://${config.server.host}:${config.server.port}`,
-    apiUrl: `http://${config.server.host}:${config.server.port}/api`,
-    healthUrl: `http://${config.server.host}:${config.server.port}/health`,
-    imagesUrl: `http://${config.server.host}:${config.server.port}/api/images`,
-    catalogUrl: `http://${config.server.host}:${config.server.port}/api/catalog/products`
   });
 
   logger.info('Available API endpoints:', {
