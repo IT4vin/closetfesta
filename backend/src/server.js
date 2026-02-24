@@ -576,20 +576,16 @@ app.use('*', (req, res) => {
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   logger.system(`Received ${signal}, starting graceful shutdown...`);
-  
-  const PORT = process.env.PORT || config.server.port || 3000;
 
-const server = app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
-
+  server.close(() => {
+    logger.system('HTTP server closed');
+    process.exit(0);
+  });
 
   // Force close after 10 seconds
   setTimeout(() => {
     logger.error('Forcing server close after timeout');
-    server.close(() => {
-      process.exit(1);
-    });
+    process.exit(1);
   }, 10000);
 };
 
