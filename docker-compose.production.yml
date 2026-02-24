@@ -17,12 +17,13 @@ services:
       - NODE_ENV=production
       - PORT=3001
       
-      # Database
+      # Database (backend usa DB_USER, DB_PASSWORD, DB_TYPE=postgres)
+      - DB_TYPE=postgres
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=${POSTGRES_DB}
       - DB_USER=${POSTGRES_USER}
-      - DB_PASS=${POSTGRES_PASSWORD}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       
       # Cache
       - CACHE_ENABLED=true
@@ -30,14 +31,15 @@ services:
       - CACHE_PORT=6379
       - CACHE_PASSWORD=${REDIS_PASSWORD}
       
-      # Security
+      # Security & CORS (defina CORS_ORIGINS no .env com as URLs dos frontends)
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=1d
       - JWT_REFRESH_EXPIRES_IN=7d
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8084,http://localhost:8085}
       
-      # Uploads
+      # Uploads (backend usa UPLOAD_DIR)
       - UPLOAD_MAX_SIZE=10485760
-      - UPLOAD_PATH=/app/uploads
+      - UPLOAD_DIR=/app/uploads
       
       # Logging
       - LOG_LEVEL=info

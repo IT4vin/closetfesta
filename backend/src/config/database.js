@@ -116,11 +116,19 @@ class Database {
     });
   }
 
+  // Converte placeholders ? para $1, $2, ... (compatível com driver pg)
+  convertPlaceholdersToPg(sql) {
+    let i = 0;
+    return sql.replace(/\?/g, () => `$${++i}`);
+  }
+
   async queryPostgreSQL(sql, params = []) {
     const client = await this.db.connect();
     try {
-      const result = await client.query(sql, params);
-      return result.rows || result;
+      const pgSql = this.convertPlaceholdersToPg(sql);
+      const result = await client.query(pgSql, params);
+      if (result.rows) return result.rows;
+      return { rowCount: result.rowCount, lastID: result.rows?.[0]?.id, changes: result.rowCount };
     } finally {
       client.release();
     }
