@@ -18,17 +18,11 @@ const migrations = [
 async function runMigrations() {
   try {
     const db = Database.getInstance();
-    const dbType = process.env.DB_TYPE || 'sqlite';
     
-    console.log(`🔄 Executando migrações para ${dbType}...`);
+    console.log('🔄 Executando migrações para PostgreSQL...');
     
     for (const migration of migrations) {
-      try {
-        await migration.up(db);
-      } catch (error) {
-        console.error(`❌ Erro na migração: ${error.message}`);
-        throw error;
-      }
+      await migration.up(db);
     }
     
     console.log('🎉 Todas as migrações foram executadas com sucesso!');
@@ -37,28 +31,4 @@ async function runMigrations() {
     throw error;
   }
 }
-
-async function rollbackMigrations() {
-  try {
-    const db = Database.getInstance();
-    
-    console.log('🔄 Fazendo rollback das migrações...');
-    
-    // Executar rollbacks na ordem reversa
-    for (let i = migrations.length - 1; i >= 0; i--) {
-      try {
-        await migrations[i].down(db);
-      } catch (error) {
-        console.error(`❌ Erro no rollback: ${error.message}`);
-        throw error;
-      }
-    }
-    
-    console.log('✅ Rollback concluído!');
-  } catch (error) {
-    console.error('❌ Erro no rollback:', error);
-    throw error;
-  }
-}
-
 module.exports = runMigrations; 
