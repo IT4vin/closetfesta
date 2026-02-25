@@ -6,7 +6,8 @@ const fs = require('fs');
 class Database {
   constructor() {
     this.db = null;
-    this.type = process.env.DB_TYPE || 'sqlite';
+    // Decide o tipo automaticamente: PostgreSQL quando existir DATABASE_URL, senão SQLite
+    this.type = process.env.DATABASE_URL ? 'postgres' : 'sqlite';
     this.connected = false;
   }
 
@@ -25,17 +26,21 @@ class Database {
   }
 
   async connect() {
-    if (this.connected) {
+    if (this.connected && this.db) {
       return this.db;
     }
 
     try {
-      if (this.type === 'sqlite') {
-        await this.connectSQLite();
-      } else if (this.type === 'postgres') {
+      // Se existir DATABASE_URL, sempre usa PostgreSQL
+      if (process.env.DATABASE_URL) {
+        this.type = 'postgres';
         await this.connectPostgreSQL();
+      } else {
+        // Fallback para SQLite apenas quando NÃO houver DATABASE_URL
+        this.type = 'sqlite';
+        await this.connectSQLite();
       }
-      
+
       this.connected = true;
       console.log(`✅ Conectado ao banco de dados (${this.type})`);
       return this.db;
@@ -72,20 +77,31 @@ class Database {
   }
 
   async connectPostgreSQL() {
+    const connectionString = process.env.DATABASE_URL;
+
+    if (!connectionString) {
+      throw new Error(
+        'DATABASE_URL não está definido. Defina a variável de ambiente DATABASE_URL para usar PostgreSQL.'
+      );
+    }
+
+    const isProduction = process.env.NODE_ENV === 'production';
+
     this.db = new Pool({
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
+      connectionString,
+      ssl: isProduction ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 2000
     });
 
     // Testar conexão
     const client = await this.db.connect();
-    client.release();
+    try {
+      await client.query('SELECT 1');
+    } finally {
+      client.release();
+    }
   }
 
   async query(sql, params = []) {
@@ -160,4 +176,4 @@ class Database {
   }
 }
 
-module.exports = { Database }; 
+module.exports = { Database };
