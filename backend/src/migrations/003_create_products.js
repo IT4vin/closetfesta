@@ -1,37 +1,40 @@
-const { v4: uuidv4 } = require('uuid');
-
 const up = async (database) => {
+  // Ativa extensão UUID
+  await database.query(`
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+  `);
+
   // Tabela de produtos
   await database.query(`
     CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(255) NOT NULL,
       description TEXT,
       price DECIMAL(10,2) NOT NULL,
       quantity INTEGER DEFAULT 0,
-      category_id TEXT NOT NULL,
+      category_id UUID NOT NULL,
       sizes TEXT DEFAULT 'único',
-      featured BOOLEAN DEFAULT 0,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      deleted_at TEXT,
+      featured BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      deleted_at TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES product_categories (id)
     )
   `);
 
-  // Tabela de imagens de produtos
+  // Tabela de imagens
   await database.query(`
     CREATE TABLE IF NOT EXISTS product_images (
-      id TEXT PRIMARY KEY,
-      product_id TEXT NOT NULL,
-      url TEXT NOT NULL,
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      product_id UUID NOT NULL,
+      url VARCHAR(500) NOT NULL,
       order_index INTEGER DEFAULT 0,
-      created_at TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
     )
   `);
 
-  // Índices para performance
+  // Índices
   await database.query(`
     CREATE INDEX IF NOT EXISTS idx_products_category ON products (category_id)
   `);
@@ -58,7 +61,7 @@ const up = async (database) => {
 const down = async (database) => {
   await database.query('DROP TABLE IF EXISTS product_images');
   await database.query('DROP TABLE IF EXISTS products');
-  console.log('✅ Rollback executado: Tabelas de produtos removidas');
+  console.log('✅ Rollback executado: Tabelas removidas');
 };
 
-module.exports = { up, down }; 
+module.exports = { up, down };
