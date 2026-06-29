@@ -39,7 +39,7 @@ const UserProfile = () => {
             </Avatar>
             <div className="flex-1 text-left">
               <p className="font-medium text-sm">{user.name}</p>
-              <p className="text-xs text-neutral-500">{user.role === "admin" ? "Administrador" : "Usuário"}</p>
+              <p className="text-xs text-neutral-500">{user.role?.id === "admin" ? "Administrador" : "Usuário"}</p>
             </div>
           </button>
         </DropdownMenuTrigger>

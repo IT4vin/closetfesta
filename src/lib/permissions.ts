@@ -77,11 +77,13 @@ function buildUser(
   role: AppRole,
   fullName?: string,
 ): User {
+  const display = fullName ?? authUser.user_metadata?.full_name ?? authUser.email ?? "";
   return {
     id: authUser.id,
     username: authUser.email?.split("@")[0] ?? authUser.id,
     email: authUser.email ?? "",
-    full_name: fullName ?? authUser.user_metadata?.full_name ?? authUser.email ?? "",
+    full_name: display,
+    name: display,
     status: "active",
     created_at: new Date().toISOString(),
     permissions: [],
