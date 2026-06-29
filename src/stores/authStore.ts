@@ -1,47 +1,37 @@
-import { create } from 'zustand';
-import { subscribeWithSelector } from 'zustand/middleware';
-import PermissionManager, { User, SessionData } from '@/lib/permissions';
+import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
+import { supabase } from "@/integrations/supabase/client";
+import PermissionManager, { User, SessionData } from "@/lib/permissions";
 
 interface AuthState {
-  // Estado
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   lastActivity: Date | null;
-  
-  // Ações
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  refreshSession: () => void;
+
+  login: (identifier: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, fullName?: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
   clearError: () => void;
   updateActivity: () => void;
-  
-  // Listeners internos
-  initialize: () => void;
-  handleSessionExpiry: () => void;
+
+  initialize: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
   subscribeWithSelector((set, get) => ({
-    // Estado inicial
     user: null,
     isAuthenticated: false,
     isLoading: true,
     error: null,
     lastActivity: null,
 
-    // Inicializar store
-    initialize: () => {
+    initialize: async () => {
       try {
-        console.log('🔧 Inicializando AuthStore...');
-        
-        // Inicializar PermissionManager
-        PermissionManager.initialize();
-        
-        // Verificar sessão existente
+        await PermissionManager.initialize();
         const session = PermissionManager.getCurrentSession();
-        
         if (session) {
           set({
             user: session.user,
@@ -49,50 +39,28 @@ export const useAuthStore = create<AuthState>()(
             lastActivity: new Date(session.last_activity),
             error: null,
           });
-          console.log('✅ Sessão existente encontrada:', session.user.username);
         } else {
-          set({
-            user: null,
-            isAuthenticated: false,
-            lastActivity: null,
-            error: null,
-          });
-          console.log('ℹ️ Nenhuma sessão ativa encontrada');
+          set({ user: null, isAuthenticated: false, error: null });
         }
       } catch (error) {
-        console.error('❌ Erro na inicialização do AuthStore:', error);
-        set({
-          error: (error as Error).message,
-          isAuthenticated: false,
-          user: null,
-        });
+        set({ error: (error as Error).message, isAuthenticated: false, user: null });
       } finally {
         set({ isLoading: false });
       }
     },
 
-    // Login
-    login: async (username: string, password: string) => {
+    login: async (identifier, password) => {
       set({ isLoading: true, error: null });
-      
       try {
-        console.log('🔑 Tentativa de login via AuthStore:', username);
-        
-        const session = await PermissionManager.login(username, password);
-        
+        const session = await PermissionManager.login(identifier, password);
         set({
           user: session.user,
           isAuthenticated: true,
           lastActivity: new Date(session.last_activity),
-          error: null,
           isLoading: false,
         });
-        
-        console.log('✅ Login bem-sucedido via AuthStore');
         return true;
-        
       } catch (error) {
-        console.error('❌ Erro de login via AuthStore:', error);
         set({
           error: (error as Error).message,
           isAuthenticated: false,
@@ -103,116 +71,72 @@ export const useAuthStore = create<AuthState>()(
       }
     },
 
-    // Logout
-    logout: () => {
+    signup: async (email, password, fullName) => {
+      set({ isLoading: true, error: null });
       try {
-        console.log('🚪 Logout via AuthStore...');
-        
-        // Chamar logout do PermissionManager
-        PermissionManager.logout();
-        
-        // Atualizar estado local
-        set({
-          user: null,
-          isAuthenticated: false,
-          lastActivity: null,
-          error: null,
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: { full_name: fullName ?? email },
+          },
         });
-        
-        console.log('✅ Logout concluído via AuthStore');
-        
+        if (error) throw error;
+        // Auto-confirm habilitado: tenta login direto
+        const ok = await get().login(email, password);
+        return ok;
       } catch (error) {
-        console.error('❌ Erro no logout via AuthStore:', error);
-        // Forçar limpeza do estado mesmo com erro
-        set({
-          user: null,
-          isAuthenticated: false,
-          lastActivity: null,
-          error: 'Erro no logout',
-        });
-        
-        // Fallback: recarregar página
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        set({ error: (error as Error).message, isLoading: false });
+        return false;
       }
     },
 
-    // Atualizar sessão
-    refreshSession: () => {
+    logout: async () => {
+      try {
+        await PermissionManager.logout();
+      } finally {
+        set({ user: null, isAuthenticated: false, lastActivity: null, error: null });
+      }
+    },
+
+    refreshSession: async () => {
       const session = PermissionManager.getCurrentSession();
-      
       if (session) {
         set({
           user: session.user,
           isAuthenticated: true,
           lastActivity: new Date(session.last_activity),
-          error: null,
         });
-      } else {
-        const currentState = get();
-        if (currentState.isAuthenticated) {
-          console.log('🔍 Sessão expirada detectada, fazendo logout...');
-          get().handleSessionExpiry();
-        }
+      } else if (get().isAuthenticated) {
+        set({ user: null, isAuthenticated: false, error: "Sessão expirada" });
       }
     },
 
-    // Lidar com expiração de sessão
-    handleSessionExpiry: () => {
-      console.log('⏰ Sessão expirada, fazendo logout automático...');
-      set({
-        user: null,
-        isAuthenticated: false,
-        lastActivity: null,
-        error: 'Sessão expirada',
-      });
-    },
-
-    // Limpar erro
-    clearError: () => {
-      set({ error: null });
-    },
-
-    // Atualizar atividade
+    clearError: () => set({ error: null }),
     updateActivity: () => {
       PermissionManager.updateLastActivity();
       set({ lastActivity: new Date() });
     },
-  }))
+  })),
 );
 
-// Hook para subscrever apenas autenticação
 export const useAuth = () => {
   const { isAuthenticated, user, isLoading, error } = useAuthStore();
   return { isAuthenticated, user, isLoading, error };
 };
 
-// Hook para ações de autenticação
 export const useAuthActions = () => {
-  const { login, logout, clearError, updateActivity } = useAuthStore();
-  return { login, logout, clearError, updateActivity };
+  const { login, signup, logout, clearError, updateActivity } = useAuthStore();
+  return { login, signup, logout, clearError, updateActivity };
 };
 
-// Inicialização automática da store
 let isInitialized = false;
-
 export const initializeAuthStore = () => {
-  if (!isInitialized) {
-    useAuthStore.getState().initialize();
-    
-    // Configurar verificação periódica
-    setInterval(() => {
-      useAuthStore.getState().refreshSession();
-    }, 5000); // Verificar a cada 5 segundos
-    
-    // Listener para eventos de logout do PermissionManager
-    window.addEventListener('user-logout', () => {
-      console.log('📡 Evento user-logout recebido na AuthStore');
-      useAuthStore.getState().logout();
-    });
-    
-    isInitialized = true;
-    console.log('🚀 AuthStore inicializada e configurada');
-  }
-}; 
+  if (isInitialized) return;
+  isInitialized = true;
+  void useAuthStore.getState().initialize();
+  window.addEventListener("user-logout", () => {
+    useAuthStore.getState().logout();
+  });
+};
