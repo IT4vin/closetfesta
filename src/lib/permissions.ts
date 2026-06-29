@@ -208,8 +208,9 @@ const PermissionManager = {
 export function usePermissions() {
   return {
     user: cachedSession?.user ?? null,
-    hasPermission: () => !!cachedSession,
+    hasPermission: (_resource?: string, _action?: string) => !!cachedSession,
     isAuthenticated: !!cachedSession,
+    logout: () => PermissionManager.logout(),
   };
 }
 
