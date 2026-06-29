@@ -15,6 +15,7 @@ export interface ProductFilters {
   type: string;
   status: string;
   size: string;
+  color?: string;
   priceRange: {
     min: string;
     max: string;
