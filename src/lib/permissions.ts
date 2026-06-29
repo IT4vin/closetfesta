@@ -12,6 +12,8 @@ export interface User {
   username: string;
   email: string;
   full_name: string;
+  name: string;
+  avatar?: string;
   role: UserRole;
   status: "active" | "inactive" | "suspended";
   created_at: string;
