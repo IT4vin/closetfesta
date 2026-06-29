@@ -14,9 +14,9 @@ import { CartItem } from "./PDVSale";
 
 interface PDVProductListProps {
   cartItems: CartItem[];
-  updateQuantity: (itemId: number, quantity: number) => void;
-  applyDiscount: (itemId: number, discount: number) => void;
-  removeItem: (itemId: number) => void;
+  updateQuantity: (itemId: string | number, quantity: number) => void;
+  applyDiscount: (itemId: string | number, discount: number) => void;
+  removeItem: (itemId: string | number) => void;
 }
 
 const PDVProductList: React.FC<PDVProductListProps> = ({

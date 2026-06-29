@@ -245,24 +245,28 @@ export const systemApi = {
 // === TIPOS ===
 export interface Product {
   id: string;
-  sku?: string; // Código de barras/SKU
+  sku?: string;
   name: string;
   description: string;
   price: number;
-  rental_price?: number; // Preço específico para aluguel
+  rental_price?: number;
   quantity: number;
   category_id: string;
   sizes: string[];
   featured: boolean;
   deleted: boolean;
-  status: 'available' | 'rented' | 'maintenance' | 'reserved'; // Status para controle de aluguel
+  status: 'available' | 'rented' | 'maintenance' | 'reserved';
   created_at: string;
   updated_at: string;
-  category?: {
-    name: string;
-    description: string;
-  };
+  category?: { name: string; description: string };
   images: ProductImage[];
+  // Aliases legados mantidos para compatibilidade com componentes antigos
+  rentalPrice?: number;
+  size?: string;
+  color?: string;
+  type?: string;
+  subtype?: string;
+  image?: string;
 }
 
 export interface OrderItem {

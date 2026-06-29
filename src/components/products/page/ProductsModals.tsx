@@ -44,7 +44,7 @@ const ProductsModals: React.FC<ProductsModalsProps> = ({
             <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
           </DialogHeader>
           <ProductForm 
-            initialData={editingProduct} 
+            initialData={editingProduct as any} 
             onSubmit={handleFormSubmit} 
             onCancel={() => setModalOpen(false)} 
           />

@@ -1,21 +1,15 @@
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import PermissionManager from "@/lib/permissions";
+import { useAuthStore } from "@/stores/authStore";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const location = useLocation();
-  
-  // Verificar se está autenticado usando o PermissionManager
-  const isAuthenticated = PermissionManager.isAuthenticated();
-  const session = PermissionManager.getCurrentSession();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
-  // Se não estiver autenticado, mostrar loading enquanto o App.tsx gerencia o redirecionamento
-  if (!isAuthenticated || !session) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -26,7 +20,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Renderizar o conteúdo protegido
   return <>{children}</>;
 };
 
