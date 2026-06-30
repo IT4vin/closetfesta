@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Diretório de saída para o Render
-    outDir: 'closetfesta',
+    // Diretório de saída padrão
+    outDir: 'dist',
     // Limpar diretório antes do build
     emptyOutDir: true,
     // Otimizações de build para melhor code splitting
