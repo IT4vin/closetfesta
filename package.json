@@ -9,6 +9,7 @@
     "dev:showcase": "cd closet-festa-showcase && npm run dev",
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev\" \"npm run dev:showcase\"",
     "build": "tsc && vite build",
+    "build:dev": "vite build --mode development",
     "build:render": "tsc && vite build",
     "postinstall": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
