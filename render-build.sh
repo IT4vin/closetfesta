@@ -39,15 +39,15 @@ else
 fi
 
 # Verificar se o build foi criado
-if [ ! -d "closetfesta" ]; then
-    echo "❌ Erro: Diretório closetfesta não foi criado!"
+if [ ! -d "dist" ]; then
+    echo "❌ Erro: Diretório dist não foi criado!"
     echo "📁 Listando arquivos no diretório atual:"
     ls -la
     exit 1
 fi
 
 # Verificar conteúdo do diretório
-echo "📁 Conteúdo do diretório closetfesta:"
-ls -la closetfesta/
+echo "📁 Conteúdo do diretório dist:"
+ls -la dist/
 
 echo "✅ Build concluído com sucesso!"
