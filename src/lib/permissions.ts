@@ -148,12 +148,17 @@ async function buildSessionFromSupabase(): Promise<SessionData | null> {
 const PermissionManager = {
   async initialize() {
     await buildSessionFromSupabase();
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session) {
-        cachedSession = null;
-        window.dispatchEvent(new CustomEvent("user-logout"));
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        // defer async work to avoid deadlocks inside the callback
+        setTimeout(() => { void buildSessionFromSupabase(); }, 0);
       } else {
-        await buildSessionFromSupabase();
+        cachedSession = null;
+        // Only broadcast on explicit sign-out — INITIAL_SESSION with no
+        // session would otherwise trigger an infinite logout loop.
+        if (event === "SIGNED_OUT") {
+          window.dispatchEvent(new CustomEvent("user-logout"));
+        }
       }
     });
   },
