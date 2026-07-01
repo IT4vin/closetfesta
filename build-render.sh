@@ -27,14 +27,14 @@ echo "🏗️  Executando build do Vite..."
 npx vite build
 
 # Verificar se o build foi criado
-if [ ! -d "closetfesta" ]; then
-    echo "❌ Diretório closetfesta não foi criado!"
+if [ ! -d "dist" ]; then
+    echo "❌ Diretório dist não foi criado!"
     exit 1
 fi
 
 # Listar arquivos gerados
 echo "📁 Arquivos gerados:"
-ls -la closetfesta/
+ls -la dist/
 
 echo "✅ Build concluído com sucesso!"
-echo "📂 Arquivos disponíveis em: ./closetfesta"
+echo "📂 Arquivos disponíveis em: ./dist"

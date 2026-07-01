@@ -2,7 +2,7 @@
 
 ## ⚠️ **CONFIGURAÇÃO OBRIGATÓRIA NO DASHBOARD DO RENDER**
 
-O problema `==> Publicar diretório closetfesta está vazio!` pode ser resolvido configurando corretamente no dashboard do Render.
+O problema `dist-check failed` ou `Publicar diretório está vazio` pode ser resolvido garantindo que build, verificação e publicação usem o mesmo diretório: `dist/`.
 
 ### **📋 Configurações Obrigatórias**
 
@@ -18,7 +18,7 @@ npm install && npm run build
 
 #### **2. Publish Directory**
 ```
-./closetfesta
+./dist
 ```
 
 #### **3. Environment Variables**
@@ -34,7 +34,7 @@ NODE_ENV=production
 2. **Settings** → **Build & Deploy**
 3. **Configure:**
    - **Build Command**: `bun install && bun run build:render`
-   - **Publish Directory**: `./closetfesta`
+   - **Publish Directory**: `./dist`
    - **Node Version**: `22.16.0` (ou deixe padrão)
 
 #### **Configurações Avançadas:**
@@ -48,7 +48,7 @@ NODE_ENV=production
 ```json
 {
   "scripts": {
-    "postinstall": "tsc && vite build"
+    "postinstall": "tsc && vite build --outDir dist && node scripts/dist-check.mjs"
   }
 }
 ```
@@ -57,21 +57,23 @@ NODE_ENV=production
 #### **2. Vite configurado para output correto**
 ```typescript
 build: {
-  outDir: 'closetfesta',  // ← Diretório que o Render espera
+  outDir: 'dist',  // ← Diretório que o build e o dist-check esperam
   emptyOutDir: true
 }
 ```
 
 #### **3. Múltiplas opções de build**
-- `npm run build` - Build padrão
-- `npm run build:render` - Build específico para Render
+- `npm run build` - Build padrão em `dist/` + `dist-check`
+- `npm run build:dev` - Build de desenvolvimento em `dist/` + `dist-check`
+- `npm run build:render` - Build específico para Render em `dist/` + `dist-check`
+- `npm run dist-check` - Diagnóstico detalhado do diretório `dist/`
 - `npm run postinstall` - Build automático
 
 ### **🧪 Teste Local Confirmado**
 
 ```bash
 ✅ Build executado com sucesso
-✅ Diretório closetfesta criado
+✅ Diretório dist criado
 ✅ Arquivos gerados:
    - css/ (estilos)
    - js/ (JavaScript chunks)
@@ -91,7 +93,7 @@ build: {
 
 #### **Opção 3: Build Command alternativo**
 ```bash
-npm ci && npm run build && ls -la closetfesta
+npm ci && npm run build && ls -la dist
 ```
 
 ### **📊 Debug Commands**
@@ -104,14 +106,14 @@ pwd &&
 ls -la && 
 bun run build:render && 
 echo "=== DEPOIS DO BUILD ===" && 
-ls -la closetfesta
+ls -la dist
 ```
 
 ## ✅ **Garantia de Funcionamento**
 
 O build foi **testado localmente e funcionou perfeitamente**:
 - ✅ Comando executa sem erros
-- ✅ Diretório `closetfesta` é criado
+- ✅ Diretório `dist` é criado
 - ✅ Arquivos são gerados corretamente
 - ✅ Estrutura está completa
 
@@ -122,7 +124,7 @@ O build foi **testado localmente e funcionou perfeitamente**:
 **Configure no dashboard do Render:**
 ```
 Build Command: bun install && bun run build:render
-Publish Directory: ./closetfesta
+Publish Directory: ./dist
 ```
 
 Com essa configuração, o deploy funcionará perfeitamente! 🚀
