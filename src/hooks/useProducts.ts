@@ -22,95 +22,6 @@ export interface ProductFilters {
   };
 }
 
-// Mock products for testing
-const mockProducts: Product[] = [
-  {
-    id: 'TEST-001',
-    sku: '123456789',
-    name: 'Vestido de Festa Azul Marinho',
-    description: 'Elegante vestido de festa em tecido premium',
-    price: 299.90,
-    rental_price: 89.90,
-    quantity: 3,
-    category_id: 'CAT-001',
-    sizes: ['P', 'M', 'G'],
-    featured: true,
-    deleted: false,
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    images: []
-  },
-  {
-    id: 'TEST-002', 
-    sku: '987654321',
-    name: 'Terno Clássico Preto',
-    description: 'Terno executivo de alta qualidade',
-    price: 599.90,
-    rental_price: 149.90,
-    quantity: 2,
-    category_id: 'CAT-002',
-    sizes: ['42', '44', '46'],
-    featured: true,
-    deleted: false,
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    images: []
-  },
-  {
-    id: 'TEST-003',
-    sku: '456789123',
-    name: 'Smoking Premium',
-    description: 'Smoking para eventos especiais',
-    price: 799.90,
-    rental_price: 199.90,
-    quantity: 1,
-    category_id: 'CAT-003',
-    sizes: ['40', '42', '44'],
-    featured: false,
-    deleted: false,
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    images: []
-  },
-  {
-    id: 'TEST-004',
-    sku: '789123456',
-    name: 'Gravata Italiana',
-    description: 'Gravata de seda importada',
-    price: 89.90,
-    rental_price: 19.90,
-    quantity: 10,
-    category_id: 'CAT-004',
-    sizes: ['Único'],
-    featured: false,
-    deleted: false,
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    images: []
-  },
-  {
-    id: 'TEST-005',
-    sku: '321654987',
-    name: 'Sapato Social Premium',
-    description: 'Sapato de couro legítimo',
-    price: 249.90,
-    rental_price: 49.90,
-    quantity: 5,
-    category_id: 'CAT-005',
-    sizes: ['39', '40', '41', '42', '43'],
-    featured: true,
-    deleted: false,
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    images: []
-  }
-];
-
 export function useProducts(options: UseProductsOptions = {}) {
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -131,11 +42,6 @@ export function useProducts(options: UseProductsOptions = {}) {
 
   const { autoFetch = true, ...apiOptions } = options;
 
-  // Initialize with mock products for testing
-  useEffect(() => {
-    setProductsList(mockProducts);
-    setFilteredProducts(mockProducts);
-  }, []);
 
   const fetchProducts = async () => {
     try {
