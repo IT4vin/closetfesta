@@ -357,10 +357,12 @@ export const productsApi = {
       const path = `${productId}/${Date.now()}-${i}-${file.name}`.replace(/\s+/g, '_');
       const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, { upsert: false });
       if (upErr) fail(upErr.message);
-      const { data: pub } = supabase.storage.from('product-images').getPublicUrl(path);
+      // Bucket privado: gerar signed URL de longa duração (1 ano).
+      const { data: signed } = await supabase.storage.from('product-images').createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed?.signedUrl ?? '';
       const { data, error } = await supabase.from('product_images').insert({
         product_id: productId,
-        url: pub.publicUrl,
+        url,
         storage_path: path,
         position: i,
         is_primary: i === 0,
@@ -368,11 +370,12 @@ export const productsApi = {
       if (error) fail(error.message);
       uploaded.push({
         id: data.id, file_name: file.name, file_path: path,
-        display_order: i, url: pub.publicUrl, thumbnail_url: pub.publicUrl,
+        display_order: i, url, thumbnail_url: url,
       });
     }
     return ok(uploaded);
   },
+
 
   async removeImage(_productId: string, imageId: string): Promise<ApiResponse<{ id: string }>> {
     const { data: img } = await supabase.from('product_images').select('storage_path').eq('id', imageId).maybeSingle();
