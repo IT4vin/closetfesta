@@ -180,11 +180,12 @@ export function useTopProducts(options: UseReportsOptions & {
       setLoading(true);
       setError(null);
 
-      const response: ApiResponse<TopProductsData> = await reportsApi.topProducts({
+      const response = (await reportsApi.topProducts({
         ...apiOptions,
         type,
         limit
-      });
+      })) as unknown as ApiResponse<TopProductsData>;
+
       
       if (response.success) {
         setData(response.data);
