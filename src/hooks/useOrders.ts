@@ -1002,21 +1002,17 @@ export function useOrders(options: UseOrdersOptions = {}) {
   const generateContract = async (id: string) => {
     try {
       const response = await ordersApi.generateContract(id);
-      
       if (response.success) {
-        // Abrir PDF em nova aba ou fazer download
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        if (response.data?.url) {
+          window.open(response.data.url, '_blank');
+        } else {
+          console.info(response.message || 'Geração de contrato PDF ainda não configurada.');
+        }
         return true;
-      } else {
-        throw new Error(response.message || 'Erro ao gerar contrato');
       }
+      throw new Error(response.message || 'Erro ao gerar contrato');
     } catch (err) {
-      const errorMessage = err instanceof ApiError 
-        ? err.message 
-        : 'Erro ao gerar contrato';
-      
+      const errorMessage = err instanceof ApiError ? err.message : 'Erro ao gerar contrato';
       setError(errorMessage);
       throw err;
     }
@@ -1025,24 +1021,21 @@ export function useOrders(options: UseOrdersOptions = {}) {
   const generateReceipt = async (id: string) => {
     try {
       const response = await ordersApi.generateReceipt(id);
-      
       if (response.success) {
-        // Abrir PDF em nova aba ou fazer download
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        if (response.data?.url) {
+          window.open(response.data.url, '_blank');
+        } else {
+          console.info(response.message || 'Geração de recibo PDF ainda não configurada.');
+        }
         return true;
-      } else {
-        throw new Error(response.message || 'Erro ao gerar comprovante');
       }
+      throw new Error(response.message || 'Erro ao gerar comprovante');
     } catch (err) {
-      const errorMessage = err instanceof ApiError 
-        ? err.message 
-        : 'Erro ao gerar comprovante';
-      
+      const errorMessage = err instanceof ApiError ? err.message : 'Erro ao gerar comprovante';
       setError(errorMessage);
       throw err;
     }
+
   };
 
   const processPayment = async (paymentData: {
