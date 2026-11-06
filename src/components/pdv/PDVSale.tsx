@@ -35,7 +35,7 @@ import {
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
 import { useToast } from "@/hooks/use-toast";
-import PDVProductList from "./PDVProductList";
+import PDVProductGallery, { PDVProductPhoto, rentalPrice } from "./PDVProductGallery";
 import PDVPaymentModal from "./PDVPaymentModal";
 import PDVQuickCustomer from "./PDVQuickCustomer";
 
@@ -63,14 +63,13 @@ export interface OrderDates {
 
 const PDVSale = () => {
   const { toast } = useToast();
-  const { productsList } = useProducts();
+  const { productsList, loading: loadingProducts, error: productsError, refetch: refetchProducts } = useProducts();
   const { createOrder, generateContract, generateReceipt } = useOrders();
   
   const [barcode, setBarcode] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+remove obsolete search  const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('hybrid');
-  const [defaultItemType, setDefaultItemType] = useState<ItemType>('rental');
+  const defaultItemType: ItemType = 'rental';
   const [orderDates, setOrderDates] = useState<OrderDates>({
     tryOnDate: '',
     pickupDate: '',
@@ -219,7 +218,7 @@ const PDVSale = () => {
       return;
     }
     // Check availability for rentals
-    if (itemType === 'rental' && product.status !== 'available') {
+    if (itemType === 'rental' && (product.status !== 'available' || product.quantity <= 0)) {
       toast({
         title: "Produto indisponível",
         description: `${product.name} não está disponível para aluguel.`,
@@ -233,6 +232,11 @@ const PDVSale = () => {
     );
     
     if (existingItemIndex !== -1) {
+      // Não permitir selecionar mais unidades do que o estoque cadastrado.
+      if (cart[existingItemIndex].quantity >= product.quantity) {
+        toast({ title: "Limite de exemplares", description: "O limite de trajes cadastrados foi atingido.", variant: "destructive" });
+        return;
+      }
       // Product already in cart, update quantity
       const updatedCart = [...cart];
       const item = updatedCart[existingItemIndex];
@@ -518,31 +522,21 @@ const PDVSale = () => {
   const hasSaleItems = cart.some(item => item.itemType === 'sale');
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(340px,1fr)]">
       {/* Left side - Products and configuration */}
-      <div className="xl:col-span-1 order-2 xl:order-1 space-y-4">
-        {/* Order Type Configuration */}
-        <Card>
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target size={20} />
-              Tipo de Pedido
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <RadioGroup 
-              value={defaultItemType} 
-              onValueChange={(value: ItemType) => setDefaultItemType(value)}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="rental" id="rental" />
-                <Label htmlFor="rental" className="flex items-center gap-2">
-                  🎯 Aluguel
-                </Label>
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
+      <div className="order-1 min-w-0 space-y-4">
+        <div className="rounded-2xl bg-gradient-to-r from-rose-950 via-rose-900 to-stone-900 p-5 text-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-rose-200">Closet Festa • PDV</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Nova locação</h2>
+              <p className="mt-1 text-sm text-rose-100/80">Selecione os trajes, confira as datas e finalize o atendimento.</p>
+            </div>
+            <Badge variant="outline" className="border-white/25 bg-white/10 px-3 py-1.5 text-white">
+              Aluguel de trajes
+            </Badge>
+          </div>
+        </div>
 
         {/* Rental Dates (shown only if default is rental or has rental items) */}
         {(defaultItemType === 'rental' || hasRentalItems) && (
@@ -553,7 +547,7 @@ const PDVSale = () => {
                 Datas do Aluguel
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 space-y-3">
+            <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 2xl:grid-cols-4">
               <div>
                 <Label htmlFor="tryOnDate" className="text-sm">Prova</Label>
                 <Input
@@ -598,107 +592,46 @@ const PDVSale = () => {
           </Card>
         )}
 
-        {/* Products Search */}
-        <Card className="flex-1">
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg md:text-xl">Produtos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-4">
-            {/* Barcode scanner */}
-            <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
+        {/* Catálogo visual de trajes cadastrados */}
+        <Card className="overflow-hidden rounded-2xl border-stone-200 shadow-sm">
+          <CardContent className="space-y-5 p-4 md:p-5">
+            <form onSubmit={handleBarcodeSubmit} className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <Input
                   ref={barcodeInputRef}
                   type="text"
-                  placeholder="Código de barras"
+                  aria-label="Código do traje"
+                  placeholder="Digite ou escaneie o código do traje"
                   value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  className="pl-10"
+                  onChange={event => setBarcode(event.target.value)}
+                  className="h-10 rounded-xl border-stone-200 pl-10"
                 />
-                <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                  <Search size={18} className="text-gray-500" />
-                </div>
+                <Search aria-hidden="true" size={17} className="absolute left-3 top-3 text-stone-400" />
               </div>
-              <Button type="submit" variant="secondary" className="whitespace-nowrap">
-                Add
+              <Button type="submit" variant="outline" className="rounded-xl border-stone-200">
+                <Plus className="mr-2 h-4 w-4" /> Adicionar código
               </Button>
             </form>
-            
-            {/* Product search */}
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Buscar produto"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <Search size={18} className="text-gray-500" />
-              </div>
-            </div>
-            
-            {/* Product results */}
-            <div className="h-[calc(100vh-40rem)] sm:h-[calc(100vh-36rem)] xl:h-[calc(100vh-32rem)] overflow-y-auto border rounded-md p-2">
-              {productsList
-                .filter(p => 
-                  searchTerm ? 
-                    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.id?.toLowerCase().includes(searchTerm.toLowerCase()) 
-                  : true
-                )
-                .map(product => (
-                  <div 
-                    key={product.id}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer mb-2"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm truncate">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.id}</p>
-                        <p className="font-semibold text-sm mt-1">R$ {product.price.toFixed(2)}</p>
-                      </div>
-                      <Badge 
-                        variant={product.quantity > 0 ? "outline" : "destructive"}
-                        className="text-xs"
-                      >
-                        {product.quantity > 0 ? "Disponível" : "Indisponível"}
-                      </Badge>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1 text-xs"
-                        onClick={() => addProductToCart(product, 'sale')}
-                        disabled
-                      >
-                        Venda indisponível
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1 text-xs"
-                        onClick={() => addProductToCart(product, 'rental')}
-                      >
-                        🎯 Aluguel
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
+            <PDVProductGallery
+              products={productsList}
+              loading={loadingProducts}
+              error={productsError}
+              cartQuantities={Object.fromEntries(cart.map(item => [item.id, item.quantity]))}
+              onAdd={product => addProductToCart(product, "rental")}
+              onRefresh={() => { void refetchProducts(); }}
+            />
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Right side - Cart and payment */}
-      <div className="xl:col-span-3 order-1 xl:order-2">
-        <Card className="h-full">
-          <CardHeader className="flex flex-row justify-between items-start gap-2 p-4">
+      <div className="order-2 min-w-0 xl:sticky xl:top-4">
+        <Card className="overflow-hidden rounded-2xl border-stone-200 shadow-sm">
+          <CardHeader className="flex flex-row flex-wrap justify-between items-start gap-2 border-b border-stone-100 bg-stone-50/60 p-4">
             <div>
               <CardTitle className="text-lg md:text-xl flex items-center gap-2">
                 <ShoppingCart size={20} />
-                Pedido Híbrido
+                Resumo da locação
                 {cart.length > 0 && (
                   <Badge variant="secondary">
                     {cart.length} {cart.length === 1 ? 'item' : 'itens'}
@@ -746,7 +679,7 @@ const PDVSale = () => {
           
           <CardContent className="p-4">
             {/* Cart items list */}
-            <div className="h-[calc(100vh-28rem)] sm:h-[calc(100vh-24rem)] overflow-y-auto mb-4">
+            <div className="mb-4 max-h-[540px] min-h-[220px] overflow-y-auto pr-1">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                   <ShoppingCart size={48} className="mb-4" />
@@ -756,9 +689,11 @@ const PDVSale = () => {
               ) : (
                 <div className="space-y-3">
                   {cart.map((item, index) => (
-                    <div key={`${item.id}-${item.itemType}-${index}`} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
+                    <div key={`${item.id}-${item.itemType}-${index}`} className="rounded-xl border border-stone-200 bg-white p-3 shadow-sm">
+                      <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-[180px] flex-1 items-start gap-3">
+                          <PDVProductPhoto product={item} className="h-24 w-20 shrink-0 rounded-lg" />
+                          <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="text-lg">
                               {item.itemType === 'sale' ? '🛍️' : '🎯'}
@@ -769,19 +704,20 @@ const PDVSale = () => {
                           </div>
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-gray-500">{item.id}</p>
-                          <p className="text-sm font-semibold mt-1">
-                            R$ {item.price.toFixed(2)} × {item.quantity} = R$ {(item.price * item.quantity).toFixed(2)}
+                          <p className="mt-1 text-sm font-semibold tabular-nums">
+                            R$ {rentalPrice(item).toFixed(2)} × {item.quantity} = R$ {(rentalPrice(item) * item.quantity).toFixed(2)}
                           </p>
                           {item.discount > 0 && (
                             <p className="text-sm text-green-600">
                               Desconto: -R$ {item.discount.toFixed(2)}
                             </p>
                           )}
-                          <p className="text-base font-bold text-marsala">
+                          <p className="text-base font-bold text-rose-900">
                             Subtotal: R$ {item.subtotal.toFixed(2)}
                           </p>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-2 ml-4">
+                        <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-1">
                             <Button 
                               size="sm" 
@@ -948,7 +884,7 @@ const PDVSale = () => {
               )}
               
               <Button 
-                className="w-full mt-2 py-4 md:py-6 text-base md:text-lg bg-marsala hover:bg-marsala-700"
+                className="mt-2 w-full rounded-xl bg-rose-900 py-4 text-base font-semibold text-white hover:bg-rose-800 md:py-6"
                 disabled={cart.length === 0 || isProcessingOrder}
                 onClick={() => setIsPaymentModalOpen(true)}
               >

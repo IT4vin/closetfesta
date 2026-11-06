@@ -143,9 +143,9 @@ const PDV = () => {
     <div className="page-transition h-full">
       <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-semibold mb-2">Ponto de Venda Híbrido</h1>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-2">Balcão de Locações</h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-base">
-            Sistema completo de vendas e aluguéis
+            Atendimento, seleção de trajes e controle de locações
           </p>
         </div>
         
