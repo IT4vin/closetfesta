@@ -139,6 +139,7 @@ export function useProducts(options: UseProductsOptions = {}) {
       description: String(productData.description ?? "").trim(),
       sku: String(productData.fullCode || productData.sku || "").trim(),
       quantity: Number(productData.quantity ?? 1),
+      category_id: String(productData.category_id ?? editingProduct?.category_id ?? ""),
       price: rentalPrice,
       rental_price: rentalPrice,
       cost: Number(productData.cost ?? 0),
