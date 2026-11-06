@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { supabase } from '@/integrations/supabase/client';
+import { createRentalOrder, findRentalOrder, listRentalOrders } from '@/lib/rentalOrders';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) {
@@ -512,11 +513,11 @@ async function loadSaleAsOrder(saleId: string): Promise<Order> {
 
 export const ordersApi = {
   async create(input: any): Promise<ApiResponse<Order>> {
-    // A tabela sales não contém datas e estados dos contratos de locação.
-    // Não tratar aluguéis como vendas nem gerar registros incompletos durante sincronização.
-    if (input.order_type !== 'sale' ||
-        (input.items || []).some((item: any) => item.item_type === 'rental')) {
-      return fail('Contratos de aluguel ainda não possuem persistência transacional. Operação não registrada.', 501);
+    if (input.order_type === 'rental' && (input.items || []).every((item: any) => item.item_type === 'rental')) {
+      return ok(await createRentalOrder(input));
+    }
+    if (input.order_type !== 'sale' || (input.items || []).some((item: any) => item.item_type === 'rental')) {
+      return fail('Pedidos mistos ainda não são suportados; finalize o aluguel separadamente.', 501);
     }
     const { data: userData } = await supabase.auth.getUser();
     const cashierId = userData.user?.id ?? null;
@@ -576,23 +577,41 @@ export const ordersApi = {
     status?: string; order_type?: string; customer_name?: string;
     date_from?: string; date_to?: string; limit?: number; offset?: number;
   } = {}): Promise<ApiResponse<Order[]>> {
-    let q = supabase.from('sales').select('id', { count: 'exact' }).order('created_at', { ascending: false });
-    if (params.status) q = q.eq('status', params.status);
-    if (params.date_from) q = q.gte('created_at', params.date_from);
-    if (params.date_to) q = q.lte('created_at', params.date_to);
-    if (params.limit) q = q.limit(params.limit);
-    if (params.offset != null && params.limit) q = q.range(params.offset, params.offset + params.limit - 1);
-    const { data, error, count } = await q;
+    const rentals = params.order_type === 'sale' ? { rows: [] as Order[], total: 0 }
+      : await listRentalOrders(params);
+    if (params.order_type === 'rental') {
+      return ok(rentals.rows, { total: rentals.total });
+    }
+
+    let query = supabase.from('sales').select('id', { count: 'exact' }).order('created_at', { ascending: false });
+    if (params.status) query = query.eq('status', params.status);
+    if (params.date_from) query = query.gte('created_at', params.date_from);
+    if (params.date_to) query = query.lte('created_at', params.date_to);
+    if (params.limit) {
+      const offset = params.offset ?? 0;
+      query = query.range(offset, offset + params.limit - 1);
+    }
+    const { data, error, count } = await query;
     if (error) fail(error.message);
-    const orders = await Promise.all((data || []).map((r: any) => loadSaleAsOrder(r.id)));
-    return ok(orders, { total: count ?? orders.length });
+    let sales = await Promise.all((data || []).map((r: any) => loadSaleAsOrder(r.id)));
+    if (params.customer_name) {
+      const term = params.customer_name.toLocaleLowerCase('pt-BR');
+      sales = sales.filter(order => order.customer_name.toLocaleLowerCase('pt-BR').includes(term));
+    }
+    const rows = [...rentals.rows, ...sales].sort((a, b) =>
+      Date.parse(b.created_at) - Date.parse(a.created_at));
+    return ok(rows, { total: rentals.total + (params.customer_name ? sales.length : count ?? sales.length) });
   },
 
   async findById(id: string): Promise<ApiResponse<Order>> {
-    return ok(await loadSaleAsOrder(id));
+    const rental = await findRentalOrder(id);
+    return ok(rental ?? await loadSaleAsOrder(id));
   },
 
   async updateStatus(id: string, status: string): Promise<ApiResponse<{ id: string }>> {
+    if (await findRentalOrder(id)) {
+      return fail('Alteração do contrato de aluguel requer fluxo auditado. Operação não realizada.', 501);
+    }
     const { error } = await supabase.from('sales').update({ status }).eq('id', id);
     if (error) fail(error.message);
     return ok({ id });

@@ -295,7 +295,7 @@ export function useOrders(options: UseOrdersOptions = {}) {
     sync_in_progress: false
   });
 
-  const { autoFetch = true, enableSync = true, ...apiOptions } = options;
+  const { autoFetch = true, enableSync = false, ...apiOptions } = options;
 
   // Verificar permissões no início
   useEffect(() => {
@@ -309,8 +309,9 @@ export function useOrders(options: UseOrdersOptions = {}) {
     }
   }, []);
 
-  // Carregar pedidos do localStorage com compressão
+  // Dados locais legados são apenas para migração assistida em ambiente de testes.
   useEffect(() => {
+    if (import.meta.env.PROD) return;
     try {
       const storedOrders = loadOrdersFromStorage();
       const pendingOrders = loadPendingSync();
@@ -766,7 +767,8 @@ export function useOrders(options: UseOrdersOptions = {}) {
           return;
         }
       } catch (serverError) {
-        console.log('Servidor indisponível, usando dados locais...');
+        if (import.meta.env.PROD) throw serverError;
+        console.warn('Servidor indisponível, usando dados locais apenas em desenvolvimento.');
       }
 
       // Fallback para dados locais
@@ -802,6 +804,8 @@ export function useOrders(options: UseOrdersOptions = {}) {
   };
 
   const createOrder = async (orderData: {
+    request_id?: string;
+    client_id?: string;
     customer_name: string;
     customer_document?: string;
     customer_phone?: string;
@@ -823,141 +827,24 @@ export function useOrders(options: UseOrdersOptions = {}) {
     total_sales: number;
     total_rentals: number;
     observations?: string;
-  }) => {
-    // Este hook ainda persiste contratos apenas no navegador.
-    // Impedir que o PDV de produção informe sucesso antes da gravação transacional no banco.
-    if (import.meta.env.PROD) {
-      throw new Error('Registro de contratos indisponível: o módulo de locações ainda precisa ser integrado ao banco antes de operar em produção.');
-    }
-
-    // Verificar permissões
+    payment_details?: { payments: Array<{ method: string; value: number; installments?: number }> };
+  }): Promise<Order> => {
     if (!PermissionManager.hasPermission('orders', 'create')) {
       throw new Error('Sem permissão para criar pedidos');
     }
-
-    const currentUser = PermissionManager.getCurrentUser();
-    
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
-      order_number: generateOrderNumber(),
-      customer_name: orderData.customer_name,
-      customer_document: orderData.customer_document,
-      customer_phone: orderData.customer_phone,
-      order_type: orderData.order_type,
-      status: 'confirmed',
-      items: orderData.items.map((item, index) => ({
-        id: `item-${Date.now()}-${index}`,
-        product_id: item.product_id,
-        product: mockProducts.find(p => p.id === item.product_id) || {
-          id: item.product_id,
-          name: `Produto ${item.product_id}`,
-          description: 'Produto de teste',
-          price: item.unit_price,
-          quantity: 0,
-          category_id: 'CAT-001',
-          sizes: [],
-          featured: false,
-          deleted: false,
-          status: 'available',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          images: []
-        },
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount: item.discount,
-        subtotal: (item.unit_price * item.quantity) - item.discount,
-        item_type: item.item_type,
-        try_on_date: item.try_on_date,
-        pickup_date: item.pickup_date,
-        event_date: item.event_date,
-        return_date: item.return_date,
-        status: 'pending'
-      })),
-      subtotal: orderData.subtotal,
-      total_discount: orderData.total_discount,
-      total: orderData.total,
-      total_sales: orderData.total_sales,
-      total_rentals: orderData.total_rentals,
-      observations: orderData.observations,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: currentUser?.full_name || 'Sistema Local'
-    };
-
-    // Validar dados do pedido antes de salvar
-    const validation = validateOrderData(newOrder);
-    if (!validation.isValid) {
-      const errorMessage = `Dados do pedido inválidos: ${validation.errors.join(', ')}`;
-      saveAuditLog(createAuditLog(
-        'CREATE',
-        'ORDER',
-        { validation_errors: validation.errors },
-        newOrder.id,
-        false,
-        errorMessage
-      ));
-      throw new Error(errorMessage);
-    }
-
     try {
-      // Salvar localmente primeiro
-      const existingOrders = loadOrdersFromStorage();
-      const updatedOrders = [newOrder, ...existingOrders];
-      saveOrdersToStorage(updatedOrders);
-
-      // Registrar mudança para sincronização diferencial
-      DifferentialSync.recordChange(
-        'ORDER',
-        newOrder.id,
-        'CREATE',
-        newOrder,
-        currentUser?.id
-      );
-
-      // Atualizar estado
-      setOrders(updatedOrders);
-      setTotal(updatedOrders.length);
-
-      // Log de auditoria
-      saveAuditLog(createAuditLog(
-        'CREATE',
-        'ORDER',
-        { 
-          order_data: orderData, 
-          compression_enabled: true,
-          differential_sync: true 
-        },
-        newOrder.id
-      ));
-
-      // Criar backup automático a cada 10 pedidos
-      if (updatedOrders.length % 10 === 0) {
-        try {
-          createBackup();
-        } catch (backupError) {
-          console.warn('Erro ao criar backup automático:', backupError);
-        }
+      // Servidor primeiro: nunca declarar sucesso com um pedido salvo apenas no navegador.
+      const response = await ordersApi.create(orderData);
+      if (!response.success || !response.data?.id) {
+        throw new Error('O banco não confirmou a gravação do pedido');
       }
-
-      return newOrder;
-      
-    } catch (err) {
-      const errorMessage = err instanceof ApiError 
-        ? err.message 
-        : 'Erro ao criar pedido';
-      
-      saveAuditLog(createAuditLog(
-        'CREATE',
-        'ORDER',
-        { order_data: orderData },
-        newOrder.id,
-        false,
-        errorMessage
-      ));
-      
-      setError(errorMessage);
-      throw err;
+      setOrders(previous => [response.data, ...previous.filter(order => order.id !== response.data.id)]);
+      await fetchOrders();
+      return response.data;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao registrar contrato';
+      setError(message);
+      throw error;
     }
   };
 
