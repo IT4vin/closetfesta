@@ -81,3 +81,13 @@
 - A leitura de produtos, agenda, vendas, financeiros e imagens privadas também exige papel Supabase autorizado.
 - O fluxo de venda antigo foi desabilitado na API e na interface do PDV de aluguel para não executar gravações parciais de vendas.
 - Descontos distribuídos por unidade física no contrato para suportar quantidades maiores que um traje.
+
+## Continuação de implementação — ciclo de locação
+- Nova migration `20261106230000_rental_lifecycle.sql`: histórico de movimentações, RPCs auditáveis de retirada e devolução, lançamento complementar de pagamentos com chave de idempotência e bloqueio de recebimento acima do total.
+- Nova migration `20261107001000_laundry_release.sql`: liberação de lavanderia autorizada exclusivamente à gerência, com histórico.
+- Página de pedidos expandida para visualizar trajes e registrar retirada/devolução por item, sempre com confirmação explícita do operador.
+- Consulta de valores já recebidos e registro manual de pagamentos complementares no PDV com confirmação de conferência.
+- Testes unitários de confirmação e falha dos RPCs. **Não há teste do SQL no banco de homologação**, pois a conexão Supabase não lista projetos.
+- A conciliação com banco/adquirente, multas, PDF de contratos, auditoria de RLS e deploy continuam pendentes. Não afirmar que essas etapas estão concluídas.
+
+**CRÍTICO:** as migrations foram preparadas no GitHub mas NÃO aplicadas. O deploy do frontend não torna essas funcionalidades utilizáveis até a instalação e validação no banco de homologação; na ausência das RPCs, o sistema retorna erro explícito.
