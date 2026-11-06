@@ -56,3 +56,9 @@
 - A configuração de roles do banco usa `staff` e `cashier`. Verificar contas já existentes que dependiam do antigo `seller`, bem como telas de gestão de perfis ainda simuladas.
 - O `.gitignore` protege apenas arquivos futuros não versionados; arquivos e segredos já publicados permanecem no histórico. A rotação de segredos verdadeiros é uma ação operacional indispensável.
 - Não conectar o catálogo público `IT4vin/closetfesta-catalog` antes de estabilizar a origem dos dados e testar as regras de acesso.
+
+## Continuação — cadastros e políticas RLS
+- A página de clientes e o seletor de clientes no PDV agora consultam e cadastram no Supabase; dados demonstrativos removidos dessas duas telas.
+- A migration `20261106170000_secure_existing_rls.sql` retira escrita ampla de várias tabelas financeiras e operacionais e limita escrita de produtos/imagens aos responsáveis autorizados.
+- A migration foi apenas versionada, NÃO APLICADA. Conferir papéis reais, acessos de funcionários, políticas legadas e impacto em homologação.
+- A integração de clientes ainda requer testes E2E no banco. Algumas telas antigas e módulos auxiliares ainda podem ter dados simulados.
