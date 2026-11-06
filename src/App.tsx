@@ -59,7 +59,7 @@ function App() {
   }
 
   // Tela de erro crítico
-  if (error) {
+  if (error && isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-red-50">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">

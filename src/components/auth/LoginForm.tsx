@@ -4,310 +4,137 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Shield, LogIn, User, Key, Sparkles, RefreshCw, Stethoscope } from "lucide-react";
+import { LockKeyhole, Mail, Loader2 } from "lucide-react";
 import { useAuthActions } from "@/stores/authStore";
-import PermissionManager from "@/lib/permissions";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showDemo, setShowDemo] = useState(true);
-  
+const INITIAL_ADMIN_EMAIL = "contato@closetfesta.com.br";
+
+export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const { login } = useAuthActions();
+  const [mode, setMode] = useState<"login" | "initial" | "recover">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const demoCredentials = [
-    { 
-      username: 'admin', 
-      password: 'admin123', 
-      role: 'Administrador', 
-      description: 'Acesso total ao sistema',
-      icon: '👑',
-      bgColor: 'bg-marsala-50 border-marsala-200 hover:bg-marsala-100'
-    },
-    { 
-      username: 'manager', 
-      password: 'manager123', 
-      role: 'Gerente', 
-      description: 'Vendas e relatórios',
-      icon: '📊',
-      bgColor: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-    },
-    { 
-      username: 'seller', 
-      password: 'seller123', 
-      role: 'Vendedor', 
-      description: 'Apenas vendas',
-      icon: '🛍️',
-      bgColor: 'bg-green-50 border-green-200 hover:bg-green-100'
-    },
-    { 
-      username: 'viewer', 
-      password: 'viewer123', 
-      role: 'Visualizador', 
-      description: 'Apenas consulta',
-      icon: '👁️',
-      bgColor: 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-    }
-  ];
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    console.log('🔑 Tentativa de login via AuthStore:', { username, password: password.replace(/./g, '*') });
-
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
     try {
-      const success = await login(username, password);
-      
-      if (success) {
-        console.log('✅ Login realizado com sucesso via AuthStore');
-        onLoginSuccess();
+      if (mode === "initial") {
+        if (password.length < 12 || password !== confirmPassword) {
+          throw new Error("Use pelo menos 12 caracteres e confirme a mesma senha.");
+        }
+        const { error: signupError } = await supabase.auth.signUp({
+          email: INITIAL_ADMIN_EMAIL,
+          password,
+          options: { data: { full_name: "Administrador Closet Festa" } },
+        });
+        if (signupError) throw signupError;
+        setPassword("");
+        setConfirmPassword("");
+        setEmail(INITIAL_ADMIN_EMAIL);
+        setMode("login");
+        setNotice("Cadastro enviado. Verifique a caixa de entrada da loja, confirme o endereço de e-mail e depois entre com a senha cadastrada.");
+      } else if (mode === "recover") {
+        if (!email.includes("@")) throw new Error("Informe um e-mail válido.");
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+        if (resetError) throw resetError;
+        setMode("login");
+        setNotice("Se o e-mail estiver cadastrado, o Supabase enviará as instruções de recuperação.");
       } else {
-        setError('Falha no login. Verifique suas credenciais.');
+        if (!email.includes("@")) throw new Error("Entre usando o e-mail cadastrado no Supabase.");
+        const success = await login(email.trim().toLowerCase(), password);
+        if (!success) throw new Error("Acesso não autorizado. Confira seu e-mail, senha e permissão de funcionário.");
+        onLoginSuccess();
       }
     } catch (err) {
-      console.error('❌ Erro de login via AuthStore:', err);
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : "Não foi possível concluir a operação.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
-
-  const handleReset = () => {
-    try {
-      // Limpar completamente o localStorage relacionado ao sistema
-      localStorage.removeItem('closetfesta_session');
-      localStorage.removeItem('closetfesta_users');
-      localStorage.removeItem('closetfesta_roles');
-      
-      // Forçar reinicialização
-      PermissionManager.resetSystem();
-      
-      setError('');
-      setUsername('');
-      setPassword('');
-      
-      console.log('🔄 Sistema completamente resetado');
-      alert('Sistema resetado! Usuários padrão recriados. Tente fazer login novamente.');
-    } catch (err) {
-      console.error('Erro ao resetar sistema:', err);
-    }
-  };
-
-  const handleDiagnose = () => {
-    try {
-      // Verificar usuários no localStorage
-      const users = JSON.parse(localStorage.getItem('closetfesta_users') || '[]');
-      console.log('👥 Usuários no localStorage:', users);
-      
-      // Forçar reinicialização
-      PermissionManager.initialize();
-      
-      alert(`Diagnóstico:\n- Usuários encontrados: ${users.length}\n- Verificar console para detalhes`);
-    } catch (err) {
-      console.error('Erro no diagnóstico:', err);
-      alert('Erro no diagnóstico. Verificar console.');
-    }
-  };
-
-  const quickLogin = (user: typeof demoCredentials[0]) => {
-    setUsername(user.username);
-    setPassword(user.password);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-marsala-50 via-neutral-50 to-marsala-100 p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width=%2260%22%20height=%2260%22%20viewBox=%220%200%2060%2060%22%20xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%20fill=%22none%22%20fill-rule=%22evenodd%22%3E%3Cg%20fill=%22%23800020%22%20fill-opacity=%220.03%22%3E%3Ccircle%20cx=%2230%22%20cy=%2230%22%20r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
-      
-      <div className="relative w-full max-w-5xl">
-        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-lg overflow-hidden">
-          {/* Header com gradiente marsala */}
-          <div className="relative bg-gradient-to-r from-marsala-600 to-marsala-800 p-8 text-white">
-            <div className="absolute inset-0 bg-black/10"></div>
-            <CardHeader className="relative text-center pb-0">
-              <div className="mx-auto mb-6 h-20 w-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-4 ring-white/30">
-                <Shield className="h-10 w-10 text-white" />
-              </div>
-              <CardTitle className="text-4xl font-bold text-white mb-2">
-                Closet Festa Manager
-              </CardTitle>
-              <div className="flex items-center justify-center gap-2 text-marsala-100">
-                <Sparkles className="h-4 w-4" />
-                <p className="text-lg">Sistema de Gestão de Aluguel de Roupas</p>
-                <Sparkles className="h-4 w-4" />
-              </div>
-            </CardHeader>
+      <Card className="w-full max-w-md border-0 shadow-xl">
+        <CardHeader className="rounded-t-xl bg-gradient-to-r from-marsala-700 to-marsala-900 p-7 text-center text-white">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
+            <LockKeyhole className="h-7 w-7" />
           </div>
-
-          <CardContent className="p-8 space-y-8">
-            {error && (
-              <Alert variant="destructive" className="border-red-200 bg-red-50">
-                <AlertDescription className="text-red-800">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Formulário de Login */}
-            <div className="max-w-md mx-auto">
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="flex items-center gap-2 text-gray-700 font-medium">
-                    <User className="h-4 w-4 text-marsala-600" />
-                    Usuário
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Digite seu usuário"
-                      className="h-12 pl-4 pr-4 border-gray-200 focus:border-marsala-400 focus:ring-marsala-400/20 bg-white/70"
-                      required
-                    />
-                  </div>
+          <CardTitle className="text-2xl text-white">Closet Festa</CardTitle>
+          <p className="text-sm text-white/80">Sistema administrativo e frente de caixa</p>
+        </CardHeader>
+        <CardContent className="space-y-5 p-6">
+          <h2 className="text-lg font-semibold">
+            {mode === "initial" ? "Primeiro acesso administrativo" : mode === "recover" ? "Recuperar senha" : "Acesso da equipe"}
+          </h2>
+          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          {notice && <Alert><AlertDescription>{notice}</AlertDescription></Alert>}
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-email">E-mail</Label>
+              {mode === "initial" ? (
+                <Input id="admin-email" type="email" value={INITIAL_ADMIN_EMAIL} readOnly autoComplete="email" />
+              ) : (
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input id="admin-email" type="email" className="pl-9" required autoComplete="email"
+                    value={email} onChange={event => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="flex items-center gap-2 text-gray-700 font-medium">
-                    <Key className="h-4 w-4 text-marsala-600" />
-                    Senha
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Digite sua senha"
-                      className="h-12 pl-4 pr-4 border-gray-200 focus:border-marsala-400 focus:ring-marsala-400/20 bg-white/70"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-marsala-600 to-marsala-700 hover:from-marsala-700 hover:to-marsala-800 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Entrando...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <LogIn className="h-5 w-5" />
-                      Entrar no Sistema
-                    </div>
-                  )}
-                </Button>
-              </form>
+              )}
             </div>
-
-            {/* Seção de Demonstração */}
-            {showDemo && (
-              <div className="mt-10 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-gradient-to-r from-marsala-500 to-marsala-600 rounded-lg flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Usuários para Demonstração</h3>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDemo(false)}
-                    className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  >
-                    Ocultar
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {demoCredentials.map((user, index) => (
-                    <div 
-                      key={index}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${user.bgColor}`}
-                      onClick={() => quickLogin(user)}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{user.icon}</span>
-                          <Badge variant="outline" className="text-xs font-medium border-current">
-                            {user.role}
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-gray-500 font-medium">Clique para usar</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-gray-600" />
-                          <span className="text-sm font-medium">{user.username}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Key className="h-3 w-3 text-gray-600" />
-                          <span className="text-sm font-mono">{user.password}</span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-2 pl-5">{user.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {mode !== "recover" && (
+              <div className="space-y-2">
+                <Label htmlFor="admin-password">Senha</Label>
+                <Input id="admin-password" type="password" required autoComplete={mode === "initial" ? "new-password" : "current-password"}
+                  minLength={mode === "initial" ? 12 : undefined}
+                  value={password} onChange={event => setPassword(event.target.value)} />
               </div>
             )}
-
-            {/* Ferramentas de Desenvolvimento */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReset}
-                  className="flex-1 h-11 border-marsala-200 text-marsala-700 hover:bg-marsala-50 hover:border-marsala-300"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Resetar Sistema
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDiagnose}
-                  className="flex-1 h-11 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
-                >
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  Diagnóstico
-                </Button>
+            {mode === "initial" && (
+              <div className="space-y-2">
+                <Label htmlFor="admin-confirm-password">Confirmar senha</Label>
+                <Input id="admin-confirm-password" type="password" required minLength={12} autoComplete="new-password"
+                  value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} />
+                <p className="text-xs text-muted-foreground">
+                  Apenas o e-mail empresarial confirmado pode ativar o primeiro administrador. Não há senhas de demonstração.
+                </p>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="text-center border-t border-gray-100 pt-6">
-              <div className="text-xs text-gray-500 space-y-1">
-                <p className="font-medium">© 2025 Closet Festa Manager - Sistema de Demonstração</p>
-                <p>Desenvolvido para gestão completa de aluguel de roupas</p>
-                <div className="flex items-center justify-center gap-1 mt-2">
-                  <span>Feito com</span>
-                  <span className="text-marsala-500">♥</span>
-                  <span>usando React, TypeScript & Tailwind CSS</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            )}
+            <Button type="submit" disabled={busy} className="w-full bg-marsala-700 text-white hover:bg-marsala-800">
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {mode === "initial" ? "Solicitar primeiro acesso" : mode === "recover" ? "Enviar recuperação" : "Entrar no sistema"}
+            </Button>
+          </form>
+          <div className="flex flex-wrap justify-center gap-3 border-t pt-4 text-xs">
+            {mode !== "login" ? (
+              <button type="button" className="text-marsala-700 underline" onClick={() => { setMode("login"); setError(""); setNotice(""); }}>
+                Voltar ao login
+              </button>
+            ) : (
+              <>
+                <button type="button" className="text-marsala-700 underline" onClick={() => { setMode("recover"); setError(""); setNotice(""); }}>
+                  Esqueci minha senha
+                </button>
+                <button type="button" className="text-marsala-700 underline" onClick={() => { setMode("initial"); setError(""); setNotice(""); }}>
+                  Ativar primeiro administrador
+                </button>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default LoginForm; 
+}
