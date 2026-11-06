@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,12 @@ import { usePermissions } from "@/lib/permissions";
 const PDV = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [activeTab, setActiveTab] = useState("venda");
+  useEffect(() => {
+    const openOrders = () => setActiveTab("pedidos");
+    window.addEventListener("closetfesta:open-orders", openOrders);
+    return () => window.removeEventListener("closetfesta:open-orders", openOrders);
+  }, []);
   const { user, isAuthenticated, logout } = usePermissions();
 
   const handleLogout = async () => {
@@ -178,7 +184,7 @@ const PDV = () => {
         </div>
       </header>
 
-      <Tabs defaultValue="venda" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto mb-4 md:mb-6">
           <TabsList className="w-full grid grid-cols-7 min-w-[800px] md:min-w-0">
             <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">

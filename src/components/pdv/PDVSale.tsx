@@ -436,11 +436,7 @@ const [cart, setCart] = useState<CartItem[]>([]);
             size="sm"
             variant="outline"
             onClick={() => {
-              // Aqui você pode navegar para a aba de pedidos
-              const pedidosTab = document.querySelector('[value="pedidos"]') as HTMLElement;
-              if (pedidosTab) {
-                pedidosTab.click();
-              }
+              window.dispatchEvent(new Event("closetfesta:open-orders"));
             }}
           >
             Ver Pedidos
@@ -448,6 +444,10 @@ const [cart, setCart] = useState<CartItem[]>([]);
         ),
       });
       
+      // Atualiza a listagem e abre a aba Pedidos após confirmação do banco.
+      window.dispatchEvent(new Event("closetfesta:order-created"));
+      window.dispatchEvent(new Event("closetfesta:open-orders"));
+
       // Reset form
       setCart([]);
       setObservations('');

@@ -792,8 +792,8 @@ export function useOrders(options: UseOrdersOptions = {}) {
       setTotal(filteredOrders.length);
       
     } catch (err) {
-      const errorMessage = err instanceof ApiError 
-        ? err.message 
+      const errorMessage = err instanceof Error
+        ? err.message
         : 'Erro ao carregar pedidos';
       
       setError(errorMessage);

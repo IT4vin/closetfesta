@@ -542,30 +542,22 @@ export const ordersApi = {
     status?: string; order_type?: string; customer_name?: string;
     date_from?: string; date_to?: string; limit?: number; offset?: number;
   } = {}): Promise<ApiResponse<Order[]>> {
-    const rentals = params.order_type === 'sale' ? { rows: [] as Order[], total: 0 }
-      : await listRentalOrders(params);
-    if (params.order_type === 'rental') {
-      return ok(rentals.rows, { total: rentals.total });
+    // A Closet Festa trabalha exclusivamente com locação: contratos
+    // são gravados em rental_contracts, não na tabela legada sales.
+    // A consulta de sales podia fazer a aba Pedidos falhar inteira mesmo
+    // quando os contratos de aluguel já estavam salvos corretamente.
+    if (params.order_type === 'sale' || params.order_type === 'hybrid') {
+      return ok([], { total: 0 });
     }
-
-    let query = supabase.from('sales').select('id', { count: 'exact' }).order('created_at', { ascending: false });
-    if (params.status) query = query.eq('status', params.status);
-    if (params.date_from) query = query.gte('created_at', params.date_from);
-    if (params.date_to) query = query.lte('created_at', params.date_to);
-    if (params.limit) {
-      const offset = params.offset ?? 0;
-      query = query.range(offset, offset + params.limit - 1);
-    }
-    const { data, error, count } = await query;
-    if (error) fail(error.message);
-    let sales = await Promise.all((data || []).map((r: any) => loadSaleAsOrder(r.id)));
-    if (params.customer_name) {
-      const term = params.customer_name.toLocaleLowerCase('pt-BR');
-      sales = sales.filter(order => order.customer_name.toLocaleLowerCase('pt-BR').includes(term));
-    }
-    const rows = [...rentals.rows, ...sales].sort((a, b) =>
-      Date.parse(b.created_at) - Date.parse(a.created_at));
-    return ok(rows, { total: rentals.total + (params.customer_name ? sales.length : count ?? sales.length) });
+    const rentals = await listRentalOrders({
+      status: params.status,
+      customer_name: params.customer_name,
+      date_from: params.date_from,
+      date_to: params.date_to,
+      limit: params.limit,
+      offset: params.offset,
+    });
+    return ok(rentals.rows, { total: rentals.total });
   },
 
   async findById(id: string): Promise<ApiResponse<Order>> {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { 
   Card, 
   CardContent, 
@@ -38,8 +38,8 @@ import { ptBR } from "date-fns/locale";
 const PDVOrders = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [dateFromFilter, setDateFromFilter] = useState("");
   const [dateToFilter, setDateToFilter] = useState("");
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -56,11 +56,28 @@ const PDVOrders = () => {
     generateReceipt
   } = useOrders({
     customer_name: searchTerm,
-    status: statusFilter,
-    order_type: typeFilter,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    order_type: typeFilter === "all" ? undefined : typeFilter,
     date_from: dateFromFilter,
     date_to: dateToFilter
   });
+
+  // Atualizar os contratos após retornar à aba ou quando a janela recuperar o foco.
+  // A referência evita criar listeners novos a cada render.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+  useEffect(() => {
+    const refresh = () => { void refetchRef.current(); };
+    const onVisible = () => { if (!document.hidden) refresh(); };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("closetfesta:order-created", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("closetfesta:order-created", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -139,8 +156,8 @@ const PDVOrders = () => {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("");
-    setTypeFilter("");
+    setStatusFilter("all");
+    setTypeFilter("all");
     setDateFromFilter("");
     setDateToFilter("");
   };
@@ -165,6 +182,9 @@ const PDVOrders = () => {
           <div className="text-center">
             <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-red-600">Erro ao carregar pedidos: {error}</p>
+            <Button variant="outline" className="mt-3" onClick={() => void refetch()}>
+              <RotateCcw className="mr-2 h-4 w-4" /> Tentar novamente
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -261,7 +281,7 @@ const PDVOrders = () => {
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="draft">Rascunho</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
@@ -277,7 +297,7 @@ const PDVOrders = () => {
                   <SelectValue placeholder="Todos os tipos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
                   <SelectItem value="sale">Venda</SelectItem>
                   <SelectItem value="rental">Aluguel</SelectItem>
                   <SelectItem value="hybrid">Híbrido</SelectItem>
@@ -315,16 +335,28 @@ const PDVOrders = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Table */}
+      {/* Pedidos registrados no Supabase */}
       <Card>
-        <CardHeader>
-          <CardTitle>Pedidos ({orders.length})</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Pedidos ({orders.length})</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Contratos de aluguel registrados no Supabase.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={loading}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Atualizar pedidos
+          </Button>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
             <div className="text-center py-8">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Nenhum pedido encontrado</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Se você acabou de finalizar uma locação, clique em Atualizar pedidos.
+                Confira também se há algum filtro ativo.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
