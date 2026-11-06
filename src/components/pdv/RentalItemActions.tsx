@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ordersApi, type OrderItem } from "@/lib/api";
+import { releaseRentalItemFromLaundry } from "@/lib/rentalLifecycle";
+import PermissionManager from "@/lib/permissions";
 
 interface RentalItemActionsProps {
   orderId: string;
@@ -44,7 +46,25 @@ export default function RentalItemActions({ orderId, item, onChanged }: RentalIt
   };
 
   if (item.status === "returned") {
-    return <span className="text-sm text-muted-foreground">Aguardando liberação da lavanderia</span>;
+    if (!PermissionManager.hasPermission("inventory", "update")) {
+      return <span className="text-sm text-muted-foreground">Aguardando liberação da lavanderia</span>;
+    }
+    return <Button size="sm" variant="outline" disabled={busy}
+      onClick={async () => {
+        if (!window.confirm("A lavanderia e a conferência terminaram? Confirmar que o traje está limpo, ajustado e pronto para nova locação?")) return;
+        setBusy(true);
+        try {
+          await releaseRentalItemFromLaundry(item.id);
+          await onChanged();
+          toast({ title: "Traje liberado", description: "Unidade disponível para próximas locações." });
+        } catch (error) {
+          toast({ title: "Liberação não realizada", description: error instanceof Error ? error.message : "Erro ao salvar.", variant: "destructive" });
+        } finally {
+          setBusy(false);
+        }
+      }}>
+      {busy ? "Salvando..." : "Liberar após lavanderia"}
+    </Button>;
   }
   if (item.status === "picked_up") {
     return <Button size="sm" disabled={busy} onClick={() => void registerReturn()}>

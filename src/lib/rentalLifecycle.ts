@@ -47,3 +47,9 @@ export async function recordRentalPayment(input: {
     p_installments: installments,
   });
 }
+
+/** Somente gerência pode tornar o traje disponível após conferência e lavanderia. */
+export async function releaseRentalItemFromLaundry(itemId: string): Promise<string> {
+  if (!itemId) throw new Error("Traje não identificado.");
+  return executeRentalRpc("rental_release_laundry", { p_item_id: itemId });
+}
