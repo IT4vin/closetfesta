@@ -38,7 +38,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         const { error: signupError } = await supabase.auth.signUp({
           email: INITIAL_ADMIN_EMAIL,
           password,
-          options: { data: { full_name: "Administrador Closet Festa" } },
+          options: {
+            data: { full_name: "Administrador Closet Festa" },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (signupError) throw signupError;
         setPassword("");
