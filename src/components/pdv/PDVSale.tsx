@@ -67,7 +67,7 @@ const PDVSale = () => {
   const { createOrder, generateContract, generateReceipt } = useOrders();
   
   const [barcode, setBarcode] = useState("");
-remove obsolete search  const [cart, setCart] = useState<CartItem[]>([]);
+const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('hybrid');
   const defaultItemType: ItemType = 'rental';
   const [orderDates, setOrderDates] = useState<OrderDates>({
