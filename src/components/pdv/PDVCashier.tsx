@@ -178,9 +178,9 @@ const PDVCashier = () => {
                 <p className="text-xs text-muted-foreground">{register ? dateTime(register.opened_at) : "Nenhum caixa encontrado"}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Saldo esperado (sem recebimentos de contratos)</p>
+                <p className="text-sm text-muted-foreground">Saldo esperado em dinheiro (inclui aluguéis pagos em espécie)</p>
                 <p className="text-2xl font-bold">{currency(expectedBalance)}</p>
-                <p className="text-xs text-muted-foreground">Saldo inicial: {currency(Number(register?.opening_amount ?? 0))}</p>
+                <p className="text-xs text-muted-foreground">Saldo inicial: {currency(Number(register?.opening_amount ?? 0))}. Pagamentos Pix e cartão não integram este saldo.</p>
               </div>
               {register && !isOpen && register.closed_at && (
                 <div className="text-sm space-y-1">
@@ -214,7 +214,7 @@ const PDVCashier = () => {
                   {movements.map(item => (
                     <div key={item.id} className="flex justify-between gap-3 border-b py-2 text-sm">
                       <div>
-                        <p className="font-medium">{item.type === "opening" ? "Abertura" : item.type === "closing" ? "Fechamento" : item.type === "withdrawal" ? "Sangria" : item.type === "reinforcement" ? "Reforço" : item.type}</p>
+                        <p className="font-medium">{item.type === "opening" ? "Abertura" : item.type === "closing" ? "Fechamento" : item.type === "withdrawal" ? "Sangria" : item.type === "reinforcement" ? "Reforço" : item.type === "rental_cash_receipt" ? "Recebimento em dinheiro · aluguel" : item.type}</p>
                         <p className="text-xs text-muted-foreground">{dateTime(item.created_at)}{item.description ? ` — ${item.description}` : ""}</p>
                       </div>
                       <span className="font-semibold tabular-nums">{currency(Number(item.amount))}</span>
