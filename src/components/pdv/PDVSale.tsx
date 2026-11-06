@@ -70,7 +70,7 @@ const PDVSale = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('hybrid');
-  const [defaultItemType, setDefaultItemType] = useState<ItemType>('sale');
+  const [defaultItemType, setDefaultItemType] = useState<ItemType>('rental');
   const [orderDates, setOrderDates] = useState<OrderDates>({
     tryOnDate: '',
     pickupDate: '',
@@ -86,10 +86,11 @@ const PDVSale = () => {
   const [globalDiscountType, setGlobalDiscountType] = useState<'percentage' | 'amount'>('percentage');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<{ name: string; document: string; phone?: string } | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id?: string; name: string; document: string; phone?: string } | null>(null);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
   
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const checkoutRequestRef = useRef<{ signature: string; key: string } | null>(null);
 
   // Focus barcode input when component mounts
   useEffect(() => {
@@ -372,6 +373,7 @@ const PDVSale = () => {
       // Prepare order data with correct product information
       const orderData = {
         customer_name: selectedCustomer.name,
+        client_id: selectedCustomer.id,
         customer_document: selectedCustomer.document,
         customer_phone: selectedCustomer.phone,
         order_type: orderTypeValue,
@@ -388,13 +390,13 @@ const PDVSale = () => {
             unit_price: item.itemType === 'rental' && item.rental_price ? item.rental_price : item.price,
             discount: item.discount,
             item_type: item.itemType,
-            try_on_date: item.tryOnDate,
-            pickup_date: item.pickupDate,
-            event_date: item.eventDate,
-            return_date: item.returnDate
+            try_on_date: item.itemType === 'rental' ? orderDates.tryOnDate : item.tryOnDate,
+            pickup_date: item.itemType === 'rental' ? orderDates.pickupDate : item.pickupDate,
+            event_date: item.itemType === 'rental' ? orderDates.eventDate : item.eventDate,
+            return_date: item.itemType === 'rental' ? orderDates.returnDate : item.returnDate
           };
         }),
-        subtotal: totalSales + totalRentals + totalDiscount,
+        subtotal: cart.reduce((sum, item) => sum + (item.itemType === 'rental' && item.rental_price ? item.rental_price : item.price) * item.quantity, 0),
         total_discount: totalDiscount,
         total: total,
         total_sales: totalSales,
@@ -403,9 +405,11 @@ const PDVSale = () => {
         payment_details: paymentDetails // Adicionar detalhes do pagamento
       };
 
-      console.log('Criando pedido com dados:', orderData);
-
-      const createdOrder = await createOrder(orderData);
+      const signature = JSON.stringify(orderData);
+      if (!checkoutRequestRef.current || checkoutRequestRef.current.signature !== signature) {
+        checkoutRequestRef.current = { signature, key: crypto.randomUUID() };
+      }
+      const createdOrder = await createOrder({ ...orderData, request_id: checkoutRequestRef.current.key });
       
       toast({
         title: "Pedido criado com sucesso!",
@@ -433,6 +437,7 @@ const PDVSale = () => {
       setGlobalDiscount(0);
       setSelectedCustomer(null);
       setIsPaymentModalOpen(false);
+      checkoutRequestRef.current = null;
       
       // Reset order dates
       setOrderDates({
@@ -446,9 +451,10 @@ const PDVSale = () => {
       console.error('Erro ao criar pedido:', error);
       toast({
         title: "Erro ao criar pedido",
-        description: "Ocorreu um erro ao processar o pedido. Tente novamente.",
+        description: error instanceof Error ? error.message : "O banco não confirmou o pedido.",
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsProcessingOrder(false);
     }
@@ -489,7 +495,7 @@ const PDVSale = () => {
   };
 
   // Handle customer selection
-  const handleCustomerSelect = (customer: { name: string; document: string; phone?: string }) => {
+  const handleCustomerSelect = (customer: { id?: string; name: string; document: string; phone?: string }) => {
     setSelectedCustomer(customer);
     setIsCustomerModalOpen(false);
   };

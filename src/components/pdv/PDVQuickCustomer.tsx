@@ -12,7 +12,7 @@ type Customer = { id: string; name: string; document: string; phone?: string };
 interface PDVQuickCustomerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectCustomer: (customer: { name: string; document: string; phone?: string }) => void;
+  onSelectCustomer: (customer: { id?: string; name: string; document: string; phone?: string }) => void;
 }
 
 const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, onSelectCustomer }) => {
@@ -80,7 +80,7 @@ const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, on
           .select("id, full_name, document, phone").eq("document", document).maybeSingle();
         if (lookupError) throw lookupError;
         if (found) {
-          onSelectCustomer({ name: found.full_name, document: found.document ?? "", phone: found.phone ?? undefined });
+          onSelectCustomer({ id: found.id, name: found.full_name, document: found.document ?? "", phone: found.phone ?? undefined });
           toast({ title: "Cliente existente selecionado" });
           onClose();
           return;
@@ -90,7 +90,7 @@ const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, on
         full_name: name, document: document || null, phone: quickPhone.trim() || null,
       }).select("id, full_name, document, phone").single();
       if (saveError || !data) throw saveError ?? new Error("Cliente não retornado");
-      onSelectCustomer({ name: data.full_name, document: data.document ?? "", phone: data.phone ?? undefined });
+      onSelectCustomer({ id: data.id, name: data.full_name, document: data.document ?? "", phone: data.phone ?? undefined });
       toast({ title: "Cliente cadastrado", description: "Dados salvos no banco da loja." });
       onClose();
     } catch {
