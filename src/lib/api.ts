@@ -6,6 +6,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createRentalOrder, findRentalOrder, listRentalOrders } from '@/lib/rentalOrders';
+import { confirmRentalPickup, confirmRentalReturn, recordRentalPayment } from '@/lib/rentalLifecycle';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) {
@@ -566,8 +567,20 @@ export const ordersApi = {
     return ok({ id });
   },
 
-  async returnItem(_orderId: string, _itemId: string, _returnData: any): Promise<ApiResponse<{ id: string }>> {
-    return fail('Devoluções ainda não foram integradas ao banco. Nenhuma devolução foi registrada.', 501);
+  async pickupItem(orderId: string, itemId: string): Promise<ApiResponse<{ id: string }>> {
+    const contract = await findRentalOrder(orderId);
+    if (!contract || !contract.items.some(item => item.id === itemId)) {
+      return fail('Traje não pertence ao contrato de aluguel informado.', 404);
+    }
+    return ok({ id: await confirmRentalPickup(itemId) });
+  },
+
+  async returnItem(orderId: string, itemId: string, returnData: { observations?: string }): Promise<ApiResponse<{ id: string }>> {
+    const contract = await findRentalOrder(orderId);
+    if (!contract || !contract.items.some(item => item.id === itemId)) {
+      return fail('Traje não pertence ao contrato de aluguel informado.', 404);
+    }
+    return ok({ id: await confirmRentalReturn(itemId, returnData.observations) });
   },
 
   async generateContract(_id: string): Promise<ApiResponse<{ url: string | null }>> {
@@ -586,6 +599,26 @@ export const paymentsApi = {
     payment_method: 'cash' | 'card' | 'pix' | 'transfer';
     payment_details?: any;
   }): Promise<ApiResponse<Payment>> {
+    const rental = await findRentalOrder(input.order_id);
+    if (rental) {
+      const requestId = input.payment_details?.request_id;
+      if (!requestId) return fail('Chave de idempotência obrigatória para pagamento complementar.', 400);
+      const method = input.payment_method === 'card'
+        ? (input.payment_details?.card_type === 'debit' ? 'debit' : 'credit')
+        : input.payment_method;
+      const id = await recordRentalPayment({
+        contractId: rental.id,
+        requestId,
+        method,
+        amount: Number(input.amount),
+        installments: Number(input.payment_details?.installments ?? 1),
+      });
+      return ok({
+        id, order_id: rental.id, amount: Number(input.amount),
+        payment_method: input.payment_method, status: 'completed',
+        created_at: new Date().toISOString(),
+      });
+    }
     const { data, error } = await supabase.from('sale_payments').insert({
       sale_id: input.order_id,
       method: input.payment_method,
