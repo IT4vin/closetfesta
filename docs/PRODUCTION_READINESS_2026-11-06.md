@@ -14,8 +14,9 @@
 1. Reconciliação dos nomes de papéis no frontend com as migrations: `admin`, `manager`, `staff`, `cashier`; contas sem papel reconhecido são recusadas.
 2. Verificação de permissão por recurso e ação no frontend, sem acesso implícito para todos os autenticados.
 3. Funções que simulavam sucesso de devolução, contrato/recibo, multa e reserva agora retornam erro explícito `501` em vez de confirmar uma operação que não aconteceu.
-4. Prevenção de novas inclusões acidentais de `.env` e bancos locais, com aviso sobre arquivos já rastreados.
-5. Testes de matriz de acesso.
+4. No build de produção, o fluxo legado de criação de contratos via `localStorage` é bloqueado, e a API recusa sincronizar aluguel como uma venda. **Isso é uma medida temporária de segurança, não a implementação do PDV de produção.**
+5. Prevenção de novas inclusões acidentais de `.env` e bancos locais, com aviso sobre arquivos já rastreados.
+6. Testes de matriz de acesso.
 
 **Atenção:** essas verificações no frontend são apenas UX/defesa em profundidade. A segurança real depende de RLS e autorização no backend. O PR não está pronto para merge sem testar os papéis dos funcionários.
 

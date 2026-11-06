@@ -824,6 +824,12 @@ export function useOrders(options: UseOrdersOptions = {}) {
     total_rentals: number;
     observations?: string;
   }) => {
+    // Este hook ainda persiste contratos apenas no navegador.
+    // Impedir que o PDV de produção informe sucesso antes da gravação transacional no banco.
+    if (import.meta.env.PROD) {
+      throw new Error('Registro de contratos indisponível: o módulo de locações ainda precisa ser integrado ao banco antes de operar em produção.');
+    }
+
     // Verificar permissões
     if (!PermissionManager.hasPermission('orders', 'create')) {
       throw new Error('Sem permissão para criar pedidos');

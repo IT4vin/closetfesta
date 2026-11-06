@@ -512,6 +512,12 @@ async function loadSaleAsOrder(saleId: string): Promise<Order> {
 
 export const ordersApi = {
   async create(input: any): Promise<ApiResponse<Order>> {
+    // A tabela sales não contém datas e estados dos contratos de locação.
+    // Não tratar aluguéis como vendas nem gerar registros incompletos durante sincronização.
+    if (input.order_type !== 'sale' ||
+        (input.items || []).some((item: any) => item.item_type === 'rental')) {
+      return fail('Contratos de aluguel ainda não possuem persistência transacional. Operação não registrada.', 501);
+    }
     const { data: userData } = await supabase.auth.getUser();
     const cashierId = userData.user?.id ?? null;
 
