@@ -39,6 +39,7 @@ DECLARE
   v_item public.rental_items%ROWTYPE;
   v_contract public.rental_contracts%ROWTYPE;
   v_unit_status text;
+  v_paid numeric(12,2);
 BEGIN
   IF v_actor IS NULL OR NOT (
     public.has_role(v_actor, 'admin') OR public.has_role(v_actor, 'manager')
@@ -53,6 +54,13 @@ BEGIN
   SELECT * INTO v_contract FROM public.rental_contracts WHERE id = v_item.contract_id FOR UPDATE;
   IF v_contract.status IN ('cancelled', 'completed') OR v_item.status <> 'confirmed' THEN
     RAISE EXCEPTION 'Item não pode ser retirado no estado atual' USING ERRCODE = '22023';
+  END IF;
+  -- Exigir quitação do contrato antes da retirada.
+  SELECT COALESCE(sum(amount) FILTER (WHERE status <> 'reversed'),0)
+    INTO v_paid FROM public.rental_payments WHERE contract_id=v_contract.id;
+  IF v_paid < v_contract.total THEN
+    RAISE EXCEPTION 'Saldo pendente: registre o pagamento complementar antes da retirada'
+      USING ERRCODE='22023';
   END IF;
   IF CURRENT_DATE < v_item.pickup_date AND NOT (
     public.has_role(v_actor, 'admin') OR public.has_role(v_actor, 'manager')) THEN
@@ -178,3 +186,7 @@ REVOKE ALL ON FUNCTION public.rental_record_payment(uuid,uuid,text,numeric,integ
 GRANT EXECUTE ON FUNCTION public.rental_confirm_pickup(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rental_confirm_return(uuid,text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rental_record_payment(uuid,uuid,text,numeric,integer) TO authenticated;
+
+-- Remover as funções preliminares antigas com regras menos restritas.
+DROP FUNCTION IF EXISTS public.pickup_rental_item(uuid,uuid,text);
+DROP FUNCTION IF EXISTS public.return_rental_item(uuid,uuid,text);
