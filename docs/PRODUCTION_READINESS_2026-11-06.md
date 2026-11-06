@@ -76,3 +76,8 @@
 - Migration `20261106210000_cashier_operations.sql` propõe funções transacionais para abertura, sangria/reforço e fechamento, bloqueando escrita direta em registros históricos.
 - O fechamento calcula abertura e movimentações manuais; **recebimentos de contratos ainda não entram automaticamente nesse caixa**. A interface informa explicitamente essa limitação e não pode ser tratada como fechamento financeiro final.
 - Migration não executada. Validar RLS, integridade do histórico e controle de concorrência em banco de homologação.
+
+## Restrições adicionais de segurança e operação
+- A leitura de produtos, agenda, vendas, financeiros e imagens privadas também exige papel Supabase autorizado.
+- O fluxo de venda antigo foi desabilitado na API e na interface do PDV de aluguel para não executar gravações parciais de vendas.
+- Descontos distribuídos por unidade física no contrato para suportar quantidades maiores que um traje.

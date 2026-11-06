@@ -143,6 +143,8 @@ DECLARE
   v_unit_id uuid;
   v_quantity integer;
   v_unit_index integer;
+  v_split_discount numeric(12,2);
+  v_unit_discount numeric(12,2);
   v_price numeric(12,2);
   v_item_discount numeric(12,2);
   v_subtotal numeric(12,2) := 0;
@@ -282,7 +284,11 @@ BEGIN
     v_return := (v_item->>'return_date')::date;
     v_try_on := NULLIF(v_item->>'try_on_date','')::date;
     PERFORM pg_advisory_xact_lock(hashtextextended(v_product_id::text,0));
+    -- Distribui desconto total entre exemplares sem exceder o preço unitário.
+    v_split_discount := trunc(v_item_discount / v_quantity, 2);
     FOR v_unit_index IN 1..v_quantity LOOP
+      v_unit_discount := v_split_discount + CASE WHEN v_unit_index = 1
+        THEN v_item_discount - v_split_discount * v_quantity ELSE 0 END;
       SELECT u.id INTO v_unit_id FROM public.product_units u
       WHERE u.product_id = v_product_id AND u.status = 'available'
         AND NOT EXISTS (
@@ -300,8 +306,7 @@ BEGIN
       INSERT INTO public.rental_items
         (contract_id,product_id,unit_id,unit_price,discount,try_on_date,pickup_date,event_date,return_date)
       VALUES (v_contract_id,v_product_id,v_unit_id,v_price,
-        CASE WHEN v_unit_index = 1 THEN v_item_discount ELSE 0 END,
-        v_try_on,v_pickup,v_event,v_return);
+        v_unit_discount, v_try_on,v_pickup,v_event,v_return);
     END LOOP;
   END LOOP;
 

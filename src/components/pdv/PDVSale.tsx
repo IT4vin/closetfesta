@@ -214,6 +214,10 @@ const PDVSale = () => {
 
   // Add product to cart with specified type
   const addProductToCart = (product: Product, itemType: ItemType) => {
+    if (itemType === 'sale') {
+      toast({ title: "Venda não habilitada", description: "Este PDV está configurado para aluguel de trajes.", variant: "destructive" });
+      return;
+    }
     // Check availability for rentals
     if (itemType === 'rental' && product.status !== 'available') {
       toast({
@@ -316,6 +320,10 @@ const PDVSale = () => {
 
   // Update item type (sale/rental)
   const updateItemType = (itemId: string, newType: ItemType) => {
+    if (newType === 'sale') {
+      toast({ title: "Venda não habilitada", description: "Utilize o aluguel de trajes.", variant: "destructive" });
+      return;
+    }
     const updatedCart = cart.map(item => {
       if (item.id === itemId) {
         const unitPrice = newType === 'rental' && item.rental_price ? item.rental_price : item.price;
@@ -357,6 +365,11 @@ const PDVSale = () => {
 
     if (!validateRentalDates()) {
       return;
+    }
+    if (hasSaleItems) {
+      const error = new Error("Venda não habilitada. Remova os itens de venda e finalize somente os aluguéis.");
+      toast({ title: "Tipo de pedido inválido", description: error.message, variant: "destructive" });
+      throw error;
     }
 
     setIsProcessingOrder(true);
@@ -522,12 +535,6 @@ const PDVSale = () => {
               onValueChange={(value: ItemType) => setDefaultItemType(value)}
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="sale" id="sale" />
-                <Label htmlFor="sale" className="flex items-center gap-2">
-                  🛍️ Venda
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
                 <RadioGroupItem value="rental" id="rental" />
                 <Label htmlFor="rental" className="flex items-center gap-2">
                   🎯 Aluguel
@@ -664,8 +671,9 @@ const PDVSale = () => {
                         variant="outline" 
                         className="flex-1 text-xs"
                         onClick={() => addProductToCart(product, 'sale')}
+                        disabled
                       >
-                        🛍️ Venda
+                        Venda indisponível
                       </Button>
                       <Button 
                         size="sm" 
@@ -809,8 +817,9 @@ const PDVSale = () => {
                           variant={item.itemType === 'sale' ? 'default' : 'outline'}
                           onClick={() => updateItemType(item.id, 'sale')}
                           className="text-xs"
+                          disabled
                         >
-                          🛍️ Venda
+                          Venda indisponível
                         </Button>
                         <Button 
                           size="sm" 

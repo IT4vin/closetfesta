@@ -67,3 +67,46 @@ CREATE POLICY "Cashier insert financial transactions v2" ON public.financial_tra
 CREATE POLICY "Managers update financial transactions v2" ON public.financial_transactions FOR UPDATE TO authenticated
   USING (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'manager'))
   WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'manager'));
+
+-- Leitura também deve exigir papel, não apenas sessão Supabase autenticada.
+DROP POLICY IF EXISTS "Auth read products" ON public.products;
+CREATE POLICY "Authorized read products v2" ON public.products FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read images" ON public.product_images;
+CREATE POLICY "Authorized read product images v2" ON public.product_images FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read appointments" ON public.appointments;
+CREATE POLICY "Authorized read appointments v2" ON public.appointments FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read sales" ON public.sales;
+CREATE POLICY "Authorized read sales v2" ON public.sales FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read sale items" ON public.sale_items;
+CREATE POLICY "Authorized read sale items v2" ON public.sale_items FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read payments" ON public.sale_payments;
+CREATE POLICY "Authorized read payments v2" ON public.sale_payments FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'cashier'));
+DROP POLICY IF EXISTS "Auth read inventory" ON public.inventory_movements;
+CREATE POLICY "Authorized read inventory v2" ON public.inventory_movements FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+         public.has_role(auth.uid(),'staff'));
+DROP POLICY IF EXISTS "Auth read finance" ON public.financial_transactions;
+CREATE POLICY "Authorized read finance v2" ON public.financial_transactions FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager'));
+DROP POLICY IF EXISTS "Auth read settings" ON public.settings;
+CREATE POLICY "Authorized read settings v2" ON public.settings FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager'));
+
+-- Bucket privado: restringir a leitura às funções internas autorizadas.
+DROP POLICY IF EXISTS "Auth users read product images" ON storage.objects;
+CREATE POLICY "Authorized read private product images v2" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'product-images' AND
+    (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'manager') OR
+     public.has_role(auth.uid(),'staff') OR public.has_role(auth.uid(),'cashier')));

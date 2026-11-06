@@ -519,60 +519,9 @@ export const ordersApi = {
     if (input.order_type !== 'sale' || (input.items || []).some((item: any) => item.item_type === 'rental')) {
       return fail('Pedidos mistos ainda não são suportados; finalize o aluguel separadamente.', 501);
     }
-    const { data: userData } = await supabase.auth.getUser();
-    const cashierId = userData.user?.id ?? null;
-
-    const clientId = await ensureClient(input.customer_name, input.customer_phone, input.customer_document);
-
-    const { data: sale, error: saleErr } = await supabase.from('sales').insert({
-      client_id: clientId,
-      cashier_id: cashierId,
-      subtotal: Number(input.subtotal ?? 0),
-      discount: Number(input.total_discount ?? 0),
-      total: Number(input.total ?? 0),
-      status: 'completed',
-      notes: input.observations ?? null,
-    }).select().single();
-    if (saleErr) fail(saleErr.message);
-
-    const itemsPayload = (input.items || []).map((it: any) => ({
-      sale_id: sale.id,
-      product_id: it.product_id,
-      product_name: it.product_name ?? it.name ?? '',
-      quantity: Number(it.quantity),
-      unit_price: Number(it.unit_price),
-      discount: Number(it.discount ?? 0),
-      total: Number(it.unit_price) * Number(it.quantity) - Number(it.discount ?? 0),
-    }));
-
-    if (itemsPayload.length) {
-      // preencher product_name se ausente
-      const missingNames = itemsPayload.filter(i => !i.product_name).map(i => i.product_id);
-      if (missingNames.length) {
-        const { data: prods } = await supabase.from('products').select('id, name').in('id', missingNames);
-        const nameMap = new Map((prods || []).map((p: any) => [p.id, p.name]));
-        itemsPayload.forEach(i => { if (!i.product_name) i.product_name = nameMap.get(i.product_id) || 'Produto'; });
-      }
-      const { error: itErr } = await supabase.from('sale_items').insert(itemsPayload);
-      if (itErr) fail(itErr.message);
-    }
-
-    // Registrar transação financeira
-    await supabase.from('financial_transactions').insert({
-      type: 'income',
-      category: 'sale',
-      description: `Venda #${sale.id.slice(0, 8)}`,
-      amount: Number(sale.total),
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-      reference_id: sale.id,
-      reference_type: 'sale',
-      created_by: cashierId,
-    });
-
-    return ok(await loadSaleAsOrder(sale.id));
+    // A Closet Festa opera locações; o fluxo legado de vendas ainda não é transacional.
+    return fail('Vendas estão desabilitadas neste PDV. Utilize o fluxo de aluguel.', 501);
   },
-
   async findAll(params: {
     status?: string; order_type?: string; customer_name?: string;
     date_from?: string; date_to?: string; limit?: number; offset?: number;
