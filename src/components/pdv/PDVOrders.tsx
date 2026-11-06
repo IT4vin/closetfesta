@@ -30,6 +30,7 @@ import {
 import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/api";
 import RentalItemActions from "@/components/pdv/RentalItemActions";
+import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -436,7 +437,10 @@ const PDVOrders = () => {
                               </div>
                             ))}
                             {order.order_type === "rental" && (
-                              <p className="text-xs text-muted-foreground">Após a devolução, o traje fica em lavanderia até ser liberado. Cobranças por atraso ainda dependem de integração específica.</p>
+                              <>
+                                <RentalPaymentActions contractId={order.id} contractTotal={order.total} />
+                                <p className="text-xs text-muted-foreground">Após a devolução, o traje fica em lavanderia até ser liberado. Cobranças por atraso ainda dependem de integração específica.</p>
+                              </>
                             )}
                           </div>
                         </TableCell>
