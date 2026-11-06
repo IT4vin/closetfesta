@@ -43,13 +43,13 @@ interface ProductFormProps {
     
     // Outros campos existentes
     description?: string;
-    images?: string[];
+    images?: Array<string | { url: string }>;
     material?: string;
     cleaningInstructions?: string;
     notes?: string;
     location?: string;
   };
-  onSubmit?: (data: any) => void;
+  onSubmit?: (data: any) => Promise<void> | void;
   onCancel?: () => void;
 }
 
@@ -60,15 +60,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     // Informações básicas
-    productType: initialData?.productType || "",
-    fullCode: initialData?.fullCode || "",
+    productType: initialData?.productType || (initialData as any)?.type || "",
+    fullCode: initialData?.fullCode || (initialData as any)?.sku || "",
     storeCode: initialData?.storeCode || "",
     name: initialData?.name || "",
     quantity: initialData?.quantity || 1,
     
     // Características físicas
     color: initialData?.color || "",
-    size: initialData?.size || "",
+    size: initialData?.size || (initialData as any)?.sizes?.[0] || "",
     model: initialData?.model || "",
     brand: initialData?.brand || "",
     stylist: initialData?.stylist || "",
@@ -78,7 +78,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     
     // Valores financeiros
     cost: initialData?.cost || 0,
-    rentalPrice: initialData?.rentalPrice || 0,
+    rentalPrice: initialData?.rentalPrice || (initialData as any)?.rental_price || 0,
     firstRentalPrice: initialData?.firstRentalPrice || 0,
     salePrice: initialData?.salePrice || 0,
     
@@ -96,11 +96,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
     cleaningInstructions: initialData?.cleaningInstructions || "",
     notes: initialData?.notes || "",
     location: initialData?.location || "",
-    images: initialData?.images || [],
+    images: (initialData?.images || []).map(image => typeof image === "string" ? image : image.url).filter(Boolean),
   });
 
   const [autoGenerateCode, setAutoGenerateCode] = useState(!initialData?.fullCode);
   const [showDraftMessage, setShowDraftMessage] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Hooks para opções customizadas
@@ -219,7 +222,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const loadDraft = () => {
     const draftData = loadFromStorage();
     if (draftData) {
-      setFormData(draftData);
+      setFormData({ ...draftData, images: (draftData.images || []).filter((url: string) => typeof url === "string" && !url.startsWith("blob:")) });
       setShowDraftMessage(false);
     }
   };
@@ -273,69 +276,53 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const newPreviews = Array.from(files).map((file) =>
-      URL.createObjectURL(file)
-    );
-
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...newPreviews],
-    }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!files.length) return;
+    if (files.length + pendingFiles.length > 12 ||
+      files.some(file => !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size > 8 * 1024 * 1024)) {
+      setSaveError("Envie no máximo 12 novas imagens JPG, PNG ou WebP de até 8 MB.");
+      return;
     }
+    setSaveError("");
+    setPendingFiles(previous => [...previous, ...files]);
+    setFormData(previous => ({
+      ...previous,
+      images: [...previous.images, ...files.map(file => URL.createObjectURL(file))],
+    }));
   };
 
   const removeImage = (index: number) => {
-    setFormData((prev) => {
-      const imageToRemove = prev.images[index];
-      if (imageToRemove && imageToRemove.startsWith('blob:')) {
-        URL.revokeObjectURL(imageToRemove);
-      }
-      
-      return {
-        ...prev,
-        images: prev.images.filter((_, i) => i !== index),
-      };
-    });
+    const image = formData.images[index];
+    if (!image || !image.startsWith("blob:")) return;
+    const fileIndex = formData.images.slice(0, index + 1).filter(url => url.startsWith("blob:")).length - 1;
+    URL.revokeObjectURL(image);
+    setPendingFiles(previous => previous.filter((_, i) => i !== fileIndex));
+    setFormData(previous => ({ ...previous, images: previous.images.filter((_, i) => i !== index) }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateAll()) {
-      console.log('❌ Formulário contém erros:', errors);
-      return;
-    }
-    
-    console.log("✅ Dados do produto válidos:", {
-      ...formData,
-      totalImages: formData.images.length,
-    });
-    
-    // Limpa rascunho após envio bem-sucedido
-    clearStorage();
-    
-    if (onSubmit) {
-      onSubmit(formData);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!validateAll() || saving || !onSubmit) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onSubmit({ ...formData, imageFiles: pendingFiles });
+      clearStorage();
+      formData.images.filter(url => url.startsWith("blob:")).forEach(url => URL.revokeObjectURL(url));
+      setPendingFiles([]);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível concluir o cadastro.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    formData.images.forEach(image => {
-      if (image.startsWith('blob:')) {
-        URL.revokeObjectURL(image);
-      }
-    });
-    
-    if (onCancel) {
-      onCancel();
-    }
+    formData.images.filter(url => url.startsWith("blob:")).forEach(url => URL.revokeObjectURL(url));
+    setPendingFiles([]);
+    onCancel?.();
   };
 
   return (
@@ -715,6 +702,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
+                  disabled={!img.startsWith("blob:")}
+                  title={!img.startsWith("blob:") ? "Foto já salva — gerencie pela API do produto" : "Remover prévia"}
                   aria-label={`Remover imagem ${i + 1}`}
                   className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 transition-colors opacity-80 group-hover:opacity-100"
                 >
@@ -751,22 +740,24 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
         
         <p className="text-xs text-gray-500 mt-2">
-          Formatos aceitos: JPG, PNG, GIF. Você pode selecionar múltiplas imagens.
+          JPG, PNG ou WebP; até 12 novas fotos com 8 MB cada. Imagens existentes não são apagadas pelo formulário.
         </p>
       </FormSection>
+
+      {saveError && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
 
       {/* BOTÕES DE AÇÃO */}
       <div className="flex gap-4 pt-4 border-t">
         <button
           type="submit"
-          disabled={!isValid}
+          disabled={!isValid || saving}
           className={`px-6 py-3 rounded font-medium transition-colors ${
             isValid 
               ? 'bg-marsala text-white hover:bg-marsala-700' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          💾 Salvar Produto
+          {saving ? "Salvando produto e imagens..." : "💾 Salvar Produto"}
         </button>
         
         {onCancel && (

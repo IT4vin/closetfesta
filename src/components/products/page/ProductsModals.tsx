@@ -14,7 +14,7 @@ interface ProductsModalsProps {
   setImportModalOpen: (open: boolean) => void;
   exportModalOpen: boolean;
   setExportModalOpen: (open: boolean) => void;
-  handleFormSubmit: (productData: any) => void;
+  handleFormSubmit: (productData: any) => Promise<void>;
   handleImportConfirm: (importedProducts: any[]) => void;
   productsList: Product[];
   filteredProducts: Product[];
@@ -45,7 +45,7 @@ const ProductsModals: React.FC<ProductsModalsProps> = ({
           </DialogHeader>
           <ProductForm 
             initialData={editingProduct as any} 
-            onSubmit={handleFormSubmit} 
+            onSubmit={async (data) => { await handleFormSubmit(data); setModalOpen(false); }} 
             onCancel={() => setModalOpen(false)} 
           />
         </DialogContent>

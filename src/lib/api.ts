@@ -235,6 +235,9 @@ function mapProductRow(row: any): Product {
     category_id: row.category_id ?? '',
     sizes: Array.isArray(meta.sizes) ? meta.sizes : (typeof meta.sizes === 'string' ? meta.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
     featured: Boolean(meta.featured),
+    size: Array.isArray(meta.sizes) ? meta.sizes[0] : undefined,
+    color: meta.color ?? undefined,
+    type: meta.type ?? undefined,
     deleted: row.deleted_at != null,
     status: (meta.status as Product['status']) || 'available',
     created_at: row.created_at,
@@ -326,13 +329,15 @@ export const productsApi = {
     if (input.sku !== undefined) patch.sku = input.sku;
     if (input.cost !== undefined) patch.cost = input.cost != null ? Number(input.cost) : null;
 
-    if (input.sizes !== undefined || input.featured !== undefined || input.rental_price !== undefined || input.status !== undefined) {
+    if (input.sizes !== undefined || input.featured !== undefined || input.rental_price !== undefined || input.status !== undefined || input.color !== undefined || input.type !== undefined) {
       const { data: existing } = await supabase.from('products').select('metadata').eq('id', id).maybeSingle();
       const metadata: Record<string, any> = { ...(existing?.metadata as any || {}) };
       if (input.sizes !== undefined) metadata.sizes = Array.isArray(input.sizes) ? input.sizes : String(input.sizes).split(',').map((s: string) => s.trim()).filter(Boolean);
       if (input.featured !== undefined) metadata.featured = !!input.featured;
       if (input.rental_price !== undefined) metadata.rental_price = Number(input.rental_price);
       if (input.status !== undefined) metadata.status = input.status;
+      if (input.color !== undefined) metadata.color = input.color;
+      if (input.type !== undefined) metadata.type = input.type;
       patch.metadata = metadata;
     }
 
@@ -353,31 +358,41 @@ export const productsApi = {
   },
 
   async uploadImages(productId: string, files: File[]): Promise<ApiResponse<ProductImage[]>> {
+    const { data: existing, error: readError } = await supabase.from('product_images')
+      .select('position').eq('product_id', productId).order('position', { ascending: false }).limit(1);
+    if (readError) fail(readError.message);
+    const startPosition = (existing?.[0]?.position ?? -1) + 1;
     const uploaded: ProductImage[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const path = `${productId}/${Date.now()}-${i}-${file.name}`.replace(/\s+/g, '_');
-      const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, { upsert: false });
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) ||
+          file.size > 8 * 1024 * 1024) fail('Foto inválida ou acima de 8 MB.');
+      const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const path = `${productId}/${crypto.randomUUID()}-${safeName}`;
+      const storage = supabase.storage.from('product-images');
+      const { error: upErr } = await storage.upload(path, file, { upsert: false });
       if (upErr) fail(upErr.message);
-      // Bucket privado: gerar signed URL de longa duração (1 ano).
-      const { data: signed } = await supabase.storage.from('product-images').createSignedUrl(path, 60 * 60 * 24 * 365);
-      const url = signed?.signedUrl ?? '';
+      const { data: signed, error: signedError } = await storage.createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedError || !signed?.signedUrl) {
+        await storage.remove([path]);
+        fail(signedError?.message || 'Não foi possível acessar a imagem.');
+      }
+      const url = signed.signedUrl;
+      const position = startPosition + i;
       const { data, error } = await supabase.from('product_images').insert({
-        product_id: productId,
-        url,
-        storage_path: path,
-        position: i,
-        is_primary: i === 0,
+        product_id: productId, url, storage_path: path, position, is_primary: position === 0,
       }).select().single();
-      if (error) fail(error.message);
+      if (error) {
+        await storage.remove([path]);
+        fail(error.message);
+      }
       uploaded.push({
-        id: data.id, file_name: file.name, file_path: path,
-        display_order: i, url, thumbnail_url: url,
+        id: data.id, file_name: file.name, file_path: path, display_order: position,
+        url, thumbnail_url: url,
       });
     }
     return ok(uploaded);
   },
-
 
   async removeImage(_productId: string, imageId: string): Promise<ApiResponse<{ id: string }>> {
     const { data: img } = await supabase.from('product_images').select('storage_path').eq('id', imageId).maybeSingle();
