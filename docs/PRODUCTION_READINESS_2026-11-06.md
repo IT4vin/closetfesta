@@ -91,3 +91,13 @@
 - A conciliação com banco/adquirente, multas, PDF de contratos, auditoria de RLS e deploy continuam pendentes. Não afirmar que essas etapas estão concluídas.
 
 **CRÍTICO:** as migrations foram preparadas no GitHub mas NÃO aplicadas. O deploy do frontend não torna essas funcionalidades utilizáveis até a instalação e validação no banco de homologação; na ausência das RPCs, o sistema retorna erro explícito.
+
+## Continuação — cadastro de produtos e fotos (frontend)
+- O formulário de produto agora transforma as fotos já salvas em URLs exibíveis, distinguindo-as de prévias locais `blob:`.
+- Fotos novas são validadas por formato/tamanho e enviadas ao `product-images` no Storage após cadastrar ou atualizar o registro no banco.
+- Código do traje, tipo, cor, tamanho, custo e preço de aluguel passam a ser normalizados antes de gravar no banco.
+- O modal só fecha quando a operação assíncrona termina com sucesso. Falhas de upload são exibidas e não silenciosamente tratadas como cadastro completo.
+- A gravação no Storage ainda requer validação integrada com papéis administrativos e bucket reais.
+- A remoção de imagens já persistidas deve ser realizada pela API de imagens e ainda precisa de UX própria no formulário.
+- **Risco pendente:** atualmente as URLs assinadas para imagens privadas são gravadas por um ano; planejar renovação de URLs ou estratégia adequada ao catálogo público.
+- Verificação do frontend do commit `1fa9a6a`: build e testes automatizados aprovados no GitHub; não equivale a teste com Storage conectado.
