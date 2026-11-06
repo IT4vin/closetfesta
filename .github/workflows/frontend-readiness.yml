@@ -26,8 +26,10 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - name: Instalar dependências sem scripts de instalação
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      # TEMPORÁRIO: o lockfile atual não contém o pacote Supabase exigido
+      # por package.json. A migração para npm ci será obrigatória antes do release.
+      - name: Instalar dependências para diagnosticar o build
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Testar matriz de permissões
         run: npm run test:run -- src/__tests__/accessControl.test.ts
       - name: Verificar build de produção

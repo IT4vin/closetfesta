@@ -8,6 +8,7 @@
 - O frontend principal utiliza `src/lib/api.ts` para acesso direto ao Supabase. O backend Express continua no repositório e o README descreve uma arquitetura diferente.
 - A conexão Supabase da sessão de revisão não retornou projetos. Não houve leitura ou teste do banco real.
 - Foi realizada análise estática do código; não há comprovação de testes ponta a ponta ou implantação.
+- A pipeline de frontend identificou divergência do `package-lock.json` com `package.json` (ausência do pacote Supabase declarado). Temporariamente utiliza `npm install` apenas para diagnosticar build e testes; **não aprovar release até restaurar `npm ci` reprodutível**.
 
 ## Correções incluídas neste PR
 1. Reconciliação dos nomes de papéis no frontend com as migrations: `admin`, `manager`, `staff`, `cashier`; contas sem papel reconhecido são recusadas.
