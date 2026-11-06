@@ -592,15 +592,15 @@ export const ordersApi = {
     return ok({ id });
   },
 
-  async returnItem(_orderId: string, itemId: string, _returnData: any): Promise<ApiResponse<{ id: string }>> {
-    return ok({ id: itemId });
+  async returnItem(_orderId: string, _itemId: string, _returnData: any): Promise<ApiResponse<{ id: string }>> {
+    return fail('Devoluções ainda não foram integradas ao banco. Nenhuma devolução foi registrada.', 501);
   },
 
-  async generateContract(id: string): Promise<ApiResponse<{ url: string | null }>> {
-    return ok({ url: null }, { message: `Contrato #${id.slice(0, 8)} — geração PDF ainda não configurada.` });
+  async generateContract(_id: string): Promise<ApiResponse<{ url: string | null }>> {
+    return fail('Geração de contrato ainda não configurada. Nenhum PDF foi emitido.', 501);
   },
-  async generateReceipt(id: string): Promise<ApiResponse<{ url: string | null }>> {
-    return ok({ url: null }, { message: `Recibo #${id.slice(0, 8)} — geração PDF ainda não configurada.` });
+  async generateReceipt(_id: string): Promise<ApiResponse<{ url: string | null }>> {
+    return fail('Geração de recibo ainda não configurada. Nenhum documento foi emitido.', 501);
   },
 };
 
@@ -645,7 +645,7 @@ export const paymentsApi = {
 
 export const alertsApi = {
   async findAll(_params: any = {}): Promise<ApiResponse<RentalAlert[]>> { return ok([], { total: 0 }); },
-  async markAsRead(id: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
+  async markAsRead(_id: string): Promise<ApiResponse<{ id: string }>> { return fail('Confirmação de leitura de alerta ainda não implementada.', 501); },
 };
 
 export const lateFeeApi = {
@@ -653,8 +653,8 @@ export const lateFeeApi = {
   async createConfig(_c: any): Promise<ApiResponse<LateFeeConfig>> { return fail('Multas ainda não configuradas', 501) as any; },
   async updateConfig(_id: string, _c: any): Promise<ApiResponse<LateFeeConfig>> { return fail('Multas ainda não configuradas', 501) as any; },
   async calculateFee(orderItemId: string, _r?: string): Promise<ApiResponse<LateFeeCalculation | null>> { return ok(null, { message: `Sem multa configurada para ${orderItemId}` }); },
-  async applyFee(orderItemId: string, _f: any): Promise<ApiResponse<{ id: string }>> { return ok({ id: orderItemId }); },
-  async waiveFee(orderItemId: string, _reason: string): Promise<ApiResponse<{ id: string }>> { return ok({ id: orderItemId }); },
+  async applyFee(_orderItemId: string, _f: any): Promise<ApiResponse<{ id: string }>> { return fail('Cobrança de multa ainda não implementada. Nenhuma cobrança foi aplicada.', 501); },
+  async waiveFee(_orderItemId: string, _reason: string): Promise<ApiResponse<{ id: string }>> { return fail('Isenção de multa ainda não implementada. Nenhuma isenção foi registrada.', 501); },
   async getFeeHistory(_p: any = {}): Promise<ApiResponse<LateFeeCalculation[]>> { return ok([], { total: 0 }); },
 };
 
@@ -662,12 +662,12 @@ export const reservationsApi = {
   async create(_r: any): Promise<ApiResponse<Reservation>> { return fail('Reservas ainda não configuradas', 501) as any; },
   async findAll(_p: any = {}): Promise<ApiResponse<Reservation[]>> { return ok([], { total: 0 }); },
   async findById(_id: string): Promise<ApiResponse<Reservation | null>> { return ok(null); },
-  async updateStatus(id: string, _s: string, _n?: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async confirm(id: string, _c?: any): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async cancel(id: string, _r: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async convertToOrder(id: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async checkAvailability(product_id: string, date_from: string, date_to: string): Promise<ApiResponse<AvailabilityCheck>> {
-    return ok({ product_id, date_from, date_to, is_available: true, conflicting_reservations: [] });
+  async updateStatus(_id: string, _s: string, _n?: string): Promise<ApiResponse<{ id: string }>> { return fail('Atualização de reserva ainda não implementada.', 501); },
+  async confirm(_id: string, _c?: any): Promise<ApiResponse<{ id: string }>> { return fail('Confirmação de reserva ainda não implementada.', 501); },
+  async cancel(_id: string, _r: string): Promise<ApiResponse<{ id: string }>> { return fail('Cancelamento de reserva ainda não implementado.', 501); },
+  async convertToOrder(_id: string): Promise<ApiResponse<{ id: string }>> { return fail('Conversão de reserva em contrato ainda não implementada.', 501); },
+  async checkAvailability(_product_id: string, _date_from: string, _date_to: string): Promise<ApiResponse<AvailabilityCheck>> {
+    return fail('Disponibilidade ainda não está integrada aos contratos. Não é seguro confirmar esta reserva.', 501);
   },
   async getAvailableSlots(_date: string, _duration_hours = 4): Promise<ApiResponse<TimeSlot[]>> { return ok([]); },
   async getCalendar(_p: any): Promise<ApiResponse<Reservation[]>> { return ok([]); },
