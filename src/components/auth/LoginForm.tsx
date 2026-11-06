@@ -77,7 +77,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         setNotice("Cadastro enviado. Confira o e-mail da loja e clique no link de confirmação. Se a mensagem tiver um código de 6 dígitos, também pode informá-lo aqui.");
       } else if (mode === "verify") {
         const token = verificationCode.trim();
-        if (!/^\\d{6}$/.test(token)) throw new Error("Informe o código de seis dígitos enviado ao e-mail.");
+        if (!/^\d{6}$/.test(token)) throw new Error("Informe o código de seis dígitos enviado ao e-mail.");
         const { error: verifyError } = await supabase.auth.verifyOtp({
           type: "signup",
           email: INITIAL_ADMIN_EMAIL,
