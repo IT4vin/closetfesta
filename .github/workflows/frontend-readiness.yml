@@ -10,6 +10,9 @@ on:
       - "vite.config.ts"
       - "tsconfig*.json"
       - ".github/workflows/frontend-readiness.yml"
+      - "scripts/check-supabase-target.mjs"
+      - "supabase/config.toml"
+      - ".env"
   workflow_dispatch:
 
 permissions:
@@ -26,6 +29,8 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - name: Verificar consistência de referência Supabase
+        run: node scripts/check-supabase-target.mjs
       # TEMPORÁRIO: o lockfile atual não contém o pacote Supabase exigido
       # por package.json. A migração para npm ci será obrigatória antes do release.
       - name: Instalar dependências para diagnosticar o build
