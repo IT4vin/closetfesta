@@ -62,3 +62,11 @@
 - A migration `20261106170000_secure_existing_rls.sql` retira escrita ampla de várias tabelas financeiras e operacionais e limita escrita de produtos/imagens aos responsáveis autorizados.
 - A migration foi apenas versionada, NÃO APLICADA. Conferir papéis reais, acessos de funcionários, políticas legadas e impacto em homologação.
 - A integração de clientes ainda requer testes E2E no banco. Algumas telas antigas e módulos auxiliares ainda podem ter dados simulados.
+
+## Continuação — modelo transacional de locações (migration proposta)
+- Migration `20261106190000_rental_contracts.sql`: exemplares físicos, contratos, itens e pagamentos manuais registrados por operador.
+- Restrição GIST impede duas reservas confirmadas sobrepostas do mesmo exemplar; RPC cria o contrato em transação única e usa uma chave de idempotência.
+- Regras atualmente bloqueiam entre a retirada e a devolução, inclusive. Política de dias adicionais de lavanderia/manutenção ainda precisa ser definida e testada.
+- Unidades são geradas inicialmente com base em `stock_quantity`; redução posterior de estoque requer conciliação manual (não apaga exemplares).
+- Pagamentos iniciais são registrados como `operator_recorded`, NÃO como liquidados por adquirente; conciliação obrigatória.
+- Não foi aplicada nem validada no banco: revisar SQL, dados existentes, performance e funções com privilégio elevado em homologação.
