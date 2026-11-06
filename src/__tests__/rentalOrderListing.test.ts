@@ -1,9 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const listRentalOrders = vi.fn();
-const from = vi.fn(() => {
-  throw new Error("A listagem de locações não deve consultar sales.");
-});
+const { listRentalOrders, from } = vi.hoisted(() => ({
+  listRentalOrders: vi.fn(),
+  from: vi.fn(() => {
+    throw new Error("A listagem de locações não deve consultar sales.");
+  }),
+}));
 
 vi.mock("@/lib/rentalOrders", () => ({
   listRentalOrders,
