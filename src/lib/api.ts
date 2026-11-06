@@ -239,7 +239,7 @@ function mapProductRow(row: any): Product {
     color: meta.color ?? undefined,
     type: meta.type ?? undefined,
     deleted: row.deleted_at != null,
-    status: (meta.status as Product['status']) || 'available',
+    status: (!row.active || row.deleted_at) ? 'maintenance' : ((meta.status as Product['status']) || 'available'),
     created_at: row.created_at,
     updated_at: row.updated_at,
     category: row.product_categories ? { name: row.product_categories.name, description: row.product_categories.description ?? '' } : undefined,
@@ -351,7 +351,7 @@ export const productsApi = {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) fail(error.message);
     } else {
-      const { error } = await supabase.from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await supabase.from('products').update({ deleted_at: new Date().toISOString(), active: false }).eq('id', id);
       if (error) fail(error.message);
     }
     return ok({ id });
