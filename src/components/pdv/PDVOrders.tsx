@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/api";
+import RentalItemActions from "@/components/pdv/RentalItemActions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,12 +41,14 @@ const PDVOrders = () => {
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFromFilter, setDateFromFilter] = useState("");
   const [dateToFilter, setDateToFilter] = useState("");
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   
   const { 
     orders, 
     loading, 
     error, 
     total,
+    refetch,
     updateOrderStatus,
     returnItem,
     generateContract,
@@ -338,7 +341,8 @@ const PDVOrders = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id}>
+                    <React.Fragment key={order.id}>
+                    <TableRow>
                       <TableCell className="font-medium">
                         #{order.order_number}
                       </TableCell>
@@ -372,7 +376,10 @@ const PDVOrders = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline"
+                            aria-label={`Ver trajes do pedido ${order.order_number}`}
+                            aria-expanded={expandedOrderId === order.id}
+                            onClick={() => setExpandedOrderId(previous => previous === order.id ? null : order.id)}>
                             <Eye size={14} />
                           </Button>
                           
@@ -394,7 +401,7 @@ const PDVOrders = () => {
                             <Printer size={14} />
                           </Button>
 
-                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                          {order.order_type === 'sale' && order.status !== 'completed' && order.status !== 'cancelled' && (
                             <Select onValueChange={(value) => handleStatusChange(order.id, value)}>
                               <SelectTrigger className="w-[100px] h-8">
                                 <SelectValue placeholder="Status" />
@@ -409,6 +416,33 @@ const PDVOrders = () => {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {expandedOrderId === order.id && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="bg-muted/30">
+                          <div className="space-y-3 py-2">
+                            <h3 className="font-semibold">Trajes do pedido {order.order_number}</h3>
+                            {order.items.map(item => (
+                              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-3">
+                                <div className="min-w-0 space-y-1">
+                                  <p className="font-medium">{item.product?.name ?? "Traje"}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Código: {item.product?.sku ?? item.product_id} | Retirada: {item.pickup_date ?? "—"} | Devolução prevista: {item.return_date ?? "—"}
+                                  </p>
+                                  <p className="text-sm">Situação: {item.status === "picked_up" ? "Retirado" : item.status === "returned" ? "Devolvido" : "Aguardando retirada"}</p>
+                                </div>
+                                {order.order_type === "rental" && (
+                                  <RentalItemActions orderId={order.id} item={item} onChanged={() => refetch()} />
+                                )}
+                              </div>
+                            ))}
+                            {order.order_type === "rental" && (
+                              <p className="text-xs text-muted-foreground">Após a devolução, o traje fica em lavanderia até ser liberado. Cobranças por atraso ainda dependem de integração específica.</p>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>
