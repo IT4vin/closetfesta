@@ -70,3 +70,9 @@
 - Unidades são geradas inicialmente com base em `stock_quantity`; redução posterior de estoque requer conciliação manual (não apaga exemplares).
 - Pagamentos iniciais são registrados como `operator_recorded`, NÃO como liquidados por adquirente; conciliação obrigatória.
 - Não foi aplicada nem validada no banco: revisar SQL, dados existentes, performance e funções com privilégio elevado em homologação.
+
+## Continuação — caixa transacional
+- `PDVCashier.tsx` não usa mais caixa de demonstração e recupera o histórico do Supabase após recarga de página.
+- Migration `20261106210000_cashier_operations.sql` propõe funções transacionais para abertura, sangria/reforço e fechamento, bloqueando escrita direta em registros históricos.
+- O fechamento calcula abertura e movimentações manuais; **recebimentos de contratos ainda não entram automaticamente nesse caixa**. A interface informa explicitamente essa limitação e não pode ser tratada como fechamento financeiro final.
+- Migration não executada. Validar RLS, integridade do histórico e controle de concorrência em banco de homologação.
