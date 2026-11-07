@@ -1,104 +1,115 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, ClipboardList, Package, Users, Wallet, AlertCircle, RefreshCw } from "lucide-react";
+import { CalendarDays, RefreshCw, ReceiptText, HandCoins, CalendarCheck2, Clock3, ArrowRightLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLiveClosetData, useLiveFinanceData, moneyBRL, dateTimeBR } from "@/hooks/useLiveClosetData";
+import { addDays, localDay, operationRows, operationCounts, payableBalance, receivableBalance, periodResults, type Period, type OperationKind } from "@/lib/operationalAnalytics";
 
-const card = (title: string, value: string | number, icon: React.ReactNode, sub: string) => (
-  <Card className="border-stone-200 shadow-sm">
-    <CardContent className="p-5">
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>{title}</span>{icon}
-      </div>
-      <p className="mt-3 text-2xl font-semibold tabular-nums text-stone-900">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-    </CardContent>
-  </Card>
-);
+const labels: Record<OperationKind,string> = { prova:"Provas", retirada:"Retiradas", devolucao:"Devoluções" };
+const themes = {
+  overdue:"bg-rose-50 text-rose-700 border-rose-100",
+  today:"bg-blue-50 text-blue-700 border-blue-100",
+  next:"bg-teal-50 text-teal-700 border-teal-100",
+};
+const labelBR = (day:string) => day.split("-").reverse().join("/");
 
 export default function LiveOperationsDashboard() {
   const live = useLiveClosetData();
   const finance = useLiveFinanceData();
+  const [today] = useState(()=>localDay(new Date()));
   const data = live.data;
-  const today = new Date().toISOString().slice(0, 10);
-  const clients = useMemo(() => new Map((data?.clients ?? []).map(c => [c.id, c.full_name])), [data]);
-  const products = useMemo(() => new Map((data?.products ?? []).map(p => [p.id, p.name])), [data]);
+  const operations = useMemo(()=>data?operationRows(data):[],[data]);
 
-  if (live.isPending) return <p className="rounded-xl border p-6">Consultando dados reais do Supabase...</p>;
-  if (live.error || !data) return (
-    <Card className="border-red-200"><CardContent className="space-y-3 p-6">
-      <p role="alert">Não foi possível consultar o banco. Nenhum valor fictício será exibido.</p>
-      <p className="text-sm text-red-700">{live.error instanceof Error ? live.error.message : "Falha de consulta"}</p>
-      <Button variant="outline" onClick={() => void live.refetch()}>Tentar novamente</Button>
-    </CardContent></Card>
-  );
+  if (live.isPending) return <p className="rounded-xl border bg-white p-6">Consultando dados reais do Supabase...</p>;
+  if (live.error || !data) return <Card className="border-red-200"><CardContent className="space-y-3 p-6">
+    <p role="alert">Falha na leitura da loja. Nenhum indicador será estimado.</p>
+    <p className="text-sm text-red-700">{live.error instanceof Error?live.error.message:"Consulta indisponível"}</p>
+    <Button variant="outline" onClick={()=>void live.refetch()}>Tentar novamente</Button>
+  </CardContent></Card>;
 
-  const active = data.items.filter(i => i.status === "confirmed" || i.status === "picked_up");
-  const late = active.filter(i => i.return_date < today);
-  const returnsToday = active.filter(i => i.return_date === today);
-  const nextReturns = active.filter(i => i.return_date > today).sort((a,b) => a.return_date.localeCompare(b.return_date)).slice(0, 10);
-  const upcoming = data.appointments.filter(a => a.status !== "cancelled" && a.end_at >= new Date().toISOString())
-    .sort((a,b) => a.start_at.localeCompare(b.start_at)).slice(0, 6);
-  const catalog = data.products.filter(p => p.active && !p.deleted_at);
-  const paid = (finance.data?.payments ?? []).filter(p => p.status !== "reversed").reduce((sum,p) => sum + Number(p.amount), 0);
-  const topMap = new Map<string, number>();
-  for (const item of data.items) {
-    if (item.status === "cancelled" || !products.has(item.product_id)) continue;
-    topMap.set(item.product_id, (topMap.get(item.product_id) ?? 0) + 1);
-  }
-  const top = Array.from(topMap).sort((a,b) => b[1]-a[1]).slice(0, 5);
-
-  return <div className="space-y-6">
-    <header className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="text-2xl font-semibold text-stone-900">Visão geral da loja</h2>
-        <p className="text-sm text-muted-foreground">Informações reais do Supabase. Dados demonstrativos desativados.</p></div>
-      <Button variant="outline" onClick={() => { void live.refetch(); if (finance.canRead) void finance.refetch(); }}>
-        <RefreshCw className="mr-2 h-4 w-4"/> Atualizar dados
+  const todayAgenda = data.appointments.filter(a=>a.status!=="cancelled"&&localDay(a.start_at)===today)
+    .sort((a,b)=>a.start_at.localeCompare(b.start_at));
+  const customers = new Map(data.clients.map(c=>[c.id,c.full_name]));
+  const products = new Map(data.products.map(p=>[p.id,p.name]));
+  const groups = [
+    {title:"Em atraso",from:"0000-01-01",to:addDays(today,-1),theme:"overdue" as const},
+    {title:"Hoje",from:today,to:today,theme:"today" as const},
+    {title:"Próximos 10 dias",from:addDays(today,1),to:addDays(today,10),theme:"next" as const},
+  ];
+  const results: {title:string;period:Period}[] = [
+    {title:"Resultados do dia",period:"day"}, {title:"Resultados da semana",period:"week"},
+    {title:"Resultados do mês",period:"month"},
+  ];
+  const moneyReady=finance.canRead && Boolean(finance.data) && !finance.error;
+  const periodValue=(period:Period)=>{
+    if(!moneyReady)return null;
+    return periodResults(data,finance.data!,period,today);
+  };
+  const pendingAppointments=operations.filter(o=>o.day===today);
+  return <div className="space-y-5">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 className="text-2xl font-semibold">Painel operacional</h2>
+        <p className="text-sm text-muted-foreground">Períodos pela data local de Campo Grande/RJ • {labelBR(today)} • Somente dados reais</p></div>
+      <Button variant="outline" onClick={()=>{void live.refetch();if(finance.canRead)void finance.refetch();}}>
+        <RefreshCw className="mr-2 h-4 w-4"/> Atualizar
       </Button>
-    </header>
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {card("Contratos cadastrados", data.contracts.length, <ClipboardList size={18}/>, "Inclui contratos concluídos e cancelados")}
-      {card("Clientes reais", data.clients.length, <Users size={18}/>, "Cadastros persistidos")}
-      {card("Produtos ativos", catalog.length, <Package size={18}/>, "Arquivados e excluídos ocultos")}
-      {card("Trajes com devolução atrasada", late.length, <AlertCircle size={18}/>, "Itens ainda não devolvidos")}
-      {card("Devoluções previstas hoje", returnsToday.length, <CalendarDays size={18}/>, "Itens aguardando devolução")}
-      {card("Agendamentos futuros", upcoming.length, <CalendarDays size={18}/>, "Próximos seis exibidos abaixo")}
-      {finance.canRead ? card("Recebimentos registrados", finance.isPending ? "..." : finance.error ? "Indisponível" : moneyBRL(paid),
-        <Wallet size={18}/>, "Registro interno; não é conciliação bancária") : card("Recebimentos", "Restrito", <Wallet size={18}/>, "Sem permissão financeira")}
-      {card("Caixas abertos", finance.canRead && finance.data ? finance.data.registers.filter(r=>r.status==="open").length : "—",
-        <Wallet size={18}/>, "Saldo em dinheiro exige conciliação própria")}
     </div>
-    {finance.canRead && finance.error && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-      Falha na consulta financeira: {finance.error instanceof Error ? finance.error.message : "indisponível"}. Nenhum valor estimado foi exibido.
-    </p>}
-    <div className="grid gap-5 lg:grid-cols-2">
-      <Card><CardHeader><CardTitle>Próximos agendamentos</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {upcoming.length===0 ? <p className="text-sm text-muted-foreground">Nenhum agendamento futuro registrado.</p> :
-            upcoming.map(a=><div key={a.id} className="flex justify-between gap-3 border-b pb-2 text-sm">
-              <div><p className="font-medium">{a.title}</p>
-                <p className="text-muted-foreground">{a.client_id ? (clients.get(a.client_id) ?? "Cliente não disponível") : "Sem cliente associado"}</p></div>
-              <span className="shrink-0 text-muted-foreground">{dateTimeBR(a.start_at)}</span>
-            </div>)}
-          <Link className="text-sm text-rose-800 underline" to="/calendar">Abrir agenda</Link>
-        </CardContent></Card>
-      <Card><CardHeader><CardTitle>Devoluções e atrasos</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {[...late, ...returnsToday, ...nextReturns].slice(0,10).map(item=><div key={item.id} className="flex justify-between gap-2 border-b pb-2 text-sm">
-            <div><p className="font-medium">{products.get(item.product_id) ?? "Traje arquivado"}</p>
-              <p className="text-muted-foreground">{clients.get(data.contracts.find(c=>c.id===item.contract_id)?.client_id ?? "") ?? "Cliente não disponível"}</p></div>
-            <span className={item.return_date<today?"font-medium text-red-700":"text-muted-foreground"}>{item.return_date.split("-").reverse().join("/")}</span>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {groups.map(group=><Card key={group.title} className="shadow-sm">
+        <CardHeader className="pb-2"><CardTitle className="text-sm">{group.title}</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {operationCounts(operations,group.from,group.to).map(line=><Link
+            key={line.kind} to="/reports?view=separacao"
+            className={`flex items-center justify-between rounded-md border px-4 py-3 text-sm hover:opacity-80 ${themes[group.theme]}`}>
+            <span className="flex items-center gap-3"><CalendarCheck2 size={16}/>{labels[line.kind]}</span>
+            <strong className="tabular-nums">{line.count}</strong>
+          </Link>)}
+        </CardContent></Card>)}
+    </div>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {results.map(({title,period})=>{
+        const value=periodValue(period);
+        return <Card key={period} className="shadow-sm"><CardHeader className="pb-2">
+          <CardTitle className="text-sm">{title}</CardTitle></CardHeader><CardContent className="space-y-3">
+          {[
+            ["Total de pedidos",value?moneyBRL(value.totalOrders):"—",ReceiptText],
+            ["Total recebido",value?moneyBRL(value.received):"—",HandCoins],
+            ["Número de pedidos",value?String(value.orderCount):"—",CalendarDays],
+          ].map(([label,val,Icon])=><div key={String(label)} className="flex items-center justify-between gap-2 text-xs">
+            <span className="flex items-center gap-3">
+              <span className="rounded bg-teal-50 p-2 text-teal-600"><Icon size={16}/></span>{String(label)}
+            </span>
+            <strong className="rounded bg-slate-50 px-2 py-1 tabular-nums">{String(val)}</strong>
           </div>)}
-          {active.length===0 && <p className="text-sm text-muted-foreground">Nenhuma devolução pendente.</p>}
-          <Link className="text-sm text-rose-800 underline" to="/pdv">Acompanhar no PDV</Link>
+          {!moneyReady&&<p className="text-xs text-muted-foreground">
+            {finance.canRead?"Dados financeiros indisponíveis no momento.":"Valores financeiros restritos ao seu perfil."}
+          </p>}
+        </CardContent></Card>;
+      })}
+    </div>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <Card className="shadow-sm"><CardHeader><CardTitle className="text-sm">Contas a pagar</CardTitle></CardHeader>
+        <CardContent><p className="text-2xl font-semibold">{moneyReady?moneyBRL(payableBalance(finance.data!)):"—"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Despesas ainda não quitadas</p>
+          <Link to="/financial" className="mt-3 block text-sm text-blue-700 underline">Abrir financeiro</Link></CardContent></Card>
+      <Card className="shadow-sm"><CardHeader><CardTitle className="text-sm">Contas a receber</CardTitle></CardHeader>
+        <CardContent><p className="text-2xl font-semibold">{moneyReady?moneyBRL(receivableBalance(data,finance.data!)):"—"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Saldo dos contratos e recebíveis manuais, sem contar em dobro</p>
+          <Link to="/financial" className="mt-3 block text-sm text-blue-700 underline">Ver valores pendentes</Link></CardContent></Card>
+      <Card className="shadow-sm"><CardHeader><CardTitle className="text-sm">Agenda do dia</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {todayAgenda.length===0 && pendingAppointments.length===0&&
+            <p className="text-xs text-muted-foreground">Nenhum compromisso marcado para hoje.</p>}
+          {todayAgenda.slice(0,6).map(a=><div className="text-xs" key={a.id}>
+            <span className="font-medium">{new Date(a.start_at).toLocaleTimeString("pt-BR",{timeZone:"America/Sao_Paulo",hour:"2-digit",minute:"2-digit"})}</span>
+            {" "}· {a.title} · {customers.get(a.client_id??"")??"Cliente não disponível"}
+          </div>)}
+          {pendingAppointments.filter(o=>o.source==="locacao").slice(0,5).map(o=>
+            <div key={o.id} className="text-xs">{labels[o.kind]} · {products.get(o.productId??"")??"Traje"} · {customers.get(o.clientId??"")??"Cliente"}</div>)}
+          <Link to="/calendar" className="mt-3 block text-sm text-blue-700 underline">Abrir agenda</Link>
         </CardContent></Card>
     </div>
-    <Card><CardHeader><CardTitle>Trajes mais alugados</CardTitle></CardHeader><CardContent className="space-y-2">
-      {top.length === 0 ? <p className="text-sm text-muted-foreground">Ainda não há histórico de aluguéis de produtos ativos.</p> :
-        top.map(([id,qty])=><div className="flex justify-between border-b pb-2 text-sm" key={id}>
-          <span>{products.get(id)}</span><strong>{qty} {qty===1?"aluguel":"aluguéis"}</strong>
-        </div>)}
-    </CardContent></Card>
+    <p className="text-xs text-muted-foreground">Os totais de pedidos usam o valor dos contratos criados no período; o recebido usa a data do registro de pagamento. Não representam fechamento de caixa nem conciliação bancária.</p>
   </div>;
 }

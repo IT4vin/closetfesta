@@ -5,22 +5,22 @@ import PermissionManager from "@/lib/permissions";
 
 // Uma única fonte da verdade: nenhum dado de demonstração ou localStorage.
 export interface LiveProduct {
-  id: string; sku: string | null; name: string; price: number;
+  id: string; sku: string | null; name: string; price: number; category_id: string | null;
   stock_quantity: number; active: boolean; deleted_at: string | null;
 }
-export interface LiveClient { id: string; full_name: string; }
+export interface LiveClient { id: string; full_name: string; acquisition_source?: string | null; }
 export interface LiveAppointment {
   id: string; client_id: string | null; title: string; description: string | null;
   start_at: string; end_at: string; status: string;
 }
 export interface LiveContract {
-  id: string; contract_number: number; client_id: string; status: string;
+  id: string; contract_number: number; client_id: string; created_by: string; status: string;
   total: number; created_at: string;
 }
 export interface LiveItem {
   id: string; contract_id: string; product_id: string; unit_id: string;
   unit_price: number; discount: number; status: string;
-  pickup_date: string; event_date: string; return_date: string;
+  try_on_date: string | null; pickup_date: string; event_date: string; return_date: string;
   actual_return_at: string | null;
 }
 export interface LiveUnit { id: string; product_id: string; status: string; }
@@ -71,11 +71,11 @@ export async function fetchAllRows<T>(table: string, fields: string): Promise<T[
 
 export async function loadLiveClosetData(): Promise<LiveClosetData> {
   const [products, clients, appointments, contracts, items, units] = await Promise.all([
-    fetchAllRows<LiveProduct>("products", "id,sku,name,price,stock_quantity,active,deleted_at"),
+    fetchAllRows<LiveProduct>("products", "id,sku,name,price,category_id,stock_quantity,active,deleted_at"),
     fetchAllRows<LiveClient>("clients", "id,full_name"),
     fetchAllRows<LiveAppointment>("appointments", "id,client_id,title,description,start_at,end_at,status"),
-    fetchAllRows<LiveContract>("rental_contracts", "id,contract_number,client_id,status,total,created_at"),
-    fetchAllRows<LiveItem>("rental_items", "id,contract_id,product_id,unit_id,unit_price,discount,status,pickup_date,event_date,return_date,actual_return_at"),
+    fetchAllRows<LiveContract>("rental_contracts", "id,contract_number,client_id,created_by,status,total,created_at"),
+    fetchAllRows<LiveItem>("rental_items", "id,contract_id,product_id,unit_id,unit_price,discount,status,try_on_date,pickup_date,event_date,return_date,actual_return_at"),
     fetchAllRows<LiveUnit>("product_units", "id,product_id,status"),
   ]);
   return {
