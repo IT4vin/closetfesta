@@ -46,6 +46,11 @@ export const LazyPDV = createLazyPage(
   pageConfigs.pdv
 );
 
+export const LazyRentalOrderDetail = createLazyPage(
+  () => import('../RentalOrderDetail'),
+  pageConfigs.pdv
+);
+
 export const LazyReports = createLazyPage(
   () => import('../Reports'),
   pageConfigs.reports

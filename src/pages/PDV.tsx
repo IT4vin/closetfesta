@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,11 @@ import { usePermissions } from "@/lib/permissions";
 
 const PDV = () => {
   const [showLogin, setShowLogin] = useState(false);
-  const [activeTab, setActiveTab] = useState("venda");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") === "pedidos" ? "pedidos" : "venda");
+  useEffect(() => {
+    if (searchParams.get("tab") === "pedidos") setActiveTab("pedidos");
+  }, [searchParams]);
   useEffect(() => {
     const openOrders = () => setActiveTab("pedidos");
     window.addEventListener("closetfesta:open-orders", openOrders);

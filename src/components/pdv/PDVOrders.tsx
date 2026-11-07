@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -377,11 +378,15 @@ const PDVOrders = () => {
                     <React.Fragment key={order.id}>
                     <TableRow>
                       <TableCell className="font-medium">
-                        #{order.order_number}
+                        <Link to={`/pdv/pedidos/${order.id}`} className="text-blue-700 hover:underline underline-offset-2 focus-visible:underline" aria-label={`Abrir detalhes do pedido ${order.order_number}`}>
+                          {order.order_number}
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{order.customer_name}</p>
+                          <Link to={`/pdv/pedidos/${order.id}`} className="font-medium text-slate-900 hover:text-blue-700 hover:underline underline-offset-2" aria-label={`Abrir pedido de ${order.customer_name}`}>
+                            {order.customer_name}
+                          </Link>
                           {order.customer_document && (
                             <p className="text-sm text-gray-500">{order.customer_document}</p>
                           )}
@@ -409,6 +414,11 @@ const PDVOrders = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button asChild size="sm" variant="outline">
+                            <Link to={`/pdv/pedidos/${order.id}`} aria-label={`Abrir tela completa do pedido ${order.order_number}`}>
+                              Detalhes
+                            </Link>
+                          </Button>
                           <Button size="sm" variant="outline"
                             aria-label={`Ver trajes do pedido ${order.order_number}`}
                             aria-expanded={expandedOrderId === order.id}

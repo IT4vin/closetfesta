@@ -23,6 +23,7 @@ import {
   LazyFinancial,
   LazyInventory,
   LazyPDV,
+  LazyRentalOrderDetail,
   LazyReports,
   LazySettings,
   LazyCatalog,
@@ -155,6 +156,11 @@ function App() {
                         <Route path="pdv" element={
                           <ErrorBoundary level="component" enableRecovery={true}>
                             <LazyPDV />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="pdv/pedidos/:id" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyRentalOrderDetail />
                           </ErrorBoundary>
                         } />
                         <Route path="catalog" element={

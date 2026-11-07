@@ -20,9 +20,11 @@ const currency = (value: number) => value.toLocaleString("pt-BR", { style: "curr
 export default function RentalPaymentActions({
   contractId,
   contractTotal,
+  onChanged,
 }: {
   contractId: string;
   contractTotal: number;
+  onChanged?: () => void | Promise<unknown>;
 }) {
   const { toast } = useToast();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -92,6 +94,7 @@ export default function RentalPaymentActions({
       setVerified(false);
       requestRef.current = null;
       await load();
+      if (onChanged) await onChanged();
     } catch (cause) {
       toast({ title: "Recebimento não registrado", description: cause instanceof Error ? cause.message : "Falha ao gravar.", variant: "destructive" });
     } finally {
