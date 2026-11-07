@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, RefreshCw, Plus, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveClosetData, dateTimeBR } from "@/hooks/useLiveClosetData";
 import PermissionManager from "@/lib/permissions";
+import { loadClosetSettings, type ClosetSettingValues } from "@/lib/closetSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,17 @@ export default function AppointmentManager() {
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState("");
   const [success,setSuccess] = useState("");
+  const [rules,setRules] = useState<ClosetSettingValues>({});
+  const [rulesWarning,setRulesWarning] = useState("");
+  useEffect(() => {
+    let active = true;
+    void loadClosetSettings("operations").then(value => {
+      if (active) { setRules(value); setRulesWarning(""); }
+    }).catch(() => {
+      if (active) setRulesWarning("Não foi possível consultar as regras de agenda. As validações administrativas precisam ser conferidas.");
+    });
+    return () => { active = false; };
+  }, []);
   const canWrite = PermissionManager.hasPermission("schedule","create");
 
   async function refresh() {
@@ -39,6 +51,19 @@ export default function AppointmentManager() {
     const from = new Date(start), to = new Date(end);
     if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || to<=from) {
       setError("Informe datas válidas, com término posterior ao início."); return;
+    }
+    const notice = Number(rules.min_notice_hours ?? 0);
+    if (notice > 0 && from.getTime() < Date.now() + notice * 60 * 60 * 1000) {
+      setError("O agendamento não respeita a antecedência mínima de " + notice + " horas."); return;
+    }
+    const blocked = String(rules.blocked_dates ?? "").split(",").map(d=>d.trim());
+    if (blocked.includes(start.slice(0,10))) {
+      setError("Esta data está bloqueada nas configurações da agenda."); return;
+    }
+    const capacity = Number(rules.max_per_slot ?? 0);
+    if (capacity > 0 && query.data.appointments.filter(a=>a.status!=="cancelled" &&
+        new Date(a.start_at)<to && new Date(a.end_at)>from).length >= capacity) {
+      setError("O limite configurado de atendimentos simultâneos foi atingido."); return;
     }
     if (query.data.appointments.some(a=>a.client_id===clientId && a.status!=="cancelled" &&
         new Date(a.start_at)<to && new Date(a.end_at)>from)) {
@@ -94,6 +119,7 @@ export default function AppointmentManager() {
     </header>
     {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {success && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{success}</p>}
+    {rulesWarning && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{rulesWarning}</p>}
     {showForm && <Card><CardHeader><CardTitle>Agendar atendimento</CardTitle></CardHeader><CardContent>
       <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2"><Label htmlFor="client-id">Cliente cadastrado *</Label>
@@ -108,7 +134,16 @@ export default function AppointmentManager() {
             {types.map(t=><option key={t} value={t}>{t}</option>)}
           </select></div>
         <div className="space-y-2"><Label htmlFor="appointment-start">Início *</Label>
-          <Input id="appointment-start" required type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></div>
+          <Input id="appointment-start" required type="datetime-local" value={start} onChange={e=>{
+          const value=e.target.value;
+          setStart(value);
+          const minutes=Number(title==="Prova"?rules.fitting_minutes:title==="Retirada"?rules.pickup_minutes:title==="Devolução"?rules.return_minutes:0);
+          if (minutes>0 && value) {
+            const finish=new Date(new Date(value).getTime()+minutes*60000);
+            const pad=(n:number)=>String(n).padStart(2,"0");
+            setEnd(finish.getFullYear()+"-"+pad(finish.getMonth()+1)+"-"+pad(finish.getDate())+"T"+pad(finish.getHours())+":"+pad(finish.getMinutes()));
+          }
+        }}/></div>
         <div className="space-y-2"><Label htmlFor="appointment-end">Término *</Label>
           <Input id="appointment-end" required type="datetime-local" value={end} onChange={e=>setEnd(e.target.value)}/></div>
         <div className="space-y-2"><Label htmlFor="appointment-product">Traje (opcional)</Label>
