@@ -13,6 +13,7 @@ type Client = {
   email: string | null;
   phone: string | null;
   document: string | null;
+  acquisition_source: string | null;
   created_at: string;
 };
 
@@ -28,7 +29,7 @@ const ClientsPage = () => {
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", document: "" });
+  const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", document: "", origin: "" });
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearchTerm(search.trim()); setPage(0); }, 250);
@@ -40,7 +41,7 @@ const ClientsPage = () => {
     setError("");
     const term = searchTerm.slice(0, 70).replace(/[%,()]/g, "");
     let query = supabase.from("clients")
-      .select("id, full_name, email, phone, document, created_at", { count: "exact" })
+      .select("id, full_name, email, phone, document, acquisition_source, created_at", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     if (term) {
@@ -81,10 +82,11 @@ const ClientsPage = () => {
         phone: newClient.phone.trim() || null,
         email: newClient.email.trim() || null,
         document: newClient.document.trim() || null,
+        acquisition_source: newClient.origin.trim() || null,
       });
       if (insertError) throw insertError;
       toast({ title: "Cliente salvo", description: "Cadastro registrado no banco de dados." });
-      setNewClient({ name: "", phone: "", email: "", document: "" });
+      setNewClient({ name: "", phone: "", email: "", document: "", origin: "" });
       setDialogOpen(false);
       setPage(0);
       void loadClients();
@@ -121,6 +123,7 @@ const ClientsPage = () => {
               {client.phone && <p className="text-sm text-muted-foreground">{client.phone}</p>}
               {client.email && <p className="text-sm text-muted-foreground break-words">{client.email}</p>}
               {client.document && <p className="text-xs text-muted-foreground">Documento: {client.document}</p>}
+              <p className="text-xs text-muted-foreground">Origem: {client.acquisition_source || "Não informado"}</p>
               <p className="text-xs text-muted-foreground">Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}</p>
             </div>
           ))}
@@ -144,6 +147,14 @@ const ClientsPage = () => {
               <Input id="client-email" type="email" value={newClient.email} onChange={e => setNewClient(s => ({ ...s, email: e.target.value }))} /></div>
             <div><Label htmlFor="client-doc">CPF/CNPJ</Label>
               <Input id="client-doc" value={newClient.document} onChange={e => setNewClient(s => ({ ...s, document: e.target.value }))} /></div>
+            <div><Label htmlFor="client-origin">Como conheceu a loja?</Label>
+              <select id="client-origin" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={newClient.origin}
+                onChange={e => setNewClient(s => ({ ...s, origin: e.target.value }))}>
+                <option value="">Não informado</option>
+                <option value="Instagram">Instagram</option><option value="Indicação">Indicação</option>
+                <option value="Google">Google</option><option value="Shopping">Shopping</option>
+                <option value="WhatsApp">WhatsApp</option><option value="Outros">Outros</option>
+              </select></div>
             <Button type="submit" className="w-full" disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar cliente
             </Button>
