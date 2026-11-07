@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RentalItemActions from "@/components/pdv/RentalItemActions";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
+import { printRentalContract } from "@/lib/rentalContractPrint";
 import PermissionManager from "@/lib/permissions";
 import { useAuth } from "@/stores/authStore";
 import { contactLinks, loadRentalOrderDetail, paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
@@ -254,6 +255,7 @@ export default function RentalOrderDetail(){
         <Card className="shadow-sm"><CardHeader className="border-b pb-4">
           <CardTitle className="text-base">Documentos e cobranças</CardTitle>
         </CardHeader><CardContent className="space-y-2 py-4 text-sm text-muted-foreground">
+          <p>O botão <strong>Imprimir contrato</strong> prepara uma minuta com as datas, itens e valores reais para conferência e assinatura.</p>
           <p>Nenhum carnê, boleto ou nota fiscal foi consultado ou emitido por esta tela.</p>
           <p>Emissão de documentos fiscais e boletos depende de integração própria. Imprimir o resumo não substitui o contrato assinado ou uma nota fiscal.</p>
         </CardContent></Card>
@@ -308,6 +310,10 @@ export default function RentalOrderDetail(){
             <Button className="w-full bg-marsala hover:bg-marsala-700 print:hidden" onClick={()=>setShowPayment(true)}>
               <Wallet className="mr-2 h-4 w-4"/>Novo pagamento
             </Button>}
+          <Button className="w-full bg-marsala text-white hover:bg-marsala-700 print:hidden"
+            onClick={()=>{try{printRentalContract(detail);}catch(cause){window.alert(cause instanceof Error?cause.message:"Erro ao preparar impressão.");}}}>
+            <Printer className="mr-2 h-4 w-4"/>Imprimir contrato
+          </Button>
           <Button variant="outline" className="w-full print:hidden" onClick={()=>window.print()}>
             <Printer className="mr-2 h-4 w-4"/>Imprimir resumo do pedido
           </Button>
