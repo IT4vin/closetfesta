@@ -9,6 +9,7 @@ import PDVWorkspace from "./PDVWorkspace";
 import PDVPaymentModal from "./PDVPaymentModal";
 import PDVQuickCustomer from "./PDVQuickCustomer";
 import {rentalPrice} from "./PDVProductGallery";
+import {calculatePDVCart} from "@/lib/pdvCalculations";
 import {
   savePDVDraft, loadPDVDraft, deletePDVDraft,
   type PDVDraftPayload,
@@ -49,18 +50,10 @@ export default function PDVSale(){
   const [hasDraft,setHasDraft]=useState(false);
   const checkoutRequestRef=useRef<{signature:string;key:string}|null>(null);
 
-  const finance=useMemo(()=>{
-    const subtotal=cents(cart.reduce((sum,item)=>sum+rentalPrice(item)*item.quantity,0));
-    const itemDiscount=cents(cart.reduce((sum,item)=>sum+item.discount,0));
-    const afterItems=cents(Math.max(0,subtotal-itemDiscount));
-    const pct=Math.max(0,Math.min(100,globalDiscount));
-    const globalAmount=globalDiscountType==="percentage"
-      ?cents(afterItems*pct/100)
-      :cents(Math.min(afterItems,Math.max(0,globalDiscount)));
-    const totalDiscount=cents(itemDiscount+globalAmount);
-    const total=cents(Math.max(0,subtotal-totalDiscount));
-    return {subtotal,totalDiscount,total,totalRentals:total};
-  },[cart,globalDiscount,globalDiscountType]);
+  const finance=useMemo(()=>
+    calculatePDVCart(cart,globalDiscount,globalDiscountType),
+    [cart,globalDiscount,globalDiscountType]
+  );
 
   const validateDates=useCallback(()=>{
     const {tryOnDate,pickupDate,eventDate,returnDate}=orderDates;
@@ -151,7 +144,7 @@ export default function PDVSale(){
       setCustomerModalOpen(true);return;
     }
     if(!validateDates())return;
-    if(!Number.isFinite(finance.total)||finance.total<=0){
+    if(!finance.valid||!Number.isFinite(finance.total)||finance.total<=0){
       toast({title:"Total inválido",description:"Confira os preços e descontos antes de continuar.",variant:"destructive"});return;
     }
     setPaymentModalOpen(true);
