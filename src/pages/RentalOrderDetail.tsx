@@ -165,6 +165,21 @@ export default function RentalOrderDetail(){
                     {state?.actual_return_at&&<p>Devolvido em: {timestamp(state.actual_return_at)}</p>}
                   </div>
                   {state?.return_notes&&<p className="rounded-lg bg-slate-50 p-2 text-xs">Observações da devolução: {state.return_notes}</p>}
+                  {allowActions&&<div className="flex flex-wrap gap-2 pt-1 print:hidden">
+                    {canEditDates&&rawStatus==="confirmed"&&
+                      <Button size="sm" variant="outline" className="border-marsala-200 text-marsala-800 hover:bg-marsala-50"
+                        onClick={()=>openEditor("item_dates",{itemId:item.id})}>Editar datas</Button>}
+                    {manager&&rawStatus==="confirmed"&&<>
+                      <Button size="sm" variant="outline" className="border-marsala-200 text-marsala-800 hover:bg-marsala-50"
+                        onClick={()=>openEditor("replace_item",{itemId:item.id})}>Trocar traje</Button>
+                      <Button size="sm" variant="outline" className="border-marsala-200 text-marsala-800 hover:bg-marsala-50"
+                        onClick={()=>openEditor("item_discount",{itemId:item.id})}>Desconto</Button>
+                      <Button size="sm" variant="outline" className="border-marsala-200 text-marsala-800 hover:bg-marsala-50"
+                        onClick={()=>openEditor("item_price",{itemId:item.id})}>Preço</Button>
+                      <Button size="sm" variant="outline" className="border-red-200 text-red-700"
+                        onClick={()=>openEditor("remove_item",{itemId:item.id})}>Retirar item</Button>
+                    </>}
+                  </div>}
                   {allowActions&&<div className="print:hidden pt-1">
                     <RentalItemActions orderId={order.id} item={{...item,status:rawStatus==="picked_up"?"picked_up":rawStatus==="returned"?"returned":"pending"}}
                       onChanged={refresh}/>
@@ -203,7 +218,12 @@ export default function RentalOrderDetail(){
                   <td className="py-3 pr-2">{methodLabels[payment.method]??payment.method}{payment.installments>1?` · ${payment.installments}x`:""}</td>
                   <td className="py-3 pr-2"><span className={payment.status==="reversed"?"text-red-700":"text-slate-600"}>
                     {labelStatus(payment.status)}</span></td>
-                  <td className="py-3 text-right font-semibold">{currency(Number(payment.amount))}</td>
+                  <td className="py-3 text-right font-semibold">{currency(Number(payment.amount))}
+                    {manager&&payment.status==="operator_recorded"&&order.status!=="cancelled"&&
+                      <Button type="button" size="sm" variant="outline"
+                        className="ml-2 border-red-200 text-red-700 print:hidden"
+                        onClick={()=>openEditor("reverse_payment",{paymentId:payment.id})}>Estornar</Button>}
+                  </td>
                 </tr>)}</tbody>
               </table></div>}
             {financial&&<div className="flex flex-wrap justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm">
@@ -226,7 +246,9 @@ export default function RentalOrderDetail(){
           <p className="whitespace-pre-wrap rounded-lg border bg-slate-50 p-4 text-sm text-slate-700">
             {order.observations?.trim()||"Nenhuma observação registrada neste contrato."}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">Histórico do contrato em modo de leitura, preservado no Supabase.</p>
+          {canEditDates&&order.status!=="cancelled"&&order.status!=="completed"&&
+            <Button size="sm" variant="outline" className="mt-3 border-marsala-200 text-marsala-800 print:hidden"
+              onClick={()=>openEditor("notes")}>Editar observações</Button>}
         </CardContent></Card>
 
         <Card className="shadow-sm"><CardHeader className="border-b pb-4">
@@ -257,6 +279,9 @@ export default function RentalOrderDetail(){
             {client.document&&<p>Documento: {client.document}</p>}
             {address&&<p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0"/>{address}</p>}
             {client.notes&&<p className="rounded-lg bg-white/10 p-2 text-xs">Observações do cadastro: {client.notes}</p>}
+            {canEditDates&&order.status!=="cancelled"&&
+              <Button size="sm" className="mt-3 border-white/50 bg-white/15 text-white hover:bg-white/25 print:hidden"
+                variant="outline" onClick={()=>openEditor("client")}>Editar contato e cadastro</Button>}
           </div>
           <p className="mt-5 text-xs text-marsala-100">Criado em {timestamp(order.created_at)}</p>
           {detail.attendant&&<p className="mt-1 text-xs text-marsala-100">Atendido por {detail.attendant}</p>}
@@ -273,6 +298,12 @@ export default function RentalOrderDetail(){
             <div className="flex justify-between gap-2 text-sm"><span>Saldo aberto</span>
               <strong className={financial.remaining>0?"text-rose-600":"text-emerald-700"}>{currency(financial.remaining)}</strong></div></>:
             <p className="rounded bg-amber-50 p-2 text-xs text-amber-900">Informações financeiras restritas ao seu perfil.</p>}
+          {manager&&order.status!=="cancelled"&&order.status!=="completed"&&<>
+            <Button variant="outline" className="w-full border-marsala-300 text-marsala-800 print:hidden"
+              onClick={()=>openEditor("order_discount")}>Conceder desconto no pedido</Button>
+            <Button variant="outline" className="w-full border-red-200 text-red-700 print:hidden"
+              onClick={()=>openEditor("cancel_contract")}>Cancelar pedido</Button>
+          </>}
           {canRecord&&financial&&financial.remaining>0&&order.status!=="cancelled"&&
             <Button className="w-full bg-marsala hover:bg-marsala-700 print:hidden" onClick={()=>setShowPayment(true)}>
               <Wallet className="mr-2 h-4 w-4"/>Novo pagamento
@@ -280,7 +311,7 @@ export default function RentalOrderDetail(){
           <Button variant="outline" className="w-full print:hidden" onClick={()=>window.print()}>
             <Printer className="mr-2 h-4 w-4"/>Imprimir resumo do pedido
           </Button>
-          <p className="text-xs text-muted-foreground">Impressão informativa. Alterações de desconto, cancelamento e nota fiscal dependem dos fluxos autorizados no sistema.</p>
+          <p className="text-xs text-muted-foreground">Alterações exigem justificativa e ficam no histórico. Emissão fiscal e boletos dependem de integração própria.</p>
         </CardContent></Card>
       </aside>
     </div>
