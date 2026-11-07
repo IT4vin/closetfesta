@@ -186,6 +186,29 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             </div>
           )}
           
+          {!splitPayment && <div className="mb-5 space-y-3">
+            <h3 className="text-sm font-semibold">Valor a registrar agora</h3>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {([
+                ["half","Sinal de 50%",half],
+                ["full","Pagamento integral",total],
+                ["custom","Outro valor",Number(customAmount)||0],
+              ] as const).map(([mode,label,value])=><button key={mode} type="button"
+                onClick={()=>setReceiptMode(mode)}
+                className={"rounded-xl border p-3 text-left text-xs transition-colors "+
+                  (receiptMode===mode?"border-marsala-700 bg-marsala-50 text-marsala-800":"border-border hover:bg-muted")}>
+                <strong className="block">{label}</strong>
+                <span className="mt-1 block">{mode==="custom"&&!customAmount?"Definir valor":
+                  new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value)}</span>
+              </button>)}
+            </div>
+            {receiptMode==="custom"&&<div className="space-y-1">
+              <Label htmlFor="custom-receipt">Valor recebido (R$)</Label>
+              <Input id="custom-receipt" type="number" min=".01" max={total} step=".01"
+                value={customAmount} onChange={e=>setCustomAmount(e.target.value)}/>
+            </div>}
+            <p className="text-xs text-muted-foreground">O saldo não recebido permanece em aberto no contrato.</p>
+          </div>}
           <div className="mb-4">
             <div className="flex justify-between items-center">
               <h3 className="font-medium">Forma de Pagamento</h3>
@@ -266,7 +289,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                     </div>
                     
                     {parseInt(installments) > 1 && (
-                      <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md">
+                      <div className="bg-marsala-50 p-3 rounded-md">
                         <p className="font-medium">Valor da parcela:</p>
                         <p className="text-xl font-bold">
                           {parseInt(installments)}x de R$ {(target / parseInt(installments)).toFixed(2)}
@@ -278,7 +301,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                 
                 <TabsContent value="debit" className="mt-4">
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                    <p>O valor total será cobrado do cartão de débito.</p>
+                    <p>Confirme a cobrança na maquininha; o sistema só registra o resultado manualmente.</p>
                   </div>
                 </TabsContent>
                 
@@ -367,7 +390,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md mt-3">
+                  <div className="flex justify-between items-center p-3 bg-marsala-50 rounded-md mt-3">
                     <span>Valor pago:</span>
                     <span className="font-medium">R$ {getTotalPaid().toFixed(2)}</span>
                   </div>
@@ -386,8 +409,20 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
           <Checkbox id="manual-payment-checked" checked={paymentConfirmed} onCheckedChange={(value) => setPaymentConfirmed(value === true)} />
           <Label htmlFor="manual-payment-checked" className="text-xs leading-relaxed">
             Confirmo que conferi o recebimento na maquininha, dinheiro ou extrato.
-            O sistema só registra manualmente o pagamento e não executa cobranças.
+            O sistema registra manualmente o pagamento e não executa cobranças. Dinheiro exige caixa aberto.
           </Label>
+        </div>
+        <div className="mb-4 rounded-xl border border-marsala-100 bg-marsala-50/60 p-3 text-sm">
+          <div className="flex justify-between gap-2">
+            <span>Recebimento neste atendimento</span>
+            <strong>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"})
+              .format(splitPayment?getTotalPaid():Number.isFinite(target)?target:0)}</strong>
+          </div>
+          <div className="mt-2 flex justify-between gap-2 text-marsala-800">
+            <span>Saldo restante do contrato</span>
+            <strong>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"})
+              .format(Math.max(0,total-(splitPayment?getTotalPaid():Number.isFinite(target)?target:0)))}</strong>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
