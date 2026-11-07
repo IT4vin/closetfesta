@@ -48,19 +48,21 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   customer
 }) => {
   const { toast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<string>("pix");
+  const [receiptMode,setReceiptMode]=useState<"half"|"full"|"custom">("half");
+  const [customAmount,setCustomAmount]=useState("");
   const [receivedAmount, setReceivedAmount] = useState<string>("");
   const [installments, setInstallments] = useState<string>("1");
   const [isProcessing, setIsProcessing] = useState(false);
   const [splitPayment, setSplitPayment] = useState(false);
-  const [payments, setPayments] = useState<{method: string; value: number}[]>([]);
+  const [payments, setPayments] = useState<{method: string; value: number; installments:number}[]>([]);
   const [currentPaymentValue, setCurrentPaymentValue] = useState<string>("");
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   
   // Reset state when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setPaymentMethod("cash");
+      setPaymentMethod("pix");setReceiptMode("half");setCustomAmount("");
       setReceivedAmount("");
       setInstallments("1");
       setIsProcessing(false);
@@ -78,10 +80,13 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     { id: "pix", name: "PIX", icon: <Wallet className="h-5 w-5" /> },
   ];
   
+  const half=Math.max(0.01,Math.round((total/2+Number.EPSILON)*100)/100);
+  const target=receiptMode==="half"?half:receiptMode==="full"?total:Number(customAmount);
+  const validTarget=Number.isFinite(target)&&target>0&&target<=total&&Math.round(target*100)===target;
   const calculateChange = (): number => {
     const received = parseFloat(receivedAmount);
     if (isNaN(received)) return 0;
-    const change = received - total;
+    const change = received - target;
     return Math.max(0, change);
   };
   
@@ -95,7 +100,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   
   const handleAddSplitPayment = () => {
     const paymentValue = parseFloat(currentPaymentValue);
-    if (isNaN(paymentValue) || paymentValue <= 0) {
+    if (!Number.isFinite(paymentValue) || paymentValue <= 0 || Math.round(paymentValue*100)!==paymentValue*100) {
       toast({
         title: "Valor inválido",
         description: "Por favor, insira um valor válido para o pagamento.",
@@ -118,7 +123,8 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     // Add to payments
     setPayments([...payments, { 
       method: paymentMethod, 
-      value: paymentValue 
+      value: paymentValue,
+      installments:paymentMethod==="credit"?parseInt(installments):1,
     }]);
     
     // Reset fields
@@ -136,7 +142,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
         date: new Date().toISOString(),
         payments: splitPayment ? payments : [{
           method: paymentMethod,
-          value: total,
+          value: target,
           installments: paymentMethod === "credit" ? parseInt(installments) : 1,
         }],
         change: paymentMethod === "cash" ? calculateChange() : 0,
@@ -155,22 +161,22 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const isPaymentComplete = (): boolean => {
-    if (!splitPayment) return paymentMethod !== "cash" || (Number(receivedAmount) >= total && total > 0);
+    if (!splitPayment) return validTarget && (paymentMethod !== "cash" || Number(receivedAmount) >= target);
     const amount = getTotalPaid();
     return amount > 0 && amount <= total;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isProcessing && onClose()}>
+      <DialogContent className="sm:max-w-[590px] max-h-[90vh] overflow-y-auto rounded-xl border-border">
         <DialogHeader>
-          <DialogTitle className="text-xl">Pagamento</DialogTitle>
+          <DialogTitle className="text-xl text-marsala-800">Finalização da locação</DialogTitle>
         </DialogHeader>
         
         <div className="my-2">
           <div className="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-md mb-4">
-            <span>Total a pagar:</span>
-            <span className="font-bold text-xl">R$ {total.toFixed(2)}</span>
+            <span>Total do contrato:</span>
+            <span className="font-bold text-xl text-marsala-800">R$ {total.toFixed(2)}</span>
           </div>
           
           {customer && (
@@ -218,14 +224,14 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                       <Input 
                         id="receivedAmount"
                         type="number" 
-                        min={total}
+                        min={target}
                         placeholder="0.00" 
                         value={receivedAmount}
                         onChange={(e) => setReceivedAmount(e.target.value)}
                       />
                     </div>
                     
-                    {parseFloat(receivedAmount) >= total && (
+                    {parseFloat(receivedAmount) >= target && (
                       <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-md">
                         <p className="font-medium">Troco:</p>
                         <p className="text-xl font-bold">R$ {calculateChange().toFixed(2)}</p>
@@ -263,7 +269,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                       <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md">
                         <p className="font-medium">Valor da parcela:</p>
                         <p className="text-xl font-bold">
-                          {parseInt(installments)}x de R$ {(total / parseInt(installments)).toFixed(2)}
+                          {parseInt(installments)}x de R$ {(target / parseInt(installments)).toFixed(2)}
                         </p>
                       </div>
                     )}
