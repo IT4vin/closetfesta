@@ -100,8 +100,9 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
   };
   useEffect(()=>{
     const keydown=(e:KeyboardEvent)=>{
-      const el=e.target as HTMLElement|null;
-      const editing=el?.matches('input,textarea,select,[contenteditable="true"]')??false;
+      const el=e.target;
+      const editing=el instanceof HTMLElement &&
+        el.matches('input,textarea,select,[contenteditable="true"]');
       if(document.querySelector('[role="dialog"]'))return;
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="b"){
         e.preventDefault();setAdvanced(true);
