@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Plus, RefreshCw, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import PermissionManager from "@/lib/permissions";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,9 @@ const ClientsPage = () => {
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [originSaving, setOriginSaving] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const canUpdate = PermissionManager.hasPermission("clients", "update");
   const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", document: "", origin: "" });
 
   useEffect(() => {
@@ -97,6 +102,23 @@ const ClientsPage = () => {
     }
   };
 
+  const updateOrigin = async (id: string, origin: string) => {
+    if (!canUpdate || originSaving) return;
+    setOriginSaving(id);
+    try {
+      const { data, error: updateError } = await supabase.from("clients")
+        .update({ acquisition_source: origin || null })
+        .eq("id", id).select("id").single();
+      if (updateError || !data?.id) throw updateError || new Error("Alteração não confirmada");
+      setClients(current => current.map(client => client.id===id
+        ? { ...client, acquisition_source: origin || null } : client));
+      await queryClient.invalidateQueries({ queryKey: ["closet-live-operations"] });
+      toast({ title: "Origem atualizada", description: "Alteração salva no Supabase." });
+    } catch {
+      toast({ title: "Erro ao atualizar", description: "A origem não foi alterada no banco.", variant: "destructive" });
+    } finally { setOriginSaving(null); }
+  };
+
   return (
     <div className="page-transition w-full space-y-5">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -123,7 +145,16 @@ const ClientsPage = () => {
               {client.phone && <p className="text-sm text-muted-foreground">{client.phone}</p>}
               {client.email && <p className="text-sm text-muted-foreground break-words">{client.email}</p>}
               {client.document && <p className="text-xs text-muted-foreground">Documento: {client.document}</p>}
-              <p className="text-xs text-muted-foreground">Origem: {client.acquisition_source || "Não informado"}</p>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground" htmlFor={`client-source-${client.id}`}>Origem do cliente</label>
+                {canUpdate ? <select id={`client-source-${client.id}`} className="h-9 w-full rounded border bg-background px-2 text-xs"
+                  value={client.acquisition_source || ""} disabled={originSaving === client.id}
+                  onChange={e => void updateOrigin(client.id,e.target.value)}>
+                  <option value="">Não informado</option>
+                  {["Instagram","Indicação","Google","Shopping","WhatsApp","Outros"].map(o=>
+                    <option key={o} value={o}>{o}</option>)}
+                </select> : <p className="text-xs">{client.acquisition_source || "Não informado"}</p>}
+              </div>
               <p className="text-xs text-muted-foreground">Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}</p>
             </div>
           ))}
