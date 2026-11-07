@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RentalItemActions from "@/components/pdv/RentalItemActions";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
+import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
 import PermissionManager from "@/lib/permissions";
 import { useAuth } from "@/stores/authStore";
 import { contactLinks, loadRentalOrderDetail, paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
@@ -33,7 +34,7 @@ const methodLabels:Record<string,string>={
 };
 function Step({title,when,Icon}:{title:string,when:string,Icon:typeof CalendarDays}){
   return <div className="flex min-w-0 items-start gap-2 rounded-lg bg-slate-50 px-3 py-3">
-    <span className="rounded-md bg-blue-100 p-2 text-blue-700"><Icon className="h-4 w-4"/></span>
+    <span className="rounded-md bg-marsala-100 p-2 text-marsala-800"><Icon className="h-4 w-4"/></span>
     <div className="min-w-0"><p className="text-xs font-semibold text-slate-700">{title}</p>
       <p className="mt-1 break-words text-xs text-muted-foreground">{when}</p></div>
   </div>;
@@ -49,6 +50,12 @@ export default function RentalOrderDetail(){
   const canReadPayments=PermissionManager.hasPermission("payments","read");
   const canRecord=PermissionManager.hasPermission("payments","create");
   const [showPayment,setShowPayment]=useState(false);
+  const editor=React.useRef<OrderEditorController>(null);
+  const role=user?.role?.id;
+  const manager=role==="admin"||role==="manager";
+  const canEditDates=manager||role==="staff";
+  const openEditor=(action:Parameters<OrderEditorController["open"]>[0],opts?:{itemId?:string;paymentId?:string})=>
+    editor.current?.open(action,opts);
   const queryClient=useQueryClient();
   const validId=Boolean(id&&/^[a-f0-9]{8}-[a-f0-9-]{27,}$/i.test(id));
   const query=useQuery({
@@ -82,7 +89,7 @@ export default function RentalOrderDetail(){
   if(!canRead)return <div className="rounded-xl border bg-white p-8" role="alert">Seu perfil não tem permissão para consultar pedidos.</div>;
   if(!validId)return <div className="rounded-xl border bg-white p-8">
     <p role="alert">Número de pedido inválido.</p>
-    <Link to="/pdv?tab=pedidos" className="mt-4 inline-block text-sm text-blue-700 underline">Voltar aos pedidos</Link>
+    <Link to="/pdv?tab=pedidos" className="mt-4 inline-block text-sm text-marsala-800 underline">Voltar aos pedidos</Link>
   </div>;
   if(query.isPending)return <div className="rounded-xl border bg-white p-8 text-sm">Carregando pedido, cliente e pagamentos no Supabase...</div>;
   if(query.isError)return <Card className="border-red-200"><CardContent className="space-y-3 p-6">
@@ -109,6 +116,7 @@ export default function RentalOrderDetail(){
       </Button>
     </div>
 
+    <OrderEditPanel ref={editor} detail={detail} onChanged={refresh}/>
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_315px]">
       <div className="min-w-0 space-y-4">
         <Card className="border-slate-200 shadow-sm">
@@ -123,9 +131,14 @@ export default function RentalOrderDetail(){
         <Card className="shadow-sm">
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4 text-blue-600"/>Produtos do pedido ({order.items.length})
+              <Package className="h-4 w-4 text-marsala-700"/>Produtos do pedido ({order.items.length})
             </CardTitle>
-            <Badge variant="outline">{labelStatus(order.status)}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {manager&&order.status!=="cancelled"&&order.status!=="completed"&&
+                <Button size="sm" className="bg-marsala text-white hover:bg-marsala-700 print:hidden"
+                  onClick={()=>openEditor("add_item")}>Incluir produto</Button>}
+              <Badge variant="outline">{labelStatus(order.status)}</Badge>
+            </div>
           </div></CardHeader>
           <CardContent className="divide-y">
             {detail.imagesError&&<p className="py-3 text-xs text-amber-700">Fotografias indisponíveis: {detail.imagesError}</p>}
@@ -169,7 +182,7 @@ export default function RentalOrderDetail(){
         <Card className="shadow-sm">
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Wallet className="h-4 w-4 text-blue-600"/>Pagamentos</CardTitle>
+              <Wallet className="h-4 w-4 text-marsala-700"/>Pagamentos</CardTitle>
             {canRecord && financial && financial.remaining>0 && order.status!=="cancelled"&&
               <Button size="sm" className="print:hidden" onClick={()=>setShowPayment(v=>!v)}>
                 <CreditCard className="mr-2 h-4 w-4"/> {showPayment?"Fechar formulário":"Novo pagamento"}
@@ -208,7 +221,7 @@ export default function RentalOrderDetail(){
         </Card>
 
         <Card className="shadow-sm"><CardHeader className="border-b pb-4">
-          <CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4 text-blue-600"/>Observações do pedido</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base"><FileText className="h-4 w-4 text-marsala-700"/>Observações do pedido</CardTitle>
         </CardHeader><CardContent className="py-5">
           <p className="whitespace-pre-wrap rounded-lg border bg-slate-50 p-4 text-sm text-slate-700">
             {order.observations?.trim()||"Nenhuma observação registrada neste contrato."}
@@ -225,12 +238,12 @@ export default function RentalOrderDetail(){
       </div>
 
       <aside className="min-w-0 space-y-4 xl:sticky xl:top-4">
-        <div className="rounded-xl bg-blue-600 p-5 text-white shadow-sm">
-          <p className="text-xs font-medium text-blue-100">Pedido de aluguel</p>
+        <div className="rounded-xl bg-marsala p-5 text-white shadow-sm">
+          <p className="text-xs font-medium text-marsala-100">Pedido de aluguel</p>
           <p className="my-1 break-all text-2xl font-bold">{order.order_number}</p>
           <Badge className="my-2 border-white/30 bg-white/15 text-white hover:bg-white/15">{labelStatus(order.status)}</Badge>
           <div className="mt-3 flex items-start gap-2">
-            <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-blue-100"/>
+            <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-marsala-100"/>
             <h2 className="break-words text-xl font-semibold leading-tight">{client.full_name}</h2>
           </div>
           <div className="mt-4 space-y-2 text-sm">
@@ -238,15 +251,15 @@ export default function RentalOrderDetail(){
               <Phone className="h-4 w-4"/><a className="underline underline-offset-2" href={contact.tel??undefined}>{client.phone}</a>
               {contact.whatsapp&&<a href={contact.whatsapp} target="_blank" rel="noopener noreferrer"
                 className="rounded-md bg-white/15 px-2 py-1 text-xs underline underline-offset-2">WhatsApp</a>}
-            </div>:<p className="text-blue-100">Telefone não cadastrado</p>}
+            </div>:<p className="text-marsala-100">Telefone não cadastrado</p>}
             {client.email&&<a className="flex items-start gap-2 break-all underline underline-offset-2"
               href={`mailto:${client.email}`}><Mail className="mt-0.5 h-4 w-4 shrink-0"/>{client.email}</a>}
             {client.document&&<p>Documento: {client.document}</p>}
             {address&&<p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0"/>{address}</p>}
             {client.notes&&<p className="rounded-lg bg-white/10 p-2 text-xs">Observações do cadastro: {client.notes}</p>}
           </div>
-          <p className="mt-5 text-xs text-blue-100">Criado em {timestamp(order.created_at)}</p>
-          {detail.attendant&&<p className="mt-1 text-xs text-blue-100">Atendido por {detail.attendant}</p>}
+          <p className="mt-5 text-xs text-marsala-100">Criado em {timestamp(order.created_at)}</p>
+          {detail.attendant&&<p className="mt-1 text-xs text-marsala-100">Atendido por {detail.attendant}</p>}
         </div>
         <Card className="shadow-sm"><CardContent className="space-y-3 p-5">
           <div className="flex justify-between gap-2 text-sm"><span className="text-muted-foreground">Subtotal</span>
@@ -261,7 +274,7 @@ export default function RentalOrderDetail(){
               <strong className={financial.remaining>0?"text-rose-600":"text-emerald-700"}>{currency(financial.remaining)}</strong></div></>:
             <p className="rounded bg-amber-50 p-2 text-xs text-amber-900">Informações financeiras restritas ao seu perfil.</p>}
           {canRecord&&financial&&financial.remaining>0&&order.status!=="cancelled"&&
-            <Button className="w-full bg-teal-600 hover:bg-teal-700 print:hidden" onClick={()=>setShowPayment(true)}>
+            <Button className="w-full bg-marsala hover:bg-marsala-700 print:hidden" onClick={()=>setShowPayment(true)}>
               <Wallet className="mr-2 h-4 w-4"/>Novo pagamento
             </Button>}
           <Button variant="outline" className="w-full print:hidden" onClick={()=>window.print()}>
