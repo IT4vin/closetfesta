@@ -11,8 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/stores/authStore";
 import PermissionManager from "@/lib/permissions";
-import { supabase } from "@/integrations/supabase/client";
 import type { OrderDetail } from "@/lib/rentalOrderDetails";
+import { fetchAllRows } from "@/hooks/useLiveClosetData";
 import { editRentalOrder, loadRentalOrderAudit, type OrderEditAction } from "@/lib/rentalOrderEditing";
 
 type EditorValues=Record<string,string>;
@@ -89,25 +89,22 @@ function OrderEditPanel({detail,onChanged},ref){
     queryKey:["order-editor-clients"],
     enabled:Boolean(editor?.action==="client_reassign"&&manager),
     queryFn:async()=>{
-      const {data,error}=await supabase.from("clients").select("id,full_name").order("full_name").limit(500);
-      if(error)throw new Error(error.message);
-      return (data??[]) as ClientChoice[];
+      const rows=await fetchAllRows<ClientChoice>("clients","id,full_name");
+      return rows.sort((a,b)=>a.full_name.localeCompare(b.full_name,"pt-BR"));
     },
   });
   const catalog=useQuery({
     queryKey:["order-editor-catalog"],
     enabled:Boolean((editor?.action==="add_item"||editor?.action==="replace_item")&&manager),
     queryFn:async()=>{
-      const {data,error}=await supabase.from("products")
-        .select("id,name,sku,price,metadata,product_images(url,is_primary,position)")
-        .eq("active",true).is("deleted_at",null).order("name").limit(500);
-      if(error)throw new Error(error.message);
-      return (data??[]).map((p:any)=>({
+      const data=await fetchAllRows<any>("products",
+        "id,name,sku,price,metadata,active,deleted_at,product_images(url,is_primary,position)");
+      return data.filter((p:any)=>p.active&&!p.deleted_at).map((p:any)=>({
         id:p.id,name:p.name,sku:p.sku,
         price:Number(p.metadata?.rental_price??p.price),
         image:(p.product_images??[]).sort((a:any,b:any)=>
           Number(b.is_primary)-Number(a.is_primary)||Number(a.position)-Number(b.position))[0]?.url??null,
-      })) as CatalogEntry[];
+      })).sort((a:CatalogEntry,b:CatalogEntry)=>a.name.localeCompare(b.name,"pt-BR")) as CatalogEntry[];
     },
   });
   const audit=useQuery({
