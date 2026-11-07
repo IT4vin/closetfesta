@@ -72,7 +72,7 @@ export async function fetchAllRows<T>(table: string, fields: string): Promise<T[
 export async function loadLiveClosetData(): Promise<LiveClosetData> {
   const [products, clients, appointments, contracts, items, units] = await Promise.all([
     fetchAllRows<LiveProduct>("products", "id,sku,name,price,category_id,stock_quantity,active,deleted_at"),
-    fetchAllRows<LiveClient>("clients", "id,full_name"),
+    fetchAllRows<LiveClient>("clients", "id,full_name,acquisition_source"),
     fetchAllRows<LiveAppointment>("appointments", "id,client_id,title,description,start_at,end_at,status"),
     fetchAllRows<LiveContract>("rental_contracts", "id,contract_number,client_id,created_by,status,total,created_at"),
     fetchAllRows<LiveItem>("rental_items", "id,contract_id,product_id,unit_id,unit_price,discount,status,try_on_date,pickup_date,event_date,return_date,actual_return_at"),
