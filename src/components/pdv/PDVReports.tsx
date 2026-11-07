@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
 import { useLiveClosetData, useLiveFinanceData, moneyBRL, dateTimeBR } from "@/hooks/useLiveClosetData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +61,9 @@ export default function PDVReports() {
         {contracts.length===0&&<p className="py-4 text-sm text-muted-foreground">Nenhum contrato no período.</p>}
         {[...contracts].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,15).map(c=>
           <div key={c.id} className="flex justify-between gap-3 py-3 text-sm">
-            <span>ALU-{String(c.contract_number).padStart(6,"0")} • {c.status} • {dateTimeBR(c.created_at)}</span>
+            <Link to={`/pdv/pedidos/${c.id}`} className="text-blue-700 hover:underline underline-offset-2">
+              ALU-{String(c.contract_number).padStart(6,"0")} • {c.status} • {dateTimeBR(c.created_at)}
+            </Link>
             <strong>{moneyBRL(Number(c.total))}</strong></div>)}
       </CardContent></Card>
     </div>
@@ -68,8 +71,10 @@ export default function PDVReports() {
       {payments.length===0&&<p className="py-4 text-sm text-muted-foreground">Nenhum recebimento no período.</p>}
       {[...payments].sort((a,b)=>b.recorded_at.localeCompare(a.recorded_at)).slice(0,50).map(p=>
         <div key={p.id} className="flex flex-wrap justify-between gap-3 py-3 text-sm">
-          <span>ALU-{String(contractsById.get(p.contract_id)?.contract_number??"—").padStart(6,"0")}
-            • {methodLabel[p.method]??p.method} • {dateTimeBR(p.recorded_at)} • {p.status}</span>
+          <Link to={`/pdv/pedidos/${p.contract_id}`} className="text-blue-700 hover:underline underline-offset-2">
+              ALU-{String(contractsById.get(p.contract_id)?.contract_number??"—").padStart(6,"0")}
+              {" "}• {methodLabel[p.method]??p.method} • {dateTimeBR(p.recorded_at)} • {p.status}
+            </Link>
           <strong>{moneyBRL(Number(p.amount))}</strong></div>)}
     </CardContent></Card>
   </div>;
