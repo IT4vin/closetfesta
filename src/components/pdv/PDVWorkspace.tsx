@@ -83,10 +83,10 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
     &&(!dates.tryOnDate||dates.tryOnDate<dates.pickupDate));
   const ready=cart.length>0&&Boolean(customer?.id)&&datesValid&&total>=0&&!processing;
   const canAdd=(product:Product)=>isAvailableForRental(product)
-    &&(cart.find(item=>item.id===product.id)?.quantity??0)<product.quantity;
+    &&(cart.find(item=>item.id===product.id)?.quantity??0)<Math.min(20,product.quantity);
   const add=(product:Product)=>{
     if(!canAdd(product))return;
-    onAdd(product,Math.min(Math.max(1,qty),Math.max(0,product.quantity-(cart.find(item=>item.id===product.id)?.quantity??0))));
+    onAdd(product,Math.min(Math.max(1,qty),Math.max(0,Math.min(20,product.quantity)-(cart.find(item=>item.id===product.id)?.quantity??0))));
     setSearchValue("");setShowMatches(false);setQty(1);
     searchRef.current?.focus();
   };
@@ -102,6 +102,7 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
     const keydown=(e:KeyboardEvent)=>{
       const el=e.target as HTMLElement|null;
       const editing=el?.matches('input,textarea,select,[contenteditable="true"]')??false;
+      if(document.querySelector('[role="dialog"]'))return;
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="b"){
         e.preventDefault();setAdvanced(true);
       }else if(e.key==="F8"){
