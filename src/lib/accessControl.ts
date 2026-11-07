@@ -26,6 +26,7 @@ type PermissionMatrix = Readonly<Record<string, readonly string[]>>;
 const ADMIN_ACTIONS: PermissionMatrix = {
   orders: ["read", "create", "update", "delete", "return", "cancel", "approve"],
   reservations: ["read", "create", "update", "delete", "cancel", "approve"],
+  schedule: ["read", "create", "update", "delete"],
   products: ["read", "create", "update", "delete"],
   clients: ["read", "create", "update", "delete"],
   cash: ["read", "create", "update", "delete", "close"],
@@ -42,6 +43,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
   manager: {
     orders: ADMIN_ACTIONS.orders,
     reservations: ADMIN_ACTIONS.reservations,
+    schedule: ADMIN_ACTIONS.schedule,
     products: ADMIN_ACTIONS.products,
     clients: ADMIN_ACTIONS.clients,
     cash: ADMIN_ACTIONS.cash,
@@ -55,6 +57,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
   staff: {
     orders: ["read", "create", "update"],
     reservations: ["read", "create", "update"],
+    schedule: ["read", "create", "update"],
     products: ["read"],
     clients: ["read", "create", "update"],
     inventory: ["read"],
@@ -63,6 +66,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     orders: ["read", "create"],
     products: ["read"],
     clients: ["read", "create"],
+    schedule: ["read"],
     cash: ["read", "create", "update", "close"],
     payments: ["read", "create"],
     reports: ["read"],

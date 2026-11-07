@@ -14,6 +14,11 @@ describe("controle de acesso (frontend — não substitui RLS)", () => {
     expect(hasRolePermission("admin", "users", "delete")).toBe(true);
     expect(hasRolePermission("manager", "financial", "read")).toBe(true);
     expect(hasRolePermission("staff", "orders", "create")).toBe(true);
+    expect(hasRolePermission("admin", "schedule", "create")).toBe(true);
+    expect(hasRolePermission("manager", "schedule", "create")).toBe(true);
+    expect(hasRolePermission("staff", "schedule", "create")).toBe(true);
+    expect(hasRolePermission("cashier", "schedule", "read")).toBe(true);
+    expect(hasRolePermission("cashier", "schedule", "create")).toBe(false);
     expect(hasRolePermission("staff", "financial", "delete")).toBe(false);
     expect(hasRolePermission("cashier", "payments", "create")).toBe(true);
     expect(hasRolePermission("cashier", "products", "delete")).toBe(false);
