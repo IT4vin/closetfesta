@@ -63,7 +63,11 @@ function ItemDates({fields,setField}:{fields:EditorValues;setField:(key:string,v
         onChange={e=>setField(key,e.target.value)}/></div>)}</div>;
 }
 
-export default function OrderEditPanel({detail,onChanged}:{detail:OrderDetail;onChanged:()=>Promise<unknown>|void}){
+export type OrderEditorController={
+  open:(action:OrderEditAction,opts?:{itemId?:string;paymentId?:string})=>void;
+};
+export default React.forwardRef<OrderEditorController,{detail:OrderDetail;onChanged:()=>Promise<unknown>|void}>(
+function OrderEditPanel({detail,onChanged},ref){
   const {toast}=useToast();
   const {user}=useAuth();
   const queryClient=useQueryClient();
@@ -144,6 +148,7 @@ export default function OrderEditPanel({detail,onChanged}:{detail:OrderDetail;on
       action==="order_discount"?{amount:String(globalDiscount)}:{};
     setEditor({action,...opts});setFields(base);setReason("");setSearch("");setError("");request.current=null;
   };
+  React.useImperativeHandle(ref,()=>({open}));
   const close=()=>{if(!busy){setEditor(null);setError("");}};
   const validateDate=()=>{
     if(!fields.pickup_date||!fields.event_date||!fields.return_date ||
@@ -372,8 +377,4 @@ export default function OrderEditPanel({detail,onChanged}:{detail:OrderDetail;on
     {/* Ações da tela principal são renderizadas nos respectivos blocos pelo componente abaixo. */}
     <span className="hidden" data-order-editor-active={editor?.action??""}/>
   </>;
-}
-
-export type OrderEditorController={
-  open:(action:OrderEditAction,opts?:{itemId?:string;paymentId?:string})=>void;
-};
+});
