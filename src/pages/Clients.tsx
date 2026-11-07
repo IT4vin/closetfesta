@@ -1,250 +1,198 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, Mail, Phone, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import React, { useEffect, useState } from "react";
+import { Plus, RefreshCw, Search, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import PermissionManager from "@/lib/permissions";
 import { toast } from "@/hooks/use-toast";
-import FilterBar from "@/components/common/FilterBar";
-import ClientForm from "@/components/clients/ClientForm";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// In a real app, this would come from an API/database
-const clients = [
-  {
-    id: 1,
-    name: "Ana Silva",
-    email: "ana.silva@example.com",
-    phone: "(11) 98765-4321",
-    lastRental: "12/05/2023",
-    totalRentals: 5,
-    totalSpent: 1500,
-  },
-  {
-    id: 2,
-    name: "Pedro Santos",
-    email: "pedro.santos@example.com",
-    phone: "(11) 91234-5678",
-    lastRental: "05/06/2023",
-    totalRentals: 2,
-    totalSpent: 750,
-  },
-  {
-    id: 3,
-    name: "Maria Oliveira",
-    email: "maria.oliveira@example.com",
-    phone: "(11) 99876-5432",
-    lastRental: "20/04/2023",
-    totalRentals: 8,
-    totalSpent: 2400,
-  },
-  {
-    id: 4,
-    name: "João Costa",
-    email: "joao.costa@example.com",
-    phone: "(11) 95678-1234",
-    lastRental: "15/06/2023",
-    totalRentals: 1,
-    totalSpent: 400,
-  },
-  {
-    id: 5,
-    name: "Carla Mendes",
-    email: "carla.mendes@example.com",
-    phone: "(11) 93456-7890",
-    lastRental: "02/06/2023",
-    totalRentals: 3,
-    totalSpent: 950,
-  },
-  {
-    id: 6,
-    name: "Roberto Alves",
-    email: "roberto.alves@example.com",
-    phone: "(11) 97890-1234",
-    lastRental: "10/05/2023",
-    totalRentals: 6,
-    totalSpent: 1800,
-  },
-];
+type Client = {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  document: string | null;
+  acquisition_source: string | null;
+  created_at: string;
+};
+
+const PAGE_SIZE = 30;
 
 const ClientsPage = () => {
-  const navigate = useNavigate();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [search, setSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [sortOrder, setSortOrder] = useState("");
-  const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
-  
-  // Clear search handler
-  const handleClearSearch = () => {
-    setSearchTerm("");
-  };
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [originSaving, setOriginSaving] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const canUpdate = PermissionManager.hasPermission("clients", "update");
+  const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", document: "", origin: "" });
 
-  // Handle new client creation
-  const handleNewClient = () => {
-    setIsNewClientModalOpen(true);
-  };
+  useEffect(() => {
+    const timeout = setTimeout(() => { setSearchTerm(search.trim()); setPage(0); }, 250);
+    return () => clearTimeout(timeout);
+  }, [search]);
 
-  // Handle client form submission
-  const handleClientSubmit = (clientData: any) => {
-    console.log("✅ Novo cliente criado:", clientData);
-    
-    // In a real app, save to backend here
-    
-    toast({
-      title: "Cliente cadastrado",
-      description: "O cliente foi cadastrado com sucesso!",
-    });
-    
-    setIsNewClientModalOpen(false);
-  };
-
-  // Handle client form cancellation
-  const handleClientCancel = () => {
-    setIsNewClientModalOpen(false);
-  };
-  
-  // Filter clients based on search term
-  const filteredClients = clients.filter(client => 
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone.includes(searchTerm)
-  );
-
-  // Define the filter options for the FilterBar
-  const selectFilters = [
-    {
-      name: "status",
-      label: "Status",
-      value: statusFilter,
-      onChange: setStatusFilter,
-      options: [
-        { value: "", label: "Todos os clientes" },
-        { value: "active", label: "Ativos" },
-        { value: "inactive", label: "Inativos" },
-        { value: "vip", label: "VIP" },
-      ]
-    },
-    {
-      name: "sort",
-      label: "Ordenar por",
-      value: sortOrder,
-      onChange: setSortOrder,
-      options: [
-        { value: "name", label: "Nome" },
-        { value: "spent", label: "Maior Gasto" },
-        { value: "frequency", label: "Maior Frequência" },
-        { value: "recent", label: "Mais Recente" },
-      ]
+  const loadClients = async () => {
+    setLoading(true);
+    setError("");
+    const term = searchTerm.slice(0, 70).replace(/[%,()]/g, "");
+    let query = supabase.from("clients")
+      .select("id, full_name, email, phone, document, acquisition_source, created_at", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (term) {
+      query = /[a-zA-ZÀ-ÿ]/.test(term) ? query.ilike("full_name", `%${term}%`) : query.ilike("document", `%${term}%`);
     }
-  ];
-  
-  return (
-    <div className="page-transition w-full">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 md:mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold mb-1 md:mb-2">Clientes</h1>
-          <p className="text-neutral-500 text-sm md:text-base">Gerencie seus clientes e histórico de aluguéis</p>
-        </div>
-        
-        <Button 
-          onClick={handleNewClient}
-          className="bg-marsala hover:bg-marsala-700 md:self-start"
-        >
-          <Plus size={18} className="mr-1 md:mr-2" />
-          <span>Novo Cliente</span>
-        </Button>
-      </header>
-      
-      {/* Filter bar component with clear search functionality */}
-      <FilterBar
-        searchPlaceholder="Buscar clientes por nome, email ou telefone..."
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectFilters={selectFilters}
-        showFilterButton={false}
-        onClearSearch={handleClearSearch}
-      />
-      
-      {/* Display count of filtered clients */}
-      <div className="mb-4 text-sm text-neutral-600">
-        {filteredClients.length} clientes encontrados
-      </div>
-      
-      {/* Client cards container */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {filteredClients.map((client) => (
-          <div 
-            key={client.id} 
-            className="premium-card card-hover"
-          >
-            <div className="p-4 md:p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-medium text-lg">{client.name}</h3>
-                  <p className="text-sm text-neutral-500">Cliente desde {client.lastRental}</p>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-marsala rounded-full flex items-center justify-center text-white font-medium">
-                  {client.name.charAt(0)}
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail size={16} className="text-neutral-400 flex-shrink-0" />
-                  <span className="truncate">{client.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone size={16} className="text-neutral-400 flex-shrink-0" />
-                  <span>{client.phone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar size={16} className="text-neutral-400 flex-shrink-0" />
-                  <span>Último aluguel: {client.lastRental}</span>
-                </div>
-              </div>
-              
-              <div className="border-t border-neutral-100 pt-3 flex justify-between mb-4">
-                <div>
-                  <p className="text-xs text-neutral-500">Total de aluguéis</p>
-                  <p className="font-medium">{client.totalRentals}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-neutral-500">Valor gasto</p>
-                  <p className="font-medium text-marsala">R$ {client.totalSpent.toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col xs:flex-row gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex-1 py-2 text-sm"
-                  onClick={() => navigate(`/clients/${client.id}`)}
-                >
-                  Ver Detalhes
-                </Button>
-                <Button 
-                  className="flex-1 py-2 text-sm text-marsala border border-marsala bg-transparent hover:bg-marsala-50"
-                >
-                  Agendar
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+    const { data, error: queryError, count } = await query;
+    if (queryError) {
+      setError("Não foi possível carregar os clientes. Confirme sua conexão e as permissões.");
+      setClients([]);
+    } else {
+      setClients((data ?? []) as Client[]);
+      setTotal(count ?? 0);
+    }
+    setLoading(false);
+  };
 
-      {/* New Client Modal */}
-      <Sheet open={isNewClientModalOpen} onOpenChange={setIsNewClientModalOpen}>
-        <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Novo Cliente</SheetTitle>
-          </SheetHeader>
-          <ClientForm 
-            onSubmit={handleClientSubmit} 
-            onCancel={handleClientCancel} 
-          />
+  useEffect(() => { void loadClients(); }, [page, searchTerm]);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (newClient.name.trim().length < 2) {
+      toast({ title: "Nome obrigatório", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      if (newClient.document.trim()) {
+        const { data: existing, error: checkError } = await supabase.from("clients")
+          .select("id").eq("document", newClient.document.trim()).maybeSingle();
+        if (checkError) throw checkError;
+        if (existing) {
+          toast({ title: "Cliente já cadastrado", description: "Já existe um cadastro para este documento.", variant: "destructive" });
+          return;
+        }
+      }
+      const { error: insertError } = await supabase.from("clients").insert({
+        full_name: newClient.name.trim(),
+        phone: newClient.phone.trim() || null,
+        email: newClient.email.trim() || null,
+        document: newClient.document.trim() || null,
+        acquisition_source: newClient.origin.trim() || null,
+      });
+      if (insertError) throw insertError;
+      toast({ title: "Cliente salvo", description: "Cadastro registrado no banco de dados." });
+      setNewClient({ name: "", phone: "", email: "", document: "", origin: "" });
+      setDialogOpen(false);
+      setPage(0);
+      void loadClients();
+    } catch {
+      toast({ title: "Erro ao salvar", description: "Os dados não foram registrados. Tente novamente.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateOrigin = async (id: string, origin: string) => {
+    if (!canUpdate || originSaving) return;
+    setOriginSaving(id);
+    try {
+      const { data, error: updateError } = await supabase.from("clients")
+        .update({ acquisition_source: origin || null })
+        .eq("id", id).select("id").single();
+      if (updateError || !data?.id) throw updateError || new Error("Alteração não confirmada");
+      setClients(current => current.map(client => client.id===id
+        ? { ...client, acquisition_source: origin || null } : client));
+      await queryClient.invalidateQueries({ queryKey: ["closet-live-operations"] });
+      toast({ title: "Origem atualizada", description: "Alteração salva no Supabase." });
+    } catch {
+      toast({ title: "Erro ao atualizar", description: "A origem não foi alterada no banco.", variant: "destructive" });
+    } finally { setOriginSaving(null); }
+  };
+
+  return (
+    <div className="page-transition w-full space-y-5">
+      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div><h1 className="text-2xl md:text-3xl font-semibold">Clientes</h1>
+          <p className="text-sm text-muted-foreground">Cadastros reais do Supabase. Histórico de locações em implementação.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => void loadClients()} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" />Atualizar</Button>
+          <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" />Novo cliente</Button>
+        </div>
+      </header>
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Buscar por nome ou documento" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+      <div className="text-sm text-muted-foreground">{total} cadastro(s) encontrado(s)</div>
+      {loading ? <p className="py-8 text-center text-sm text-muted-foreground">Carregando clientes...</p> :
+        error ? <div role="alert" className="rounded-lg border border-destructive p-4 text-destructive">{error}</div> :
+        clients.length === 0 ? <div className="rounded-lg border p-8 text-center text-muted-foreground">Nenhum cliente encontrado.</div> :
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {clients.map(client => (
+            <div key={client.id} className="rounded-lg border bg-card p-4 space-y-1">
+              <p className="font-semibold">{client.full_name}</p>
+              {client.phone && <p className="text-sm text-muted-foreground">{client.phone}</p>}
+              {client.email && <p className="text-sm text-muted-foreground break-words">{client.email}</p>}
+              {client.document && <p className="text-xs text-muted-foreground">Documento: {client.document}</p>}
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground" htmlFor={`client-source-${client.id}`}>Origem do cliente</label>
+                {canUpdate ? <select id={`client-source-${client.id}`} className="h-9 w-full rounded border bg-background px-2 text-xs"
+                  value={client.acquisition_source || ""} disabled={originSaving === client.id}
+                  onChange={e => void updateOrigin(client.id,e.target.value)}>
+                  <option value="">Não informado</option>
+                  {["Instagram","Indicação","Google","Shopping","WhatsApp","Outros"].map(o=>
+                    <option key={o} value={o}>{o}</option>)}
+                </select> : <p className="text-xs">{client.acquisition_source || "Não informado"}</p>}
+              </div>
+              <p className="text-xs text-muted-foreground">Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}</p>
+            </div>
+          ))}
+        </div>}
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-sm text-muted-foreground">Página {page + 1} de {Math.max(1, Math.ceil(total / PAGE_SIZE))}</span>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setPage(n => Math.max(0, n - 1))} disabled={loading || page === 0}>Anterior</Button>
+          <Button variant="outline" onClick={() => setPage(n => n + 1)} disabled={loading || (page + 1) * PAGE_SIZE >= total}>Próxima</Button>
+        </div>
+      </div>
+      <Sheet open={dialogOpen} onOpenChange={open => !saving && setDialogOpen(open)}>
+        <SheetContent side="right" className="w-[90vw] sm:max-w-[450px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Novo cliente</SheetTitle></SheetHeader>
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <div><Label htmlFor="client-name">Nome completo *</Label>
+              <Input id="client-name" value={newClient.name} onChange={e => setNewClient(s => ({ ...s, name: e.target.value }))} required /></div>
+            <div><Label htmlFor="client-phone">Telefone</Label>
+              <Input id="client-phone" value={newClient.phone} onChange={e => setNewClient(s => ({ ...s, phone: e.target.value }))} /></div>
+            <div><Label htmlFor="client-email">E-mail</Label>
+              <Input id="client-email" type="email" value={newClient.email} onChange={e => setNewClient(s => ({ ...s, email: e.target.value }))} /></div>
+            <div><Label htmlFor="client-doc">CPF/CNPJ</Label>
+              <Input id="client-doc" value={newClient.document} onChange={e => setNewClient(s => ({ ...s, document: e.target.value }))} /></div>
+            <div><Label htmlFor="client-origin">Como conheceu a loja?</Label>
+              <select id="client-origin" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={newClient.origin}
+                onChange={e => setNewClient(s => ({ ...s, origin: e.target.value }))}>
+                <option value="">Não informado</option>
+                <option value="Instagram">Instagram</option><option value="Indicação">Indicação</option>
+                <option value="Google">Google</option><option value="Shopping">Shopping</option>
+                <option value="WhatsApp">WhatsApp</option><option value="Outros">Outros</option>
+              </select></div>
+            <Button type="submit" className="w-full" disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar cliente
+            </Button>
+          </form>
         </SheetContent>
       </Sheet>
     </div>
   );
 };
-
 export default ClientsPage;

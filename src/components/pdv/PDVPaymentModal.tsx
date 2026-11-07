@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Wallet, 
   CreditCard, 
@@ -35,7 +36,7 @@ interface PDVPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   total: number;
-  onPaymentComplete: (paymentDetails: any) => void;
+  onPaymentComplete: (paymentDetails: any) => Promise<void>;
   customer: { name: string; document: string } | null;
 }
 
@@ -54,6 +55,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   const [splitPayment, setSplitPayment] = useState(false);
   const [payments, setPayments] = useState<{method: string; value: number}[]>([]);
   const [currentPaymentValue, setCurrentPaymentValue] = useState<string>("");
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   
   // Reset state when modal opens
   React.useEffect(() => {
@@ -65,6 +67,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
       setSplitPayment(false);
       setPayments([]);
       setCurrentPaymentValue("");
+      setPaymentConfirmed(false);
     }
   }, [isOpen]);
 
@@ -73,7 +76,6 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     { id: "credit", name: "Cartão de Crédito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "debit", name: "Cartão de Débito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "pix", name: "PIX", icon: <Wallet className="h-5 w-5" /> },
-    { id: "store", name: "Crediário", icon: <Receipt className="h-5 w-5" /> },
   ];
   
   const calculateChange = (): number => {
@@ -123,37 +125,39 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     setCurrentPaymentValue("");
   };
   
-  const handleFinishPayment = () => {
+  const handleFinishPayment = async () => {
+    if (!paymentConfirmed || isProcessing) return;
     setIsProcessing(true);
-    
-    // In a real app, this would connect to payment processor API
-    setTimeout(() => {
-      // Collect payment details for receipt/records
+    try {
+      // Registro manual: nenhuma cobrança eletrônica é iniciada pelo sistema.
       const paymentDetails = {
         total,
         customer,
-        date: new Date(),
+        date: new Date().toISOString(),
         payments: splitPayment ? payments : [{
           method: paymentMethod,
           value: total,
-          installments: paymentMethod === "credit" ? parseInt(installments) : 1
+          installments: paymentMethod === "credit" ? parseInt(installments) : 1,
         }],
-        change: paymentMethod === "cash" ? calculateChange() : 0
+        change: paymentMethod === "cash" ? calculateChange() : 0,
+        registration_type: "operator_recorded",
       };
-      
-      onPaymentComplete(paymentDetails);
+      await onPaymentComplete(paymentDetails);
+    } catch (error) {
+      toast({
+        title: "Operação não concluída",
+        description: error instanceof Error ? error.message : "Não foi possível salvar no banco.",
+        variant: "destructive",
+      });
+    } finally {
       setIsProcessing(false);
-    }, 1500);
+    }
   };
   
   const isPaymentComplete = (): boolean => {
-    if (!splitPayment) {
-      // For single payment methods
-      return paymentMethod === "cash" ? receivedAmount !== "" : true;
-    } else {
-      // For split payments, ensure total amount is covered
-      return Math.abs(getRemainingAmount()) < 0.01;
-    }
+    if (!splitPayment) return paymentMethod !== "cash" || (Number(receivedAmount) >= total && total > 0);
+    const amount = getTotalPaid();
+    return amount > 0 && amount <= total;
   };
 
   return (
@@ -194,7 +198,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             // Single payment method
             <>
               <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="mb-6">
-                <TabsList className="grid grid-cols-3 sm:grid-cols-5">
+                <TabsList className="grid grid-cols-2 sm:grid-cols-4">
                   {paymentMethods.map(method => (
                     <TabsTrigger 
                       key={method.id} 
@@ -277,41 +281,14 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                     <div className="flex flex-col items-center justify-center p-4 border border-dashed border-gray-300 rounded-md mb-3">
                       <Plug className="h-12 w-12 text-gray-400 mb-2" />
                       <p className="text-center text-gray-500">
-                        Em uma implementação real, o QR code do PIX seria exibido aqui.
+                        Confirme o Pix no extrato da loja antes de registrar; não há integração bancária nesta tela.
                       </p>
                     </div>
-                    <p className="text-sm">Aguardando confirmação de pagamento...</p>
+                    <p className="text-sm">Registro manual: confira o comprovante externo antes de confirmar.</p>
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="store" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="storeInstallments">Parcelamento</Label>
-                      <select
-                        id="storeInstallments"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        value={installments}
-                        onChange={(e) => setInstallments(e.target.value)}
-                      >
-                        <option value="1">À vista</option>
-                        <option value="2">2x</option>
-                        <option value="3">3x</option>
-                        <option value="4">4x</option>
-                        <option value="5">5x</option>
-                        <option value="6">6x</option>
-                      </select>
-                    </div>
-                    
-                    {!customer && (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-md">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          Cliente não identificado. Para crediário é necessário identificar o cliente.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
+
               </Tabs>
             </>
           ) : (
@@ -319,7 +296,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Tabs value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <TabsList className="grid grid-cols-3 sm:grid-cols-5">
+                  <TabsList className="grid grid-cols-2 sm:grid-cols-4">
                     {paymentMethods.map(method => (
                       <TabsTrigger 
                         key={method.id} 
@@ -399,13 +376,20 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
           )}
         </div>
         
+        <div className="my-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+          <Checkbox id="manual-payment-checked" checked={paymentConfirmed} onCheckedChange={(value) => setPaymentConfirmed(value === true)} />
+          <Label htmlFor="manual-payment-checked" className="text-xs leading-relaxed">
+            Confirmo que conferi o recebimento na maquininha, dinheiro ou extrato.
+            O sistema só registra manualmente o pagamento e não executa cobranças.
+          </Label>
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancelar
           </Button>
           <Button 
             onClick={handleFinishPayment} 
-            disabled={isProcessing || !isPaymentComplete() || (!customer && paymentMethod === "store")}
+            disabled={isProcessing || !paymentConfirmed || !isPaymentComplete() || !customer}
             className="bg-marsala hover:bg-marsala-700"
           >
             {isProcessing ? (
@@ -417,7 +401,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                 Processando...
               </>
             ) : (
-              "Finalizar Pagamento"
+              "Registrar recebimento e contrato"
             )}
           </Button>
         </DialogFooter>

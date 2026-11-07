@@ -23,6 +23,7 @@ import {
   LazyFinancial,
   LazyInventory,
   LazyPDV,
+  LazyRentalOrderDetail,
   LazyReports,
   LazySettings,
   LazyCatalog,
@@ -59,7 +60,7 @@ function App() {
   }
 
   // Tela de erro crítico
-  if (error) {
+  if (error && isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-red-50">
         <div className="text-center max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg">
@@ -155,6 +156,11 @@ function App() {
                         <Route path="pdv" element={
                           <ErrorBoundary level="component" enableRecovery={true}>
                             <LazyPDV />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="pdv/pedidos/:id" element={
+                          <ErrorBoundary level="component" enableRecovery={true}>
+                            <LazyRentalOrderDetail />
                           </ErrorBoundary>
                         } />
                         <Route path="catalog" element={

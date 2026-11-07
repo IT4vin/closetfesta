@@ -24,35 +24,8 @@ export const useCalendarState = () => {
     status: []
   });
   const [isFiltering, setIsFiltering] = useState(false);
-  const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([
-    {
-      id: "event-1",
-      title: "Casamento Silva",
-      type: "Aluguel",
-      typeColor: "marsala",
-      time: "18:00",
-      location: "Casa de Festas Elegance",
-      client: "Ana Silva"
-    },
-    {
-      id: "event-2",
-      title: "Prova de Vestido",
-      type: "Prova",
-      typeColor: "blue",
-      time: "14:30",
-      location: "Loja Central",
-      client: "Maria Oliveira"
-    },
-    {
-      id: "event-3",
-      title: "Ajuste Final",
-      type: "Ajuste",
-      typeColor: "amber",
-      time: "10:00",
-      location: "Atelier",
-      client: "Carla Mendes"
-    }
-  ]);
+  // Dados demonstrativos removidos. A agenda real usa AppointmentManager.
+  const todayEvents: TodayEvent[] = [];
 
   useEffect(() => {
     // In a real app, this would fetch today's events from an API

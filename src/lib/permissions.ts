@@ -4,8 +4,9 @@
 // para evitar uma refatoração em todo o app.
 
 import { supabase } from "@/integrations/supabase/client";
+import { hasRolePermission, resolveAppRole, ROLE_LABELS, ROLE_LEVELS, type AppRole } from "@/lib/accessControl";
 
-export type AppRole = "admin" | "manager" | "seller" | "viewer";
+export type { AppRole } from "@/lib/accessControl";
 
 export interface User {
   id: string;
@@ -58,20 +59,6 @@ export interface SessionData {
   device_info: { user_agent: string; ip?: string };
 }
 
-const ROLE_LEVELS: Record<AppRole, number> = {
-  admin: 1,
-  manager: 2,
-  seller: 3,
-  viewer: 4,
-};
-
-const ROLE_LABELS: Record<AppRole, string> = {
-  admin: "Administrador",
-  manager: "Gerente",
-  seller: "Vendedor",
-  viewer: "Visualizador",
-};
-
 function buildUser(
   authUser: { id: string; email?: string | null; user_metadata?: any },
   role: AppRole,
@@ -110,16 +97,19 @@ function buildUser(
 
 let cachedSession: SessionData | null = null;
 
+function activeSession(): SessionData | null {
+  if (!cachedSession) return null;
+  if (Date.parse(cachedSession.expires_at) <= Date.now()) return null;
+  return cachedSession;
+}
+
 async function fetchRole(userId: string): Promise<AppRole> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId);
-  const roles = (data ?? []).map((r) => r.role as AppRole);
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("manager")) return "manager";
-  if (roles.includes("seller")) return "seller";
-  return (roles[0] as AppRole) ?? "viewer";
+  if (error) throw new Error("Não foi possível verificar as permissões deste usuário.");
+  return resolveAppRole((data ?? []).map((entry) => entry.role));
 }
 
 async function buildSessionFromSupabase(): Promise<SessionData | null> {
@@ -127,6 +117,10 @@ async function buildSessionFromSupabase(): Promise<SessionData | null> {
   const s = data.session;
   if (!s) return null;
   const role = await fetchRole(s.user.id);
+  if (role === "viewer") {
+    cachedSession = null;
+    return null;
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -170,7 +164,10 @@ const PermissionManager = {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     const session = await buildSessionFromSupabase();
-    if (!session) throw new Error("Não foi possível iniciar a sessão.");
+    if (!session) {
+      await supabase.auth.signOut();
+      throw new Error("Usuário sem perfil autorizado. Solicite acesso ao administrador.");
+    }
     return session;
   },
 
@@ -180,11 +177,11 @@ const PermissionManager = {
   },
 
   isAuthenticated(): boolean {
-    return !!cachedSession;
+    return activeSession() !== null;
   },
 
   getCurrentSession(): SessionData | null {
-    return cachedSession;
+    return activeSession();
   },
 
   updateLastActivity() {
@@ -201,20 +198,24 @@ const PermissionManager = {
     cachedSession = null;
   },
 
-  hasPermission(_resource: string, _action: string): boolean {
-    return !!cachedSession;
+  hasPermission(resource: string, action: string): boolean {
+    const session = activeSession();
+    return session ? hasRolePermission(session.user.role.id, resource, action) : false;
   },
 
   getCurrentUser(): User | null {
-    return cachedSession?.user ?? null;
+    return activeSession()?.user ?? null;
   },
 };
 
 export function usePermissions() {
   return {
-    user: cachedSession?.user ?? null,
-    hasPermission: (_resource?: string, _action?: string) => !!cachedSession,
-    isAuthenticated: !!cachedSession,
+    user: PermissionManager.getCurrentUser(),
+    hasPermission: (resource?: string, action?: string) =>
+      resource !== undefined && action !== undefined
+        ? PermissionManager.hasPermission(resource, action)
+        : false,
+    isAuthenticated: PermissionManager.isAuthenticated(),
     logout: () => PermissionManager.logout(),
   };
 }
