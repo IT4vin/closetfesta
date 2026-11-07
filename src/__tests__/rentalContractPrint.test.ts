@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 import { rentalContractHtml, escapeContractHtml } from "@/lib/rentalContractPrint";
 import type { OrderDetail } from "@/lib/rentalOrderDetails";
 describe("contrato com dados reais",()=>{
