@@ -243,6 +243,7 @@ export default function RentalOrderDetail(){
               href={`mailto:${client.email}`}><Mail className="mt-0.5 h-4 w-4 shrink-0"/>{client.email}</a>}
             {client.document&&<p>Documento: {client.document}</p>}
             {address&&<p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0"/>{address}</p>}
+            {client.notes&&<p className="rounded-lg bg-white/10 p-2 text-xs">Observações do cadastro: {client.notes}</p>}
           </div>
           <p className="mt-5 text-xs text-blue-100">Criado em {timestamp(order.created_at)}</p>
           {detail.attendant&&<p className="mt-1 text-xs text-blue-100">Atendido por {detail.attendant}</p>}

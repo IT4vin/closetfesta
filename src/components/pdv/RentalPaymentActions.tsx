@@ -94,7 +94,13 @@ export default function RentalPaymentActions({
       setVerified(false);
       requestRef.current = null;
       await load();
-      if (onChanged) await onChanged();
+      // Atualizar a tela é independente da confirmação financeira no banco.
+      if (onChanged) {
+        try { await onChanged(); }
+        catch {
+          toast({ title: "Pagamento salvo", description: "Atualize a página para visualizar o novo saldo." });
+        }
+      }
     } catch (cause) {
       toast({ title: "Recebimento não registrado", description: cause instanceof Error ? cause.message : "Falha ao gravar.", variant: "destructive" });
     } finally {
