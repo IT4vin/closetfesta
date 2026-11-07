@@ -80,6 +80,7 @@ export default function RentalOrderDetail(){
     return m;
   },[detail]);
   const progressMap=useMemo(()=>new Map((detail?.itemProgress??[]).map(item=>[item.id,item])),[detail]);
+  const currentItems=order?.items.filter(item=>progressMap.get(item.id)?.status!=="cancelled")??[];
   const contact=contactLinks(client?.phone??null);
   const address=readableAddress(client?.address??null);
   const financial=detail?.payments?paymentTotals(order?.total??0,detail.payments):null;
@@ -122,17 +123,17 @@ export default function RentalOrderDetail(){
       <div className="min-w-0 space-y-4">
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="grid gap-2 p-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Step title="Prova" when={dateAcross(order.items,"try_on_date")} Icon={Shirt}/>
-            <Step title="Retirada" when={dateAcross(order.items,"pickup_date")} Icon={Package}/>
-            <Step title="Evento" when={dateAcross(order.items,"event_date")} Icon={CalendarDays}/>
-            <Step title="Devolução" when={dateAcross(order.items,"return_date")} Icon={CheckCircle2}/>
+            <Step title="Prova" when={dateAcross(currentItems,"try_on_date")} Icon={Shirt}/>
+            <Step title="Retirada" when={dateAcross(currentItems,"pickup_date")} Icon={Package}/>
+            <Step title="Evento" when={dateAcross(currentItems,"event_date")} Icon={CalendarDays}/>
+            <Step title="Devolução" when={dateAcross(currentItems,"return_date")} Icon={CheckCircle2}/>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-4 w-4 text-marsala-700"/>Produtos do pedido ({order.items.length})
+              <Package className="h-4 w-4 text-marsala-700"/>Produtos do pedido ({currentItems.length})
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               {manager&&order.status!=="cancelled"&&order.status!=="completed"&&
@@ -154,7 +155,10 @@ export default function RentalOrderDetail(){
                     <Shirt className="h-8 w-8 text-slate-300"/>}
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
-                  <p className="font-semibold text-slate-900">{item.product?.name??"Traje arquivado"}</p>
+                  <p className={"font-semibold "+(rawStatus==="cancelled"?"text-slate-400 line-through":"text-slate-900")}>
+                    {item.product?.name??"Traje arquivado"}
+                  </p>
+                  {rawStatus==="cancelled"&&<p className="text-xs text-red-700">Removido da reserva; preservado apenas no histórico</p>}
                   <p className="text-xs text-muted-foreground">Código: {item.product?.sku??"Não informado"} • Exemplar contratado: 1</p>
                   <Badge variant={rawStatus==="cancelled"?"destructive":"outline"}>{labelStatus(rawStatus)}</Badge>
                   <div className="grid gap-1 text-xs text-slate-600 sm:grid-cols-2">
