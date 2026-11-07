@@ -23,7 +23,7 @@ export interface LiveItem {
   try_on_date: string | null; pickup_date: string; event_date: string; return_date: string;
   actual_return_at: string | null;
 }
-export interface LiveUnit { id: string; product_id: string; status: string; }
+export interface LiveUnit { id: string; product_id: string; unit_number: number; status: string; }
 export interface LivePayment {
   id: string; contract_id: string; amount: number; method: string;
   status: string; recorded_at: string;
@@ -76,7 +76,7 @@ export async function loadLiveClosetData(): Promise<LiveClosetData> {
     fetchAllRows<LiveAppointment>("appointments", "id,client_id,title,description,start_at,end_at,status"),
     fetchAllRows<LiveContract>("rental_contracts", "id,contract_number,client_id,created_by,status,total,created_at"),
     fetchAllRows<LiveItem>("rental_items", "id,contract_id,product_id,unit_id,unit_price,discount,status,try_on_date,pickup_date,event_date,return_date,actual_return_at"),
-    fetchAllRows<LiveUnit>("product_units", "id,product_id,status"),
+    fetchAllRows<LiveUnit>("product_units", "id,product_id,unit_number,status"),
   ]);
   return {
     products: products.filter(product => product.active && !product.deleted_at),
