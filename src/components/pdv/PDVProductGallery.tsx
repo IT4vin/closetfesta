@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ImageOff, Plus, RotateCcw, PackageSearch, Filter, Shirt, Check } from "lucide-react";
-import type { Product } from "@/hooks/useProducts";
+import type { Product } from "@/lib/api";
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", {
   style: "currency", currency: "BRL",

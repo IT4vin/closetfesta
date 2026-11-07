@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/stores/authStore";
 import PDVProductGallery, { PDVProductPhoto, rentalPrice, isAvailableForRental } from "./PDVProductGallery";
-import type { Product } from "@/hooks/useProducts";
+import type { Product } from "@/lib/api";
 import type { CartItem, OrderDates } from "./PDVSale";
 
 const currency=(value:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value);
@@ -110,13 +110,13 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
         e.preventDefault();void onSaveDraft();
       }else if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){
         e.preventDefault();onContinue();
-      }else if(e.key==="Escape"&&!editing&&!advanced){
+      }else if(e.key==="Escape"&&!editing&&!advanced&&!discountOpen&&!document.querySelector('[role="dialog"]')){
         e.preventDefault();onClear();
       }
     };
     window.addEventListener("keydown",keydown);
     return()=>window.removeEventListener("keydown",keydown);
-  },[onCustomer,onSaveDraft,onContinue,onClear,advanced]);
+  },[onCustomer,onSaveDraft,onContinue,onClear,advanced,discountOpen]);
 
   return <div className="space-y-4 font-sans text-foreground" aria-label="Balcão de locações">
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
@@ -246,7 +246,7 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
                     <span className="w-7 text-center text-xs font-semibold tabular-nums">{item.quantity}</span>
                     <button type="button" className="p-2 hover:bg-muted disabled:opacity-40"
                       aria-label={"Aumentar quantidade de "+item.name}
-                      disabled={item.quantity>=item.quantity+(Math.max(0,item.quantity))&&false||item.quantity>=products.find(p=>p.id===item.id)?.quantity!}
+                      disabled={item.quantity>=Math.min(20,products.find(p=>p.id===item.id)?.quantity??0)}
                       onClick={()=>onQuantityChange(item.id,item.quantity+1)}><Plus size={13}/></button>
                   </div></td>
                   <td className="px-3 py-3 text-right tabular-nums">{currency(rentalPrice(item))}</td>

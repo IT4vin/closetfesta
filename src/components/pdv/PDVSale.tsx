@@ -111,7 +111,8 @@ export default function PDVSale(){
       toast({title:"Quantidade inválida",description:`Limite deste modelo: ${max} unidade(s).`,variant:"destructive"});return;
     }
     setCart(previous=>previous.map(item=>item.id!==productId?item:{
-      ...item,quantity,subtotal:cents(rentalPrice(item)*quantity-item.discount),
+      ...item,quantity,discount:Math.min(item.discount,cents(rentalPrice(item)*quantity)),
+      subtotal:cents(rentalPrice(item)*quantity-Math.min(item.discount,cents(rentalPrice(item)*quantity))),
     }));
     checkoutRequestRef.current=null;
   },[productsList,toast]);

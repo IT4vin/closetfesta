@@ -29,6 +29,7 @@ export interface ProductImage {
 export interface Product {
   id: string;
   sku?: string;
+  barcode?: string;
   name: string;
   description: string;
   price: number;
@@ -227,6 +228,7 @@ function mapProductRow(row: any): Product {
   return {
     id: row.id,
     sku: row.sku ?? undefined,
+    barcode: row.barcode ?? undefined,
     name: row.name,
     description: row.description ?? '',
     price: Number(row.price ?? 0),
