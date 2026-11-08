@@ -19,7 +19,7 @@ describe("substituição visual dos fundos vermelho-claro por off-white",()=>{
       }
     }
     expect(theme).toContain("background-color: #FAF7F2");
-    expect(theme).not.toContain("color: #FAF7F2");
+    expect(theme).not.toMatch(/(?:^|\\n)\\s*color:\\s*#FAF7F2/m);
   });
   it("retira o hover vermelho-claro legado sem mexer nas bordas e botões",()=>{
     expect(app).not.toContain("background-color: rgba(128, 0, 32, 0.05)");
