@@ -75,7 +75,7 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
   },
   payments: {
     title: "Recebimentos e parcelamento",
-    notice: "As condições serão salvas no Supabase. A aplicação automática no PDV e no financeiro ainda depende de integração e validação dos cálculos; não serão cobradas taxas com base apenas neste cadastro.",
+    notice: "Métodos habilitados, limite de parcelas e faixas de valor são aplicados no fechamento do PDV. Taxas de adquirência são apenas controle interno e não são repassadas automaticamente ao cliente. A validação de permissões permanece no banco.",
     groups: [
       { title: "Meios de recebimento", fields: [
         {key:"pix_enabled",title:"Permitir Pix",type:"boolean"},
@@ -83,7 +83,26 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
         {key:"debit_enabled",title:"Permitir débito",type:"boolean"},
         {key:"credit_enabled",title:"Permitir crédito",type:"boolean"},
         {key:"max_installments",title:"Máximo de parcelas",type:"number",min:1,max:24},
+        {key:"tier_1_max",title:"Faixa 1: valor máximo (R$)",type:"number",min:0,max:1000000},
+        {key:"tier_1_installments",title:"Faixa 1: parcelas permitidas",type:"number",min:1,max:24},
+        {key:"tier_2_max",title:"Faixa 2: valor máximo (R$)",type:"number",min:0,max:1000000},
+        {key:"tier_2_installments",title:"Faixa 2: parcelas permitidas",type:"number",min:1,max:24},
+        {key:"tier_3_max",title:"Faixa 3: valor máximo (R$)",type:"number",min:0,max:1000000},
+        {key:"tier_3_installments",title:"Faixa 3: parcelas permitidas",type:"number",min:1,max:24},
+        {key:"tier_4_max",title:"Faixa 4: valor máximo (R$)",type:"number",min:0,max:1000000},
+        {key:"tier_4_installments",title:"Faixa 4: parcelas permitidas",type:"number",min:1,max:24},
+        {key:"tier_5_installments",title:"Acima da faixa 4: parcelas permitidas",type:"number",min:1,max:24},
         {key:"minimum_installment",title:"Valor mínimo da parcela (R$)",type:"number",min:0,max:100000},
+      ]},
+      { title: "Taxas da adquirente (somente controle interno)", advanced:true, fields: [
+        {key:"visa_master_credit_fee_1",title:"Visa/Mastercard crédito 1x (%)",type:"number",min:0,max:100},
+        {key:"visa_master_credit_fee_2",title:"Visa/Mastercard crédito 2x (%)",type:"number",min:0,max:100},
+        {key:"visa_master_credit_fee_3",title:"Visa/Mastercard crédito 3x (%)",type:"number",min:0,max:100},
+        {key:"visa_master_credit_fee_5",title:"Visa/Mastercard crédito 5x (%)",type:"number",min:0,max:100},
+        {key:"visa_master_credit_fee_6",title:"Visa/Mastercard crédito 6x (%)",type:"number",min:0,max:100},
+        {key:"visa_master_credit_fee_10",title:"Visa/Mastercard crédito 10x (%)",type:"number",min:0,max:100},
+        {key:"elo_debit_fee",title:"Elo débito (%)",type:"number",min:0,max:100},
+        {key:"visa_master_debit_fee",title:"Visa/Mastercard débito (%)",type:"number",min:0,max:100},
       ]},
       { title: "Regras avançadas", advanced:true, fields: [
         {key:"pix_key_hint",title:"Identificação da chave Pix",hint:"Não informe senhas, tokens ou credenciais"},
@@ -160,6 +179,12 @@ function validate(section: ClosetSettingsSection, values: ClosetSettingValues): 
       if (field.type === "email" && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(value))) return "E-mail inválido.";
       if (field.type === "url" && value && !/^https:\/\//.test(String(value))) return field.title + " deve começar com https://";
     }
+  }
+  if (section === "payments") {
+    const brackets = [1,2,3,4].map(n => Number(values["tier_"+n+"_max"]));
+    if (brackets.some((v,i) => Number.isFinite(v) && i>0 &&
+      values["tier_"+(i+1)+"_max"]!==undefined && values["tier_"+i+"_max"]!==undefined && v<=brackets[i-1]))
+      return "As faixas de parcelamento devem estar em ordem crescente.";
   }
   if (section === "operations" && values.blocked_dates) {
     const dates = String(values.blocked_dates).split(",").map(x => x.trim());
