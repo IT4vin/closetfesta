@@ -14,7 +14,7 @@ const date=(s?:string|null)=>{
   const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);
   return m?m[3]+"/"+m[2]+"/"+m[1]:"Não informado";
 };
-export interface ContractPrintOptions { company?: ClosetSettingValues; documents?: ClosetSettingValues }
+export interface ContractPrintOptions { company?: ClosetSettingValues; documents?: ClosetSettingValues; issuedAt?: string }
 export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptions={}):string {
   const {order,customer}=detail;
   const E=escapeContractHtml;
@@ -34,7 +34,10 @@ export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptio
       "<br>Evento: ",E(date(item.event_date)),"<br>Devolução: ",E(date(item.return_date)),"</small></td>",
       "<td>",E(money(Number(item.unit_price))),"</td><td>",E(money(Number(item.discount))),"</td></tr>"
     ].join("")).join("");
-  const today=new Date().toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"});
+  const emittedAt=options.issuedAt ? new Date(options.issuedAt) : new Date();
+  const today=Number.isFinite(emittedAt.getTime())
+    ? emittedAt.toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"})
+    : "Data de emissão indisponível";
   const parts=[
     "<!doctype html><html lang='pt-BR'><head><meta charset='UTF-8'><title>Contrato ",
     E(order.order_number)," · ",E(companyName),"</title>",
@@ -119,7 +122,7 @@ export async function printRentalContract(
       saved=inserted.payload;
     }
     if(!saved?.detail?.order||!saved?.detail?.customer)throw new Error("Versão de documento incompleta.");
-    show(rentalContractHtml(saved.detail,{company:saved.company,documents:saved.documents}));
+    show(rentalContractHtml(saved.detail,{company:saved.company,documents:saved.documents,issuedAt:saved.issued_at}));
   }catch(cause){
     const error=cause instanceof Error?cause.message:"Falha desconhecida.";
     show("<html lang='pt-BR'><body><h2>Documento não emitido</h2><p>"+
