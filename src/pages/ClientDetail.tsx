@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PermissionManager from "@/lib/permissions";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ClientHouseCreditPanel from "@/components/clients/ClientHouseCreditPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -196,6 +197,7 @@ export default function ClientDetail() {
         <p className="mt-1 text-2xl font-semibold">{canReadPayments && !paymentsError ? money(paid) : "Restrito"}</p>
       </CardContent></Card>
     </div>
+    <ClientHouseCreditPanel clientId={client.id} onChanged={()=>setRefresh(v=>v+1)} />
     <div className="grid gap-4 lg:grid-cols-2">
       <Card><CardHeader><CardTitle className="text-base">Dados pessoais e contato</CardTitle></CardHeader>
         <CardContent className="space-y-3 text-sm">
