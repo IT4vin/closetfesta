@@ -22,7 +22,7 @@ describe("contrato com dados reais",()=>{
     expect(html).toContain("01/10/2026");
     expect(html).toContain("ALU-000123");
     expect(html).toContain("Vestido real");
-    expect(html).toMatch(/R\\$\\s+420,00/);
+    expect(html).toMatch(/R\$\s+420,00/);
     expect(html).toContain("saldos e estornos são consultados separadamente");
     expect(html).not.toContain("Recebido no sistema");
     expect(html).not.toContain("Saldo registrado");
