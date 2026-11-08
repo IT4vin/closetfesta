@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LiveItem, LiveProduct, LiveUnit } from "@/hooks/useLiveClosetData";
 import { localDay } from "@/lib/operationalAnalytics";
+import { canReleaseCare, canStartCareMaintenance, pendingBookingsForMaintenance } from "@/lib/careTasks";
 
 type CareTask = {
   id: string; unit_id: string; kind: "laundry" | "maintenance";
@@ -82,8 +83,7 @@ export default function InventoryCarePanel({
       toast({ title: "Motivo inválido", description: "Escreva entre 5 e 500 caracteres.", variant: "destructive" });
       return;
     }
-    const futureReservations = items.filter((item) =>
-      item.unit_id === unit.id && item.status === "confirmed" && item.return_date >= today);
+    const futureReservations = pendingBookingsForMaintenance(items, unit.id, today);
     if (futureReservations.length && !window.confirm(
       "Este exemplar tem " + futureReservations.length +
       " reserva(s) ainda não concluída(s). A manutenção impedirá a retirada até a liberação. " +
@@ -193,7 +193,7 @@ export default function InventoryCarePanel({
                 disabled={!!pending} onClick={() => void startMaintenance(unit)}>
                 <Scissors className="mr-2 h-4 w-4" />Enviar para reparo
               </Button>}
-              {task && <Button size="sm" disabled={!!pending}
+              {canReleaseCare(task, unit) && task && <Button size="sm" disabled={!!pending}
                 className="bg-marsala hover:bg-marsala-700" onClick={() => void finishCare(task)}>
                 <ClipboardCheck className="mr-2 h-4 w-4" />{pending === task.id ? "Salvando..." : "Concluir e liberar"}
               </Button>}
@@ -204,7 +204,7 @@ export default function InventoryCarePanel({
       {canManage && tasksQuery.isSuccess && <div className="space-y-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold"><Scissors className="h-4 w-4" />Iniciar manutenção de exemplar disponível</h3>
         <div className="grid gap-2 md:grid-cols-2">
-          {units.filter((unit) => unit.status === "available" && productById.has(unit.product_id))
+          {units.filter((unit) => canStartCareMaintenance(unit.status) && unit.status === "available" && productById.has(unit.product_id))
             .slice(0, 100).map((unit) => {
               const product = productById.get(unit.product_id);
               return <div key={unit.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
