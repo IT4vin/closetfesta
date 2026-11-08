@@ -104,7 +104,7 @@ export async function createRentalOrder(input: {
   total_discount: number;
   total: number;
   observations?: string;
-  payment_details?: { payments?: Array<{ method: string; value: number; installments?: number }> };
+  payment_details?: { payments?: Array<{ method: string; value: number; installments?: number }>; store_credit_amount?:number };
 }): Promise<Order> {
   if (!input.request_id) throw new Error("Chave de confirmação ausente. Reabra a operação.");
   const request = {
@@ -120,6 +120,7 @@ export async function createRentalOrder(input: {
     total: input.total,
     observations: input.observations ?? null,
     payments: input.payment_details?.payments ?? [],
+    store_credit_amount: input.payment_details?.store_credit_amount ?? 0,
   };
   const { data, error } = await db.rpc("create_rental_contract", { p_request: request });
   if (error) {
