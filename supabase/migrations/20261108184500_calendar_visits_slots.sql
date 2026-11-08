@@ -109,7 +109,7 @@ GRANT EXECUTE ON FUNCTION public.closet_calendar_month(date,date) TO authenticat
 CREATE OR REPLACE FUNCTION public.closet_visit_slot_capacity(
  p_kind text,p_day date,p_time text
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $function$
 DECLARE
  v_cfg jsonb:='{}'::jsonb;
@@ -185,11 +185,12 @@ GRANT EXECUTE ON FUNCTION public.closet_visit_slot_capacity(text,date,text) TO a
 
 -- Horários podem ser definidos/reagendados inclusive para contratos anteriores.
 -- O banco valida se a data está realmente no contrato, horário de funcionamento,
--- capacidade, intervalos e conflitos de um mesmo cliente.
+-- capacidade, intervalos e conflitos de um mesmo cliente. Os RPCs de escrita
+-- e consulta de regras usam autorização explícita, sem expor dados sensíveis.
 CREATE OR REPLACE FUNCTION public.closet_schedule_contract_visit(
  p_contract_id uuid,p_kind text,p_day date,p_time text
 ) RETURNS jsonb
-LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $function$
 DECLARE
  v_actor uuid:=auth.uid();
