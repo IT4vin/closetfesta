@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import ProductsHeader from "@/components/products/page/ProductsHeader";
 import ProductsFilterBar from "@/components/products/page/ProductsFilterBar";
 import ProductsDisplay from "@/components/products/ProductsDisplay";
+import ProductRentalHistoryDialog from "@/components/products/ProductRentalHistoryDialog";
+import type { Product } from "@/lib/api";
 import ProductsModals from "@/components/products/page/ProductsModals";
 import { useProducts } from "@/hooks/useProducts";
 
@@ -24,6 +26,7 @@ const ProductsPage = () => {
   } = useProducts();
   
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -66,8 +69,11 @@ const ProductsPage = () => {
         products={filteredProducts}
         viewMode={viewMode}
         onEdit={handleEditProductClick}
+        onHistory={setHistoryProduct}
       />
       
+      <ProductRentalHistoryDialog product={historyProduct} onClose={() => setHistoryProduct(null)} />
+
       <ProductsModals 
         modalOpen={modalOpen}
         setModalOpen={setModalOpen}
