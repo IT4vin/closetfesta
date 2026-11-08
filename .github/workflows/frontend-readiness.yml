@@ -11,6 +11,9 @@ on:
       - "tsconfig*.json"
       - ".github/workflows/frontend-readiness.yml"
       - "scripts/check-supabase-target.mjs"
+      - "scripts/check-tracked-sensitive-files.mjs"
+      - ".gitignore"
+      - "backend/**"
       - "supabase/config.toml"
       - ".env"
   workflow_dispatch:
@@ -25,6 +28,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Garantir ausência de arquivos sensíveis versionados
+        run: node scripts/check-tracked-sensitive-files.mjs
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
