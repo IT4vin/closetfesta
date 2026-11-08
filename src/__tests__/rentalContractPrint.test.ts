@@ -18,7 +18,8 @@ describe("contrato com dados reais",()=>{
       customer:{full_name:"Cliente exemplo",document:null,phone:null,email:null,address:null},
       itemProgress:[{id:"item",status:"confirmed"}],payments:null
     } as unknown as OrderDetail;
-    const html=rentalContractHtml(detail);
+    const html=rentalContractHtml(detail,{issuedAt:"2026-10-01T13:00:00Z"});
+    expect(html).toContain("01/10/2026");
     expect(html).toContain("ALU-000123");
     expect(html).toContain("Vestido real");
     expect(html).toContain("R$ 420,00");
