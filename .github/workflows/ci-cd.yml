@@ -19,6 +19,14 @@ permissions:
   id-token: write
 
 jobs:
+  tracked-secret-preflight:
+    name: Block tracked secrets and databases
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar arquivos sensíveis no Git
+        run: node scripts/check-tracked-sensitive-files.mjs
+
   # ===============================
   # TESTES E QUALIDADE DE CÓDIGO
   # ===============================
