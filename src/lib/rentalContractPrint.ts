@@ -1,7 +1,7 @@
 import type { OrderDetail } from "@/lib/rentalOrderDetails";
 import { supabase } from "@/integrations/supabase/client";
 import type { ClosetSettingValues } from "@/lib/closetSettings";
-import { paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
+import { readableAddress } from "@/lib/rentalOrderDetails";
 
 export function escapeContractHtml(input:unknown):string {
   return String(input??"").replace(/[&<>"']/g, c=>({
@@ -17,7 +17,6 @@ const date=(s?:string|null)=>{
 export interface ContractPrintOptions { company?: ClosetSettingValues; documents?: ClosetSettingValues }
 export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptions={}):string {
   const {order,customer}=detail;
-  const payments=detail.payments?paymentTotals(Number(order.total),detail.payments):null;
   const E=escapeContractHtml;
   const companyName=String(options.company?.trading_name||"Closet Festa");
   const legalName=String(options.company?.legal_name||"");
