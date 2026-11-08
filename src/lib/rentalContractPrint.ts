@@ -1,6 +1,6 @@
 import type { OrderDetail } from "@/lib/rentalOrderDetails";
 import { supabase } from "@/integrations/supabase/client";
-import { loadClosetSettings, type ClosetSettingValues } from "@/lib/closetSettings";
+import type { ClosetSettingValues } from "@/lib/closetSettings";
 import { paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
 
 export function escapeContractHtml(input:unknown):string {
@@ -68,7 +68,7 @@ export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptio
     "<section><h2>3. Valores da locação</h2><p>Subtotal: ",E(money(Number(order.subtotal))),"</p>",
     "<p>Descontos: ",E(money(Number(order.total_discount))),"</p>",
     "<p><strong>Total contratado: ",E(money(Number(order.total))),"</strong></p>",
-    payments?"<p>Recebido no sistema: "+E(money(payments.received))+"</p><p>Saldo registrado: "+E(money(payments.remaining))+"</p>":"<p>Recebimentos: não disponíveis neste perfil.</p>",
+    "<p>Pagamentos, saldos e estornos são consultados separadamente no histórico financeiro e recibos da locação.</p>",
     "<p class='hint'>Registros internos de pagamento não substituem comprovantes bancários.</p></section>",
     "<section><h2>4. Condições para assinatura e conferência</h2><ol>",
     "<li>O(a) locatário(a) conferirá os trajes, acessórios e ajustes no ato da retirada, observando as datas acertadas.</li>",
@@ -107,12 +107,11 @@ export async function printRentalContract(
     const latest=versions?.[0];
     let saved=latest?.payload;
     if(!saved || options.newRevision===true){
-      const [company,documents]=await Promise.all([
-        loadClosetSettings("company"),loadClosetSettings("documents")
-      ]);
       const {data:session,error:authError}=await supabase.auth.getUser();
       if(authError||!session.user)throw new Error("Sessão expirada. Entre novamente.");
-      const payload={detail,company,documents};
+      // O banco reconstrói o documento com preços, cliente e cláusulas oficiais.
+      // Não arquivar objetos de pagamento, observações internas nem dados fornecidos pelo navegador.
+      const payload={};
       const {data:inserted,error:writeError}=await db.from("rental_document_snapshots")
         .insert({contract_id:detail.order.id,revision:(latest?.revision??0)+1,
           issued_by:session.user.id,payload})
