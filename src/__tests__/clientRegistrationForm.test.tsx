@@ -3,6 +3,7 @@ import React from "react";
 import {afterEach,describe,expect,it,vi} from "vitest";
 import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 const {create}=vi.hoisted(()=>({create:vi.fn()}));
+vi.mock("@/integrations/supabase/client",()=>({supabase:{from:vi.fn()}}));
 vi.mock("@/lib/clientRegistration",async(importOriginal)=>{
   const original=await importOriginal<typeof import("@/lib/clientRegistration")>();
   return {...original,createRegisteredClient:create};
