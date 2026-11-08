@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Search, UserPlus, Loader2 } from "lucide-react";
+import { Search, UserPlus, ArrowLeft } from "lucide-react";
+import ClientRegistrationForm from "@/components/clients/ClientRegistrationForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Customer = { id: string; name: string; document: string; phone?: string };
@@ -18,21 +18,14 @@ interface PDVQuickCustomerProps {
 const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, onSelectCustomer }) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [quickName, setQuickName] = useState("");
-  const [quickDocument, setQuickDocument] = useState("");
-  const [quickPhone, setQuickPhone] = useState("");
   const [showQuickForm, setShowQuickForm] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
     setSearchTerm("");
-    setQuickName("");
-    setQuickDocument("");
-    setQuickPhone("");
     setShowQuickForm(false);
     setError("");
   }, [isOpen]);
@@ -66,58 +59,37 @@ const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, on
     return () => { active = false; clearTimeout(timer); };
   }, [isOpen, showQuickForm, searchTerm]);
 
-  const handleQuickCreate = async () => {
-    const name = quickName.trim();
-    const document = quickDocument.trim();
-    if (name.length < 2) {
-      toast({ title: "Nome obrigatório", description: "Informe o nome completo do cliente.", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    try {
-      if (document) {
-        const { data: found, error: lookupError } = await supabase.from("clients")
-          .select("id, full_name, document, phone").eq("document", document).maybeSingle();
-        if (lookupError) throw lookupError;
-        if (found) {
-          onSelectCustomer({ id: found.id, name: found.full_name, document: found.document ?? "", phone: found.phone ?? undefined });
-          toast({ title: "Cliente existente selecionado" });
-          onClose();
-          return;
-        }
-      }
-      const { data, error: saveError } = await supabase.from("clients").insert({
-        full_name: name, document: document || null, phone: quickPhone.trim() || null,
-      }).select("id, full_name, document, phone").single();
-      if (saveError || !data) throw saveError ?? new Error("Cliente não retornado");
-      onSelectCustomer({ id: data.id, name: data.full_name, document: data.document ?? "", phone: data.phone ?? undefined });
-      toast({ title: "Cliente cadastrado", description: "Dados salvos no banco da loja." });
-      onClose();
-    } catch {
-      toast({ title: "Não foi possível salvar", description: "O cadastro não foi concluído. Confira os dados e a conexão.", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !saving && onClose()}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{showQuickForm ? "Cadastro rápido de cliente" : "Selecionar cliente"}</DialogTitle></DialogHeader>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className={"flex max-h-[92vh] flex-col overflow-hidden p-0 "+
+        (showQuickForm?"w-[96vw] max-w-[900px]":"w-[94vw] max-w-[560px]")}>
+        <DialogHeader className="shrink-0 border-b px-6 py-5 text-left">
+          <DialogTitle className="text-marsala-900">
+            {showQuickForm ? "Cadastrar novo cliente" : "Selecionar cliente"}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {showQuickForm?"Dados completos para a locação e futuros atendimentos."
+              :"Pesquise o cadastro existente ou registre um novo cliente."}
+          </p>
+        </DialogHeader>
         {showQuickForm ? (
-          <div className="space-y-3">
-            <div><Label htmlFor="quickName">Nome completo *</Label><Input id="quickName" value={quickName} onChange={e => setQuickName(e.target.value)} disabled={saving} /></div>
-            <div><Label htmlFor="quickDocument">CPF/CNPJ (opcional)</Label><Input id="quickDocument" value={quickDocument} onChange={e => setQuickDocument(e.target.value)} disabled={saving} /></div>
-            <div><Label htmlFor="quickPhone">Telefone (opcional)</Label><Input id="quickPhone" value={quickPhone} onChange={e => setQuickPhone(e.target.value)} disabled={saving} /></div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowQuickForm(false)} disabled={saving}>Voltar</Button>
-              <Button onClick={handleQuickCreate} disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar cliente
-              </Button>
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            <Button type="button" variant="ghost" size="sm" className="mb-3 text-marsala-800"
+              onClick={()=>setShowQuickForm(false)}>
+              <ArrowLeft className="mr-2 h-4 w-4"/>Voltar à busca
+            </Button>
+            <ClientRegistrationForm
+              onCancel={()=>setShowQuickForm(false)}
+              onSaved={client=>{
+                onSelectCustomer(client);
+                toast({title:"Cliente cadastrado",description:"Informações completas salvas no Supabase."});
+                onClose();
+              }}
+            />
           </div>
         ) : (
-          <>
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9" placeholder="Pesquisar nome ou documento" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -136,9 +108,9 @@ const PDVQuickCustomer: React.FC<PDVQuickCustomerProps> = ({ isOpen, onClose, on
             </div>
             <div className="flex justify-between">
               <Button variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button onClick={() => setShowQuickForm(true)}><UserPlus className="mr-2 h-4 w-4" />Novo cliente</Button>
+              <Button className="bg-marsala hover:bg-marsala-700" onClick={() => setShowQuickForm(true)}><UserPlus className="mr-2 h-4 w-4" />Cadastrar cliente completo</Button>
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>

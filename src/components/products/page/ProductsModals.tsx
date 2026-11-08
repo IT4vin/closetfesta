@@ -39,9 +39,14 @@ const ProductsModals: React.FC<ProductsModalsProps> = ({
     <>
       {/* Product Form Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+        <DialogContent className="flex h-[92vh] max-h-[950px] w-[97vw] max-w-[1080px] flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b bg-white px-5 py-4 text-left sm:px-6">
+            <DialogTitle className="text-xl font-semibold text-marsala-950">
+              {editingProduct ? 'Editar produto' : 'Cadastrar novo produto'}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Catálogo de locações · Informações, preços, características e imagens
+            </p>
           </DialogHeader>
           <ProductForm 
             initialData={editingProduct as any} 

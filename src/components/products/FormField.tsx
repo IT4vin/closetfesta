@@ -53,9 +53,9 @@ const FormField: React.FC<FormFieldProps> = ({
   };
 
   const getInputClasses = () => {
-    const baseClasses = "w-full border rounded px-3 py-2 transition-colors";
-    const errorClasses = error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500";
-    const disabledClasses = disabled ? "bg-gray-100 cursor-not-allowed" : "";
+    const baseClasses = "flex min-h-10 w-full rounded-lg border bg-background px-3 py-2.5 text-sm text-foreground shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-marsala/20";
+    const errorClasses = error ? "border-red-500 focus:border-red-500" : "border-input focus:border-marsala-500";
+    const disabledClasses = disabled ? "bg-muted cursor-not-allowed text-muted-foreground" : "";
     
     return `${baseClasses} ${errorClasses} ${disabledClasses}`.trim();
   };
@@ -157,7 +157,7 @@ const FormField: React.FC<FormFieldProps> = ({
 
   return (
     <div className={`space-y-1 ${className}`}>
-      <label htmlFor={name} className="block font-medium text-gray-700">
+      <label htmlFor={name} className="block text-sm font-medium text-foreground">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -166,13 +166,13 @@ const FormField: React.FC<FormFieldProps> = ({
       
       {error && (
         <p className="text-sm text-red-600 flex items-center gap-1">
-          <span>⚠️</span>
+          <span aria-hidden="true">!</span>
           {error}
         </p>
       )}
       
       {help && !error && (
-        <p className="text-sm text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {help}
         </p>
       )}

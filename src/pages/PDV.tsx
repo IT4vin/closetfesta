@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ShoppingBag, ClipboardList, Wallet,
+  LayoutDashboard, CalendarDays, ChartNoAxesCombined, Settings2 } from "lucide-react";
 import PDVSale from "@/components/pdv/PDVSale";
 import PDVCashier from "@/components/pdv/PDVCashier";
 import PDVReports from "@/components/pdv/PDVReports";
@@ -98,32 +99,26 @@ const PDV = () => {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="overflow-x-auto mb-4 md:mb-6">
-          <TabsList className="w-full grid grid-cols-7 min-w-[800px] md:min-w-0">
-            <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              🛒 Venda
-            </TabsTrigger>
-            <TabsTrigger value="pedidos" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              📋 Pedidos
-            </TabsTrigger>
-            <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              💰 Caixa
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              📊 Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              📅 Agenda
-            </TabsTrigger>
-            <TabsTrigger value="relatorios" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              📈 Relatórios
-            </TabsTrigger>
-            <TabsTrigger value="sistema" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
-              🖥 Sistema
-            </TabsTrigger>
+        <div className="mb-5 overflow-x-auto rounded-xl border border-marsala-100 bg-white p-1.5 shadow-sm">
+          <TabsList className="inline-flex h-auto w-max min-w-full items-center justify-start gap-1 bg-transparent p-0">
+            {([
+              {value:"venda",label:"Nova locação",icon:ShoppingBag},
+              {value:"pedidos",label:"Pedidos",icon:ClipboardList},
+              {value:"caixa",label:"Caixa",icon:Wallet},
+              {value:"dashboard",label:"Dashboard",icon:LayoutDashboard},
+              {value:"agenda",label:"Agenda",icon:CalendarDays},
+              {value:"relatorios",label:"Relatórios",icon:ChartNoAxesCombined},
+              {value:"sistema",label:"Sistema",icon:Settings2},
+            ] as const).map(tab=><TabsTrigger key={tab.value} value={tab.value}
+              className="flex min-w-max items-center gap-2 rounded-lg px-4 py-2.5
+                text-sm font-medium text-muted-foreground transition-colors
+                data-[state=active]:bg-marsala-50 data-[state=active]:text-marsala-900
+                data-[state=active]:shadow-none hover:bg-marsala-50/60 hover:text-marsala-800">
+              <tab.icon className="h-4 w-4 shrink-0"/>{tab.label}
+            </TabsTrigger>)}
           </TabsList>
         </div>
-        
+
         <div>
           <TabsContent value="venda" className="space-y-4">
             <PDVSale />
