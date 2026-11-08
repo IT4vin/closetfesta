@@ -184,11 +184,11 @@ html, body, #root {
 }
 
 .hover\:bg-marsala\/10:hover {
-  background-color: rgba(128, 0, 32, 0.1);
+  background-color: #FAF7F2;
 }
 
 .hover\:bg-marsala-50:hover {
-  background-color: rgba(128, 0, 32, 0.05);
+  background-color: #FAF7F2;
 }
 
 /* Card hover effect */
