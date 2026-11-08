@@ -26,6 +26,7 @@ function options():PDVWorkspaceProps {
   return {
     products:[product],loading:false,error:null,cart:[],
     dates:{tryOnDate:"",pickupDate:"",eventDate:"",returnDate:""},
+    visitTimes:{tryOnTime:"",pickupTime:""},onVisitTimesChange:vi.fn(),
     customer:null,searchValue:"",setSearchValue:vi.fn(),observations:"",
     setObservations:vi.fn(),globalDiscount:0,setGlobalDiscount:vi.fn(),
     globalDiscountType:"percentage",setGlobalDiscountType:vi.fn(),total:0,
