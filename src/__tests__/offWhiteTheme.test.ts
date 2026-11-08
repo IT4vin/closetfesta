@@ -1,8 +1,8 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 
-const theme=readFileSync(new URL("../index.css",import.meta.url),"utf8");
-const app=readFileSync(new URL("../App.css",import.meta.url),"utf8");
+const theme=readFileSync("src/index.css","utf8");
+const app=readFileSync("src/App.css","utf8");
 
 describe("substituição visual dos fundos vermelho-claro por off-white",()=>{
   it("usa off-white nos tons claros do tema e preserva o marsala principal",()=>{
