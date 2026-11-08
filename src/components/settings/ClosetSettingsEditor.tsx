@@ -82,6 +82,7 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
         {key:"cash_enabled",title:"Permitir dinheiro",type:"boolean"},
         {key:"debit_enabled",title:"Permitir débito",type:"boolean"},
         {key:"credit_enabled",title:"Permitir crédito",type:"boolean"},
+        {key:"transfer_enabled",title:"Permitir transferência bancária",type:"boolean"},
         {key:"max_installments",title:"Máximo de parcelas",type:"number",min:1,max:24},
         {key:"tier_1_max",title:"Faixa 1: valor máximo (R$)",type:"number",min:0,max:1000000},
         {key:"tier_1_installments",title:"Faixa 1: parcelas permitidas",type:"number",min:1,max:24},
