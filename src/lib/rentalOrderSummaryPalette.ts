@@ -14,14 +14,14 @@ export type RentalOrderSummaryPalette = {
 };
 
 const active:RentalOrderSummaryPalette={
-  container:"border border-[#E5D6C3] bg-[#FAF2E7] text-[#48382F]",
+  container:"border border-[#E8E5E1] bg-[#FDFCFB] text-[#48382F]",
   muted:"text-[#796052]",
   icon:"text-[#865C4B]",
-  badge:"border-[#DFCCB6] bg-[#F1E1CF] text-[#714B3A] hover:bg-[#F1E1CF]",
+  badge:"border-[#E8E5E1] bg-[#FDFCFB] text-[#714B3A] hover:bg-[#FDFCFB]",
   link:"text-[#644234] hover:text-[#432A22]",
-  chip:"bg-[#EEDCC8] text-[#664436] hover:bg-[#E8D2BA]",
-  notes:"border border-[#E7D7C5] bg-white/60 text-[#543F35]",
-  editButton:"border-[#CFB8A1] bg-white/65 text-[#674436] hover:bg-white hover:text-[#493024]",
+  chip:"bg-[#FDFCFB] text-[#664436] hover:bg-[#FDFCFB]",
+  notes:"border border-[#E8E5E1] bg-white/60 text-[#543F35]",
+  editButton:"border-[#E8E5E1] bg-white/65 text-[#674436] hover:bg-white hover:text-[#493024]",
 };
 
 const cancelled:RentalOrderSummaryPalette={
