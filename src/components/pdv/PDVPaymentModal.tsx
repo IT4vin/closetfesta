@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { loadClosetSettings, type ClosetSettingValues } from "@/lib/closetSettings";
+import { isMethodEnabled, availableInstallments, minimumInitialPayment, validatePaymentLines } from "@/lib/paymentRules";
 import { 
   Dialog, 
   DialogContent, 
@@ -58,6 +60,28 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   const [payments, setPayments] = useState<{method: string; value: number; installments:number}[]>([]);
   const [currentPaymentValue, setCurrentPaymentValue] = useState<string>("");
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentRules, setPaymentRules] = useState<ClosetSettingValues>({});
+  const [operationalRules, setOperationalRules] = useState<ClosetSettingValues>({});
+  const [rulesLoading, setRulesLoading] = useState(true);
+  const [rulesError, setRulesError] = useState("");
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    setRulesLoading(true); setRulesError("");
+    void Promise.all([loadClosetSettings("payments"),loadClosetSettings("operations")])
+      .then(([payments,operations]) => {
+        if (!alive) return;
+        setPaymentRules(payments); setOperationalRules(operations);
+        const first = ["pix","cash","debit","credit"].find(method=>isMethodEnabled(payments,method));
+        if (first) setPaymentMethod(first);
+        setRulesLoading(false);
+      }).catch(error => {
+        if (!alive) return;
+        setRulesError(error instanceof Error ? error.message : "Não foi possível carregar as regras financeiras.");
+        setRulesLoading(false);
+      });
+    return () => { alive = false; };
+  }, [isOpen]);
   
   // Reset state when modal opens
   React.useEffect(() => {
@@ -78,11 +102,13 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     { id: "credit", name: "Cartão de Crédito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "debit", name: "Cartão de Débito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "pix", name: "PIX", icon: <Wallet className="h-5 w-5" /> },
-  ];
+  ].filter(method => isMethodEnabled(paymentRules,method.id));
   
-  const half=Math.max(0.01,Math.round((total/2+Number.EPSILON)*100)/100);
+  const requiredPayment=minimumInitialPayment(operationalRules,total);
+  const half=Math.max(0.01,requiredPayment);
   const target=receiptMode==="half"?half:receiptMode==="full"?total:Number(customAmount);
-  const validTarget=Number.isFinite(target)&&target>0&&target<=total&&Math.round(target*100)===target;
+  const validTarget=Number.isFinite(target)&&target>0&&target<=total&&Math.abs(target*100-Math.round(target*100))<0.0001;
+  const allowedInstallments=availableInstallments(paymentRules,target);
   const calculateChange = (): number => {
     const received = parseFloat(receivedAmount);
     if (isNaN(received)) return 0;
@@ -121,6 +147,9 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     }
     
     // Add to payments
+    if (!isMethodEnabled(paymentRules,paymentMethod) || !availableInstallments(paymentRules,paymentValue).includes(paymentMethod==="credit"?parseInt(installments,10):1)) {
+      toast({title:"Método ou parcelas indisponíveis",description:"Confira as regras de pagamento configuradas.",variant:"destructive"});return;
+    }
     setPayments([...payments, { 
       method: paymentMethod, 
       value: paymentValue,
@@ -132,7 +161,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const handleFinishPayment = async () => {
-    if (!paymentConfirmed || isProcessing) return;
+    if (!paymentConfirmed || isProcessing || rulesLoading || rulesError) return;
     setIsProcessing(true);
     try {
       // Registro manual: nenhuma cobrança eletrônica é iniciada pelo sistema.
@@ -148,6 +177,12 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
         change: paymentMethod === "cash" ? calculateChange() : 0,
         registration_type: "operator_recorded",
       };
+      const problem=validatePaymentLines(paymentRules,paymentDetails.payments,total);
+      if (problem) throw new Error(problem);
+      const paidNow=paymentDetails.payments.reduce((sum:number,p:{value:number})=>sum+p.value,0);
+      if (paidNow+0.005<requiredPayment) {
+        throw new Error("O sinal mínimo configurado é R$ "+requiredPayment.toFixed(2)+".");
+      }
       await onPaymentComplete(paymentDetails);
     } catch (error) {
       toast({
@@ -161,9 +196,11 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const isPaymentComplete = (): boolean => {
-    if (!splitPayment) return validTarget && (paymentMethod !== "cash" || Number(receivedAmount) >= target);
+    if (!splitPayment) return validTarget && target+0.005>=requiredPayment && isMethodEnabled(paymentRules,paymentMethod) &&
+      (paymentMethod !== "credit" || allowedInstallments.includes(Number(installments))) &&
+      (paymentMethod !== "cash" || Number(receivedAmount) >= target);
     const amount = getTotalPaid();
-    return amount > 0 && amount <= total;
+    return amount + 0.005 >= requiredPayment && amount <= total && !validatePaymentLines(paymentRules,payments,total);
   };
 
   return (
@@ -174,6 +211,9 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
         </DialogHeader>
         
         <div className="my-2">
+          {rulesLoading && <p role="status" className="mb-3 text-sm">Carregando regras financeiras do sistema...</p>}
+          {rulesError && <p role="alert" className="mb-3 rounded border border-red-200 p-3 text-sm text-red-700">{rulesError}</p>}
+          {!rulesLoading && !rulesError && paymentMethods.length===0 && <p role="alert" className="mb-3 text-sm text-red-700">Nenhum método de pagamento está habilitado.</p>}
           <div className="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-md mb-4">
             <span>Total do contrato:</span>
             <span className="font-bold text-xl text-marsala-800">R$ {total.toFixed(2)}</span>
@@ -190,7 +230,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             <h3 className="text-sm font-semibold">Valor a registrar agora</h3>
             <div className="grid gap-2 sm:grid-cols-3">
               {([
-                ["half","Sinal de 50%",half],
+                ["half","Sinal mínimo configurado",half],
                 ["full","Pagamento integral",total],
                 ["custom","Outro valor",Number(customAmount)||0],
               ] as const).map(([mode,label,value])=><button key={mode} type="button"
@@ -207,7 +247,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
               <Input id="custom-receipt" type="number" min=".01" max={total} step=".01"
                 value={customAmount} onChange={e=>setCustomAmount(e.target.value)}/>
             </div>}
-            <p className="text-xs text-muted-foreground">O saldo não recebido permanece em aberto no contrato.</p>
+            <p className="text-xs text-muted-foreground">O saldo não recebido permanece em aberto no contrato. Sinal mínimo: R$ {requiredPayment.toFixed(2)}.</p>
           </div>}
           <div className="mb-4">
             <div className="flex justify-between items-center">
@@ -273,18 +313,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                         value={installments}
                         onChange={(e) => setInstallments(e.target.value)}
                       >
-                        <option value="1">À vista</option>
-                        <option value="2">2x</option>
-                        <option value="3">3x</option>
-                        <option value="4">4x</option>
-                        <option value="5">5x</option>
-                        <option value="6">6x</option>
-                        <option value="7">7x</option>
-                        <option value="8">8x</option>
-                        <option value="9">9x</option>
-                        <option value="10">10x</option>
-                        <option value="11">11x</option>
-                        <option value="12">12x</option>
+                        {allowedInstallments.map(n=><option value={n} key={n}>{n===1?"À vista":n+"x"}</option>)}
                       </select>
                     </div>
                     
