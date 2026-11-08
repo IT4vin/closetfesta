@@ -2,14 +2,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Eye, Edit, Tag } from "lucide-react";
+import { CreditCard, Eye, Edit, Tag, Clock3 } from "lucide-react";
 
 interface ProductCardProps {
   product: any;
   onEdit: () => void;
+  onHistory: () => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onHistory }) => {
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -93,6 +94,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit }) => {
             <span>Editar</span>
           </Button>
           
+          <Button
+            variant="outline"
+            size="icon"
+            title={"Histórico de locações de " + product.name}
+            aria-label={"Histórico de locações de " + product.name}
+            onClick={(e) => { e.stopPropagation(); onHistory(); }}
+            className="shrink-0 border-marsala-200 text-marsala-800 hover:bg-marsala-50"
+          >
+            <Clock3 size={17} />
+          </Button>
+
           <Button 
             className="flex-1 bg-marsala hover:bg-marsala-700"
             onClick={handleClick}
