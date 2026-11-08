@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getCreditStatement, moneyCredit } from "@/lib/houseCredits";
+import { creditCheckoutError, storeCreditLimit } from "@/lib/pdvStoreCredit";
 import { loadClosetSettings, type ClosetSettingValues } from "@/lib/closetSettings";
 import { isMethodEnabled, availableInstallments, minimumInitialPayment, validatePaymentLines } from "@/lib/paymentRules";
 import { 
@@ -39,7 +42,7 @@ interface PDVPaymentModalProps {
   onClose: () => void;
   total: number;
   onPaymentComplete: (paymentDetails: any) => Promise<void>;
-  customer: { name: string; document: string } | null;
+  customer: { id?: string; name: string; document: string } | null;
 }
 
 const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
@@ -60,10 +63,30 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   const [payments, setPayments] = useState<{method: string; value: number; installments:number}[]>([]);
   const [currentPaymentValue, setCurrentPaymentValue] = useState<string>("");
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [storeCreditInput,setStoreCreditInput]=useState("");
   const [paymentRules, setPaymentRules] = useState<ClosetSettingValues>({});
   const [operationalRules, setOperationalRules] = useState<ClosetSettingValues>({});
   const [rulesLoading, setRulesLoading] = useState(true);
   const [rulesError, setRulesError] = useState("");
+  const clientId=customer?.id;
+  const creditQuery=useQuery({
+    queryKey:["pdv-client-store-credit",clientId],
+    queryFn:()=>getCreditStatement(clientId!),
+    enabled:isOpen&&Boolean(clientId),
+    staleTime:0,
+    refetchOnMount:"always",
+    refetchOnWindowFocus:true,
+  });
+  const availableCredit=Number(creditQuery.data?.balance||0);
+  const creditLimit=storeCreditLimit(availableCredit,total);
+  const creditToUse=storeCreditInput.trim()===""?0:Number(storeCreditInput);
+  const creditSelectionInvalid= !Number.isFinite(creditToUse)||
+    creditToUse<0||Math.abs(creditToUse*100-Math.round(creditToUse*100))>0.0001||
+    creditToUse>creditLimit+0.00001||
+    (creditToUse>0&&(!clientId||creditQuery.isPending||creditQuery.isError));
+  React.useEffect(()=>{
+    setStoreCreditInput("");
+  },[isOpen,clientId]);
   React.useEffect(() => {
     if (!isOpen) return;
     let alive = true;
@@ -94,6 +117,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
       setPayments([]);
       setCurrentPaymentValue("");
       setPaymentConfirmed(false);
+      setStoreCreditInput("");
     }
   }, [isOpen]);
 
@@ -107,8 +131,14 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   
   const requiredPayment=minimumInitialPayment(operationalRules,total);
   const half=Math.max(0.01,requiredPayment);
-  const target=receiptMode==="half"?half:receiptMode==="full"?total:Number(customAmount);
-  const validTarget=Number.isFinite(target)&&target>0&&target<=total&&Math.abs(target*100-Math.round(target*100))<0.0001;
+  const cashMaximum=Math.max(0,Math.round((total-creditToUse)*100)/100);
+  const minimumCash=Math.max(0,Math.round((requiredPayment-creditToUse)*100)/100);
+  const target=receiptMode==="half"?minimumCash:
+    receiptMode==="full"?cashMaximum:Number(customAmount);
+  const validTarget=Number.isFinite(target)&&target>=0&&
+    target<=cashMaximum+0.00001&&
+    Math.abs(target*100-Math.round(target*100))<0.0001&&
+    (target>0||creditToUse>0);
   const allowedInstallments=availableInstallments(paymentRules,target);
   const calculateChange = (): number => {
     const received = parseFloat(receivedAmount);
@@ -122,12 +152,12 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const getRemainingAmount = (): number => {
-    return Math.max(0, total - getTotalPaid());
+    return Math.max(0, Math.round((total-creditToUse-getTotalPaid())*100)/100);
   };
   
   const handleAddSplitPayment = () => {
     const paymentValue = parseFloat(currentPaymentValue);
-    if (!Number.isFinite(paymentValue) || paymentValue <= 0 || Math.round(paymentValue*100)!==paymentValue*100) {
+    if (!Number.isFinite(paymentValue) || paymentValue <= 0 || Math.abs(Math.round(paymentValue*100)-paymentValue*100)>0.0001) {
       toast({
         title: "Valor inválido",
         description: "Por favor, insira um valor válido para o pagamento.",
@@ -162,7 +192,8 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const handleFinishPayment = async () => {
-    if (!paymentConfirmed || isProcessing || rulesLoading || rulesError) return;
+    if (!paymentConfirmed || isProcessing || rulesLoading || rulesError||
+      creditSelectionInvalid||!isPaymentComplete()) return;
     setIsProcessing(true);
     try {
       // Registro manual: nenhuma cobrança eletrônica é iniciada pelo sistema.
@@ -170,20 +201,23 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
         total,
         customer,
         date: new Date().toISOString(),
-        payments: splitPayment ? payments : [{
+        store_credit_amount:creditToUse,
+        payments: splitPayment ? payments : (target>0 ? [{
           method: paymentMethod,
           value: target,
           installments: paymentMethod === "credit" ? parseInt(installments) : 1,
-        }],
+        }] : []),
         change: paymentMethod === "cash" ? calculateChange() : 0,
         registration_type: "operator_recorded",
       };
-      const problem=validatePaymentLines(paymentRules,paymentDetails.payments,total);
+      const problem=paymentDetails.payments.length>0?
+        validatePaymentLines(paymentRules,paymentDetails.payments,total):null;
       if (problem) throw new Error(problem);
       const paidNow=paymentDetails.payments.reduce((sum:number,p:{value:number})=>sum+p.value,0);
-      if (paidNow+0.005<requiredPayment) {
-        throw new Error("O sinal mínimo configurado é R$ "+requiredPayment.toFixed(2)+".");
-      }
+      const creditProblem=creditCheckoutError(
+        creditToUse,availableCredit,total,paidNow,requiredPayment
+      );
+      if(creditProblem)throw new Error(creditProblem);
       await onPaymentComplete(paymentDetails);
     } catch (error) {
       toast({
@@ -197,11 +231,21 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
   };
   
   const isPaymentComplete = (): boolean => {
-    if (!splitPayment) return validTarget && target+0.005>=requiredPayment && isMethodEnabled(paymentRules,paymentMethod) &&
-      (paymentMethod !== "credit" || allowedInstallments.includes(Number(installments))) &&
-      (paymentMethod !== "cash" || Number(receivedAmount) >= target);
-    const amount = getTotalPaid();
-    return amount + 0.005 >= requiredPayment && amount <= total && !validatePaymentLines(paymentRules,payments,total);
+    if(creditSelectionInvalid)return false;
+    if(!splitPayment){
+      if(!validTarget)return false;
+      const validCash=target===0 || (
+        isMethodEnabled(paymentRules,paymentMethod) &&
+        (paymentMethod!=="credit"||allowedInstallments.includes(Number(installments))) &&
+        (paymentMethod!=="cash"||Number(receivedAmount)>=target)
+      );
+      return validCash && !creditCheckoutError(
+        creditToUse,availableCredit,total,target,requiredPayment
+      );
+    }
+    const amount=getTotalPaid();
+    return (payments.length>0 ? !validatePaymentLines(paymentRules,payments,total) : creditToUse>0) &&
+      !creditCheckoutError(creditToUse,availableCredit,total,amount,requiredPayment);
   };
 
   return (
@@ -227,12 +271,71 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             </div>
           )}
           
+          <div className="mb-5 space-y-3 rounded-xl border border-marsala-200 bg-marsala-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-marsala-900">
+                  <Wallet className="h-4 w-4"/>Crédito na loja
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saldo vinculado ao cadastro do cliente; diferente de cartão de crédito.
+                </p>
+              </div>
+              <button type="button" className="text-xs font-semibold text-marsala-800 hover:underline"
+                onClick={()=>void creditQuery.refetch()} disabled={!clientId||creditQuery.isFetching}>
+                Atualizar saldo
+              </button>
+            </div>
+            {creditQuery.isPending&&<p role="status" className="text-xs text-muted-foreground">
+              Consultando crédito disponível no Supabase...
+            </p>}
+            {creditQuery.isError&&<p role="alert" className="text-xs text-red-700">
+              {creditQuery.error instanceof Error?creditQuery.error.message:"Saldo indisponível."}
+              {" "}Você ainda pode finalizar com outro meio de pagamento.
+            </p>}
+            {creditQuery.isSuccess&&<p className="text-sm">
+              Saldo disponível: <strong className="text-marsala-900">{moneyCredit(availableCredit)}</strong>
+            </p>}
+            {creditQuery.isSuccess&&creditLimit>0&&<>
+              <div className="space-y-1">
+                <Label htmlFor="pdv-store-credit-value">Valor de crédito a utilizar (R$)</Label>
+                <Input id="pdv-store-credit-value" type="number" min="0" step="0.01"
+                  max={creditLimit} value={storeCreditInput}
+                  disabled={isProcessing} placeholder="0,00"
+                  onChange={event=>setStoreCreditInput(event.target.value)}/>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={isProcessing}
+                  onClick={()=>setStoreCreditInput(
+                    Math.min(creditLimit,requiredPayment).toFixed(2)
+                  )}>Usar no sinal</Button>
+                <Button type="button" variant="outline" size="sm" disabled={isProcessing}
+                  onClick={()=>setStoreCreditInput(creditLimit.toFixed(2))}>
+                  Usar todo crédito disponível
+                </Button>
+                {creditToUse>0&&<Button type="button" variant="ghost" size="sm"
+                  onClick={()=>setStoreCreditInput("")} disabled={isProcessing}>
+                  Não utilizar
+                </Button>}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Limite nesta locação: {moneyCredit(creditLimit)}.
+                {" "}O crédito será debitado somente após a criação do contrato.
+              </p>
+            </>}
+            {creditQuery.isSuccess&&creditLimit===0&&<p className="text-xs text-muted-foreground">
+              Este cliente ainda não possui crédito disponível para usar.
+            </p>}
+            {creditSelectionInvalid&&<p role="alert" className="text-xs text-red-700">
+              Verifique o valor do crédito; ele não pode ultrapassar o saldo ou o total do contrato.
+            </p>}
+          </div>
           {!splitPayment && <div className="mb-5 space-y-3">
             <h3 className="text-sm font-semibold">Valor a registrar agora</h3>
             <div className="grid gap-2 sm:grid-cols-3">
               {([
-                ["half","Sinal mínimo configurado",half],
-                ["full","Pagamento integral",total],
+                ["half","Complemento do sinal",minimumCash],
+                ["full","Completar contrato",cashMaximum],
                 ["custom","Outro valor",Number(customAmount)||0],
               ] as const).map(([mode,label,value])=><button key={mode} type="button"
                 onClick={()=>setReceiptMode(mode)}
@@ -245,10 +348,14 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             </div>
             {receiptMode==="custom"&&<div className="space-y-1">
               <Label htmlFor="custom-receipt">Valor recebido (R$)</Label>
-              <Input id="custom-receipt" type="number" min=".01" max={total} step=".01"
+              <Input id="custom-receipt" type="number" min="0" max={cashMaximum} step=".01"
                 value={customAmount} onChange={e=>setCustomAmount(e.target.value)}/>
             </div>}
-            <p className="text-xs text-muted-foreground">O saldo não recebido permanece em aberto no contrato. Sinal mínimo: R$ {requiredPayment.toFixed(2)}.</p>
+            <p className="text-xs text-muted-foreground">
+              Sinal mínimo: {moneyCredit(requiredPayment)}.
+              {" "}Crédito aplicado: {moneyCredit(creditToUse)}.
+              {" "}O saldo restante permanece em aberto.
+            </p>
           </div>}
           <div className="mb-4">
             <div className="flex justify-between items-center">
@@ -265,8 +372,13 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
           </div>
           
           {!splitPayment ? (
-            // Single payment method
-            <>
+            // Single payment method; zero caixa/cartão quando o crédito cobre o sinal.
+            target===0 && creditToUse>0 ?
+              <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                Sinal coberto pelo crédito na loja. Não há recebimento adicional
+                nesta etapa; você pode finalizar o contrato sem registrar Pix, cartão ou dinheiro.
+              </p>
+            : <>
               <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="mb-6">
                 <TabsList className="grid grid-cols-2 sm:grid-cols-5">
                   {paymentMethods.map(method => (
@@ -437,22 +549,28 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
         </div>
         
         <div className="my-3 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-          <Checkbox id="manual-payment-checked" checked={paymentConfirmed} onCheckedChange={(value) => setPaymentConfirmed(value === true)} />
+          <Checkbox id="manual-payment-checked" checked={paymentConfirmed}
+            onCheckedChange={(value)=>setPaymentConfirmed(value===true)} />
           <Label htmlFor="manual-payment-checked" className="text-xs leading-relaxed">
-            Confirmo que conferi o recebimento na maquininha, dinheiro ou extrato.
-            O sistema registra manualmente o pagamento e não executa cobranças. Dinheiro exige caixa aberto.
+            {((splitPayment?getTotalPaid():target)>0)
+              ?"Confirmo que conferi os recebimentos em dinheiro, maquininha ou extrato, quando aplicável. O sistema não executa cobranças."
+              :"Confirmo que o cliente autorizou o uso de crédito da loja neste contrato. Nenhuma nova cobrança foi registrada."}
+            {creditToUse>0&&" O crédito será debitado na criação do contrato."}
           </Label>
         </div>
         <div className="mb-4 rounded-xl border border-marsala-100 bg-marsala-50/60 p-3 text-sm">
           <div className="flex justify-between gap-2">
-            <span>Recebimento neste atendimento</span>
-            <strong>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"})
-              .format(splitPayment?getTotalPaid():Number.isFinite(target)?target:0)}</strong>
+            <span>Crédito da loja utilizado</span>
+            <strong>{moneyCredit(creditToUse)}</strong>
+          </div>
+          <div className="mt-2 flex justify-between gap-2">
+            <span>Recebimento novo neste atendimento</span>
+            <strong>{moneyCredit(splitPayment?getTotalPaid():Number.isFinite(target)?target:0)}</strong>
           </div>
           <div className="mt-2 flex justify-between gap-2 text-marsala-800">
             <span>Saldo restante do contrato</span>
-            <strong>{new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"})
-              .format(Math.max(0,total-(splitPayment?getTotalPaid():Number.isFinite(target)?target:0)))}</strong>
+            <strong>{moneyCredit(Math.max(0,total-creditToUse-
+              (splitPayment?getTotalPaid():Number.isFinite(target)?target:0)))}</strong>
           </div>
         </div>
         <DialogFooter>
@@ -461,7 +579,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
           </Button>
           <Button 
             onClick={handleFinishPayment} 
-            disabled={isProcessing || rulesLoading || Boolean(rulesError) || !paymentConfirmed || !isPaymentComplete() || !customer}
+            disabled={isProcessing || rulesLoading || Boolean(rulesError) || !paymentConfirmed || !isPaymentComplete() || !customer || creditSelectionInvalid}
             className="bg-marsala hover:bg-marsala-700"
           >
             {isProcessing ? (
@@ -473,7 +591,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                 Processando...
               </>
             ) : (
-              "Registrar recebimento e contrato"
+              "Finalizar locação e registrar pagamento"
             )}
           </Button>
         </DialogFooter>
