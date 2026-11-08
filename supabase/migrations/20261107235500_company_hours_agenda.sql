@@ -1,4 +1,4 @@
--- Reutiliza a trigger instalada e aplica horários cadastrados da loja.\nCREATE OR REPLACE FUNCTION public.closet_validate_appointment_settings()
+-- Extensão da validação de agendamentos com horários personalizados.\nCREATE OR REPLACE FUNCTION public.closet_validate_appointment_settings()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp AS $$
 DECLARE
@@ -54,22 +54,17 @@ BEGIN
       RAISE EXCEPTION 'Limite configurado de atendimentos simultâneos atingido' USING ERRCODE='22023';
     END IF;
   END IF;
-  -- Horários personalizados só se aplicam quando cadastrados.
-  SELECT value INTO shop FROM public.settings
-    WHERE key='closet_festa.config.v1.company';
+  -- Horários configurados são validados apenas quando há valores reais.
+  SELECT value INTO shop FROM public.settings WHERE key='closet_festa.config.v1.company';
   shop := COALESCE(shop,'{}'::jsonb);
   local_start := NEW.start_at AT TIME ZONE 'America/Sao_Paulo';
   local_end := NEW.end_at AT TIME ZONE 'America/Sao_Paulo';
   shop_open := shop->>'store_open';
   shop_close := shop->>'store_close';
-  IF shop_open ~ '^([01][0-9]|2[0-3]):[0-5][0-9]
-$$;
- AND local_start::time < shop_open::time THEN
+  IF shop_open ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND local_start::time < shop_open::time THEN
     RAISE EXCEPTION 'Início anterior à abertura da loja' USING ERRCODE='22023';
   END IF;
-  IF shop_close ~ '^([01][0-9]|2[0-3]):[0-5][0-9]
-$$;
- AND local_end::time > shop_close::time THEN
+  IF shop_close ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND local_end::time > shop_close::time THEN
     RAISE EXCEPTION 'Término posterior ao fechamento da loja' USING ERRCODE='22023';
   END IF;
   IF NEW.title='Prova' THEN
@@ -82,14 +77,10 @@ $$;
   ELSIF NEW.title='Devolução' THEN
     end_limit:=shop->>'return_close';
   END IF;
-  IF start_limit ~ '^([01][0-9]|2[0-3]):[0-5][0-9]
-$$;
- AND local_start::time < start_limit::time THEN
+  IF start_limit ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND local_start::time < start_limit::time THEN
     RAISE EXCEPTION 'Horário inicial não permitido para este atendimento' USING ERRCODE='22023';
   END IF;
-  IF end_limit ~ '^([01][0-9]|2[0-3]):[0-5][0-9]
-$$;
- AND local_end::time > end_limit::time THEN
+  IF end_limit ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND local_end::time > end_limit::time THEN
     RAISE EXCEPTION 'Horário de término não permitido para este atendimento' USING ERRCODE='22023';
   END IF;
   RETURN NEW;
