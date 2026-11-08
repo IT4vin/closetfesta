@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Clock3, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/lib/api";
+import ProductHistoryAvailabilityPanel from "@/components/products/ProductHistoryAvailabilityPanel";
 import {
   fetchProductRentalHistory, productHistoryDate, productHistoryMoney,
   productHistoryStatus, PRODUCT_HISTORY_PAGE_SIZE,
@@ -49,6 +50,7 @@ export default function ProductRentalHistoryDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          <ProductHistoryAvailabilityPanel productId={product?.id ?? null} />
           {query.isPending && <p className="py-8 text-center text-sm text-muted-foreground" role="status">
             Consultando o histórico real no Supabase...
           </p>}
