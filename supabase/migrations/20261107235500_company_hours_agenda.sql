@@ -1,4 +1,4 @@
--- Extensão da validação de agendamentos com horários personalizados.\nCREATE OR REPLACE FUNCTION public.closet_validate_appointment_settings()
+CREATE OR REPLACE FUNCTION public.closet_validate_appointment_settings()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp AS $$
 DECLARE
