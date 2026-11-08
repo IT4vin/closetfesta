@@ -6,6 +6,7 @@ export interface PDVDraftPayload {
   items:Array<{product_id:string;quantity:number;discount:number}>;
   customer_id:string|null;
   dates:{tryOnDate:string;pickupDate:string;eventDate:string;returnDate:string};
+  visitTimes?:{tryOnTime:string;pickupTime:string};
   observations:string;
   global_discount:number;
   global_discount_type:"amount"|"percentage";
@@ -27,6 +28,10 @@ export function validDraftPayload(source:unknown):source is PDVDraftPayload {
     && (v.customer_id===null||typeof v.customer_id==="string")
     && dates && ["tryOnDate","pickupDate","eventDate","returnDate"].every(k=>
       typeof dates[k]==="string" && (dates[k]===""||/^\d{4}-\d{2}-\d{2}$/.test(dates[k])))
+    && (!v.visitTimes || (
+      typeof v.visitTimes.tryOnTime==="string" && typeof v.visitTimes.pickupTime==="string" &&
+      [v.visitTimes.tryOnTime,v.visitTimes.pickupTime].every(t=>t===""||/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t))
+    ))
     && typeof v.observations==="string" && v.observations.length<=3000
     && Number.isFinite(v.global_discount) && v.global_discount>=0
     && ["amount","percentage"].includes(v.global_discount_type);

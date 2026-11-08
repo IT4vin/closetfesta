@@ -98,6 +98,8 @@ export async function createRentalOrder(input: {
   customer_name: string;
   customer_document?: string;
   customer_phone?: string;
+  try_on_time?: string | null;
+  pickup_time?: string | null;
   items: Array<Record<string, unknown>>;
   total_discount: number;
   total: number;
@@ -111,6 +113,8 @@ export async function createRentalOrder(input: {
     customer_name: input.customer_name,
     customer_document: input.customer_document ?? null,
     customer_phone: input.customer_phone ?? null,
+    ...(input.try_on_time ? {try_on_time:input.try_on_time} : {}),
+    ...(input.pickup_time ? {pickup_time:input.pickup_time} : {}),
     items: input.items,
     total_discount: input.total_discount,
     total: input.total,

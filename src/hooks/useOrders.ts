@@ -809,6 +809,8 @@ export function useOrders(options: UseOrdersOptions = {}) {
     customer_name: string;
     customer_document?: string;
     customer_phone?: string;
+    try_on_time?: string | null;
+    pickup_time?: string | null;
     order_type: 'sale' | 'rental' | 'hybrid';
     items: Array<{
       product_id: string;

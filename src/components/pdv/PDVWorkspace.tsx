@@ -15,6 +15,7 @@ import { useAuth } from "@/stores/authStore";
 import PDVProductGallery, { PDVProductPhoto, rentalPrice, isAvailableForRental } from "./PDVProductGallery";
 import type { Product } from "@/lib/api";
 import type { CartItem, OrderDates } from "./PDVSale";
+import VisitSlotInput from "@/components/calendar/VisitSlotInput";
 import { conflictApproved, type CartConflictApproval, type ProductCartAvailability } from "@/lib/cartAvailability";
 
 const currency=(value:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value);
@@ -27,6 +28,8 @@ const dateFields:[keyof OrderDates,string][]=[
 export interface PDVWorkspaceProps {
   products:Product[]; loading:boolean; error:string|null;
   cart:CartItem[]; dates:OrderDates;
+  visitTimes:{tryOnTime:string;pickupTime:string};
+  onVisitTimesChange:(next:{tryOnTime:string;pickupTime:string})=>void;
   customer:{id?:string;name:string;document:string;phone?:string}|null;
   searchValue:string; setSearchValue:(value:string)=>void;
   observations:string; setObservations:(value:string)=>void;
@@ -50,7 +53,7 @@ export interface PDVWorkspaceProps {
 
 export default function PDVWorkspace(props:PDVWorkspaceProps){
   const {
-    products,loading,error,cart,dates,customer,searchValue,setSearchValue,
+    products,loading,error,cart,dates,visitTimes,onVisitTimesChange,customer,searchValue,setSearchValue,
     observations,setObservations,globalDiscount,setGlobalDiscount,
     globalDiscountType,setGlobalDiscountType,total,totalDiscount,processing,
     availability,availabilityBusy,availabilityError,overrides,onReviewConflict,
@@ -313,6 +316,18 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
                 onChange={e=>onDatesChange({...dates,[key]:e.target.value})}
                 className={fieldBase+" px-2 text-xs"}/>
             </div>)}
+          </div>
+          <div className="mt-3 grid gap-3 rounded-lg border border-marsala-100 bg-marsala-50/30 p-3 sm:grid-cols-2">
+            <VisitSlotInput id="pdv-time-fitting" kind="Prova" day={dates.tryOnDate}
+              time={visitTimes.tryOnTime} required={Boolean(dates.tryOnDate)}
+              onChange={value=>onVisitTimesChange({...visitTimes,tryOnTime:value})}/>
+            <VisitSlotInput id="pdv-time-pickup" kind="Retirada" day={dates.pickupDate}
+              time={visitTimes.pickupTime} required
+              onChange={value=>onVisitTimesChange({...visitTimes,pickupTime:value})}/>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Escolha o horário em que a cliente virá à loja. O número de vagas é conferido pelo Supabase
+              e o agendamento é confirmado junto com o contrato.
+            </p>
           </div>
           {cart.length>0&&!datesValid&&<div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0"/>
