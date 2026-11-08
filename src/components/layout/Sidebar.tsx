@@ -9,7 +9,10 @@ import {
   LineChart, 
   BarChart3,
   Settings, 
-  ShoppingCart, 
+  ShoppingCart,
+  Clock3,
+  CalendarClock,
+  ClipboardClock,
   X 
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -17,6 +20,8 @@ import UserProfile from "./UserProfile";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useIntelligentPreload } from "@/hooks/useIntelligentPreload";
+import { useAuth } from "@/stores/authStore";
+import {hasRolePermission} from "@/lib/accessControl";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -25,6 +30,9 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { colorScheme } = useTheme();
   const { preloadOnHover } = useIntelligentPreload();
+  const {user}=useAuth();
+  const canClock=hasRolePermission(user?.role?.id,"timeClock","read");
+  const canManageClock=hasRolePermission(user?.role?.id,"timeClock","manage");
   
   // Link fixo para o catálogo, sempre em /catalog
   const catalogHref = '/catalog';
@@ -38,6 +46,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: "Estoque", href: "/inventory", icon: LineChart, preloadKey: "inventory" },
     { name: "PDV", href: "/pdv", icon: ShoppingCart, preloadKey: "pdv" },
     { name: "Relatórios", href: "/reports", icon: BarChart3, preloadKey: "reports" },
+    ...(canClock ? [
+      { name:"Bater Ponto",href:"/clock",icon:Clock3,preloadKey:"clock" },
+      { name:"Meu Banco de Horas",href:"/my-hours",icon:CalendarClock,preloadKey:"my-hours" },
+    ]:[]),
+    ...(canManageClock?[
+      { name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardClock,preloadKey:"clock-admin" },
+    ]:[]),
     { name: "Configurações", href: "/settings", icon: Settings, preloadKey: "settings" },
   ];
 
