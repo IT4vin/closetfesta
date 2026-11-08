@@ -15,6 +15,7 @@ import { useAuth } from "@/stores/authStore";
 import PDVProductGallery, { PDVProductPhoto, rentalPrice, isAvailableForRental } from "./PDVProductGallery";
 import type { Product } from "@/lib/api";
 import type { CartItem, OrderDates } from "./PDVSale";
+import { conflictApproved, type CartConflictApproval, type ProductCartAvailability } from "@/lib/cartAvailability";
 
 const currency=(value:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value);
 const identity=(p:Product)=>[p.name,p.sku,p.barcode,p.color,p.type,p.description].filter(Boolean).join(" ").toLocaleLowerCase("pt-BR");
@@ -32,6 +33,10 @@ export interface PDVWorkspaceProps {
   globalDiscount:number; setGlobalDiscount:(value:number)=>void;
   globalDiscountType:"percentage"|"amount"; setGlobalDiscountType:(value:"percentage"|"amount")=>void;
   total:number; totalDiscount:number; processing:boolean;
+  availability:Record<string,ProductCartAvailability>;
+  availabilityBusy:boolean; availabilityError:string;
+  overrides:Record<string,CartConflictApproval>;
+  onReviewConflict:(productId:string)=>void;
   onDatesChange:(value:OrderDates)=>void;
   onAdd:(product:Product,quantity:number)=>void;
   onQuantityChange:(id:string,qty:number)=>void;
@@ -48,6 +53,7 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
     products,loading,error,cart,dates,customer,searchValue,setSearchValue,
     observations,setObservations,globalDiscount,setGlobalDiscount,
     globalDiscountType,setGlobalDiscountType,total,totalDiscount,processing,
+    availability,availabilityBusy,availabilityError,overrides,onReviewConflict,
     onDatesChange,onAdd,onQuantityChange,onItemDiscount,onRemove,onCustomer,
     onRefresh,onContinue,onSaveDraft,onLoadDraft,onClear,onOrders,draftBusy,hasDraft,
   }=props;
@@ -238,6 +244,17 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
                         <p className="truncate text-xs text-muted-foreground">SKU {item.sku??"não cadastrado"}
                           {item.color?" · "+item.color:""}</p>
                         {item.discount>0&&<p className="text-xs text-emerald-700">Desconto: {currency(item.discount)}</p>}
+                        {availability[item.id]&&!availability[item.id].available&&
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <Badge variant={conflictApproved(overrides[item.id],item.id,item.quantity,dates)?"outline":"destructive"}
+                              className={conflictApproved(overrides[item.id],item.id,item.quantity,dates)?"border-amber-400 text-amber-800":""}>
+                              {conflictApproved(overrides[item.id],item.id,item.quantity,dates)
+                                ?"Desbloqueio gerencial autorizado":"Indisponível nas datas"}
+                            </Badge>
+                            <button className="text-xs font-semibold text-marsala-800 underline underline-offset-2"
+                              type="button" onClick={()=>onReviewConflict(item.id)}>Ver histórico</button>
+                          </div>}
+                        {availabilityBusy&&<p className="text-xs text-muted-foreground">Consultando datas...</p>}
                       </div>
                     </div>
                   </td>
@@ -335,7 +352,23 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
             </div>
             {manager&&cart.length>0&&<Button size="sm" variant="outline" className="w-full border-marsala-200 text-marsala-800"
               onClick={()=>setDiscountOpen(true)}>Conceder desconto</Button>}
-            <Button onClick={onContinue} disabled={!cart.length||processing} className="h-11 w-full gap-2 bg-marsala text-white hover:bg-marsala-700">
+            {cart.length>0&&datesValid&&<div className="space-y-2 text-xs">
+              {availabilityBusy&&<p role="status" className="text-muted-foreground">Verificando datas de locação no Supabase...</p>}
+              {availabilityError&&<p role="alert" className="rounded-md border border-red-200 p-2 text-red-700">
+                Falha na disponibilidade: {availabilityError}. Atualize as datas e tente novamente.
+              </p>}
+              {cart.some(item=>availability[item.id]&&!availability[item.id].available&&!conflictApproved(
+                overrides[item.id],item.id,item.quantity,dates
+              ))&&<p role="alert" className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                Existem trajes indisponíveis. Confira o histórico, remova ou solicite desbloqueio gerencial.
+              </p>}
+              {cart.some(item=>conflictApproved(overrides[item.id],item.id,item.quantity,dates))&&
+                <p className="rounded-md border border-amber-200 p-2 text-amber-900">
+                  Reserva excepcional autorizada. Resolva os conflitos físicos antes das retiradas.
+                </p>}
+            </div>}
+            <Button onClick={onContinue} disabled={!cart.length||processing||availabilityBusy}
+              className="h-11 w-full gap-2 bg-marsala text-white hover:bg-marsala-700">
               <CreditCard className="h-4 w-4"/>{processing?"Registrando contrato...":"Continuar para pagamento"}
             </Button>
             {!ready&&cart.length>0&&<p className="text-center text-xs text-muted-foreground">Para continuar, selecione cliente e preencha as datas obrigatórias.</p>}
