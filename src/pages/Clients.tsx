@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw, Search, Loader2 } from "lucide-react";
+import { Plus, RefreshCw, Search } from "lucide-react";
+import ClientRegistrationForm from "@/components/clients/ClientRegistrationForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import PermissionManager from "@/lib/permissions";
@@ -31,11 +32,9 @@ const ClientsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [originSaving, setOriginSaving] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const canUpdate = PermissionManager.hasPermission("clients", "update");
-  const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", document: "", origin: "" });
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearchTerm(search.trim()); setPage(0); }, 250);
@@ -66,41 +65,11 @@ const ClientsPage = () => {
 
   useEffect(() => { void loadClients(); }, [page, searchTerm]);
 
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (newClient.name.trim().length < 2) {
-      toast({ title: "Nome obrigatório", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    try {
-      if (newClient.document.trim()) {
-        const { data: existing, error: checkError } = await supabase.from("clients")
-          .select("id").eq("document", newClient.document.trim()).maybeSingle();
-        if (checkError) throw checkError;
-        if (existing) {
-          toast({ title: "Cliente já cadastrado", description: "Já existe um cadastro para este documento.", variant: "destructive" });
-          return;
-        }
-      }
-      const { error: insertError } = await supabase.from("clients").insert({
-        full_name: newClient.name.trim(),
-        phone: newClient.phone.trim() || null,
-        email: newClient.email.trim() || null,
-        document: newClient.document.trim() || null,
-        acquisition_source: newClient.origin.trim() || null,
-      });
-      if (insertError) throw insertError;
-      toast({ title: "Cliente salvo", description: "Cadastro registrado no banco de dados." });
-      setNewClient({ name: "", phone: "", email: "", document: "", origin: "" });
-      setDialogOpen(false);
-      setPage(0);
-      void loadClients();
-    } catch {
-      toast({ title: "Erro ao salvar", description: "Os dados não foram registrados. Tente novamente.", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+  const clientSaved=async()=>{
+    toast({title:"Cliente salvo",description:"Cadastro completo registrado no Supabase."});
+    setDialogOpen(false);setPage(0);
+    await queryClient.invalidateQueries({queryKey:["closet-live-operations"]});
+    await loadClients();
   };
 
   const updateOrigin = async (id: string, origin: string) => {
@@ -168,30 +137,16 @@ const ClientsPage = () => {
           <Button variant="outline" onClick={() => setPage(n => n + 1)} disabled={loading || (page + 1) * PAGE_SIZE >= total}>Próxima</Button>
         </div>
       </div>
-      <Sheet open={dialogOpen} onOpenChange={open => !saving && setDialogOpen(open)}>
-        <SheetContent side="right" className="w-[90vw] sm:max-w-[450px] overflow-y-auto">
-          <SheetHeader><SheetTitle>Novo cliente</SheetTitle></SheetHeader>
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            <div><Label htmlFor="client-name">Nome completo *</Label>
-              <Input id="client-name" value={newClient.name} onChange={e => setNewClient(s => ({ ...s, name: e.target.value }))} required /></div>
-            <div><Label htmlFor="client-phone">Telefone</Label>
-              <Input id="client-phone" value={newClient.phone} onChange={e => setNewClient(s => ({ ...s, phone: e.target.value }))} /></div>
-            <div><Label htmlFor="client-email">E-mail</Label>
-              <Input id="client-email" type="email" value={newClient.email} onChange={e => setNewClient(s => ({ ...s, email: e.target.value }))} /></div>
-            <div><Label htmlFor="client-doc">CPF/CNPJ</Label>
-              <Input id="client-doc" value={newClient.document} onChange={e => setNewClient(s => ({ ...s, document: e.target.value }))} /></div>
-            <div><Label htmlFor="client-origin">Como conheceu a loja?</Label>
-              <select id="client-origin" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={newClient.origin}
-                onChange={e => setNewClient(s => ({ ...s, origin: e.target.value }))}>
-                <option value="">Não informado</option>
-                <option value="Instagram">Instagram</option><option value="Indicação">Indicação</option>
-                <option value="Google">Google</option><option value="Shopping">Shopping</option>
-                <option value="WhatsApp">WhatsApp</option><option value="Outros">Outros</option>
-              </select></div>
-            <Button type="submit" className="w-full" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar cliente
-            </Button>
-          </form>
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="flex w-[96vw] flex-col p-0 sm:max-w-[740px]">
+          <SheetHeader className="shrink-0 border-b bg-marsala-50/30 px-6 py-5 text-left">
+            <SheetTitle className="text-xl text-marsala-900">Novo cliente</SheetTitle>
+            <p className="text-sm text-muted-foreground">Dados completos para contratos, atendimento e futuras provas.</p>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {dialogOpen&&<ClientRegistrationForm onSaved={clientSaved}
+              onCancel={()=>setDialogOpen(false)}/>}
+          </div>
         </SheetContent>
       </Sheet>
     </div>
