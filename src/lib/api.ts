@@ -5,6 +5,8 @@
 // ============================================================================
 
 import { supabase } from '@/integrations/supabase/client';
+import { createRentalOrder, findRentalOrder, listRentalOrders } from '@/lib/rentalOrders';
+import { confirmRentalPickup, confirmRentalReturn, recordRentalPayment } from '@/lib/rentalLifecycle';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) {
@@ -27,6 +29,7 @@ export interface ProductImage {
 export interface Product {
   id: string;
   sku?: string;
+  barcode?: string;
   name: string;
   description: string;
   price: number;
@@ -225,6 +228,7 @@ function mapProductRow(row: any): Product {
   return {
     id: row.id,
     sku: row.sku ?? undefined,
+    barcode: row.barcode ?? undefined,
     name: row.name,
     description: row.description ?? '',
     price: Number(row.price ?? 0),
@@ -233,8 +237,11 @@ function mapProductRow(row: any): Product {
     category_id: row.category_id ?? '',
     sizes: Array.isArray(meta.sizes) ? meta.sizes : (typeof meta.sizes === 'string' ? meta.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
     featured: Boolean(meta.featured),
+    size: Array.isArray(meta.sizes) ? meta.sizes[0] : undefined,
+    color: meta.color ?? undefined,
+    type: meta.type ?? undefined,
     deleted: row.deleted_at != null,
-    status: (meta.status as Product['status']) || 'available',
+    status: (!row.active || row.deleted_at) ? 'maintenance' : ((meta.status as Product['status']) || 'available'),
     created_at: row.created_at,
     updated_at: row.updated_at,
     category: row.product_categories ? { name: row.product_categories.name, description: row.product_categories.description ?? '' } : undefined,
@@ -324,13 +331,15 @@ export const productsApi = {
     if (input.sku !== undefined) patch.sku = input.sku;
     if (input.cost !== undefined) patch.cost = input.cost != null ? Number(input.cost) : null;
 
-    if (input.sizes !== undefined || input.featured !== undefined || input.rental_price !== undefined || input.status !== undefined) {
+    if (input.sizes !== undefined || input.featured !== undefined || input.rental_price !== undefined || input.status !== undefined || input.color !== undefined || input.type !== undefined) {
       const { data: existing } = await supabase.from('products').select('metadata').eq('id', id).maybeSingle();
       const metadata: Record<string, any> = { ...(existing?.metadata as any || {}) };
       if (input.sizes !== undefined) metadata.sizes = Array.isArray(input.sizes) ? input.sizes : String(input.sizes).split(',').map((s: string) => s.trim()).filter(Boolean);
       if (input.featured !== undefined) metadata.featured = !!input.featured;
       if (input.rental_price !== undefined) metadata.rental_price = Number(input.rental_price);
       if (input.status !== undefined) metadata.status = input.status;
+      if (input.color !== undefined) metadata.color = input.color;
+      if (input.type !== undefined) metadata.type = input.type;
       patch.metadata = metadata;
     }
 
@@ -344,38 +353,48 @@ export const productsApi = {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) fail(error.message);
     } else {
-      const { error } = await supabase.from('products').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await supabase.from('products').update({ deleted_at: new Date().toISOString(), active: false }).eq('id', id);
       if (error) fail(error.message);
     }
     return ok({ id });
   },
 
   async uploadImages(productId: string, files: File[]): Promise<ApiResponse<ProductImage[]>> {
+    const { data: existing, error: readError } = await supabase.from('product_images')
+      .select('position').eq('product_id', productId).order('position', { ascending: false }).limit(1);
+    if (readError) fail(readError.message);
+    const startPosition = (existing?.[0]?.position ?? -1) + 1;
     const uploaded: ProductImage[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const path = `${productId}/${Date.now()}-${i}-${file.name}`.replace(/\s+/g, '_');
-      const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, { upsert: false });
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) ||
+          file.size > 8 * 1024 * 1024) fail('Foto inválida ou acima de 8 MB.');
+      const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const path = `${productId}/${crypto.randomUUID()}-${safeName}`;
+      const storage = supabase.storage.from('product-images');
+      const { error: upErr } = await storage.upload(path, file, { upsert: false });
       if (upErr) fail(upErr.message);
-      // Bucket privado: gerar signed URL de longa duração (1 ano).
-      const { data: signed } = await supabase.storage.from('product-images').createSignedUrl(path, 60 * 60 * 24 * 365);
-      const url = signed?.signedUrl ?? '';
+      const { data: signed, error: signedError } = await storage.createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signedError || !signed?.signedUrl) {
+        await storage.remove([path]);
+        fail(signedError?.message || 'Não foi possível acessar a imagem.');
+      }
+      const url = signed.signedUrl;
+      const position = startPosition + i;
       const { data, error } = await supabase.from('product_images').insert({
-        product_id: productId,
-        url,
-        storage_path: path,
-        position: i,
-        is_primary: i === 0,
+        product_id: productId, url, storage_path: path, position, is_primary: position === 0,
       }).select().single();
-      if (error) fail(error.message);
+      if (error) {
+        await storage.remove([path]);
+        fail(error.message);
+      }
       uploaded.push({
-        id: data.id, file_name: file.name, file_path: path,
-        display_order: i, url, thumbnail_url: url,
+        id: data.id, file_name: file.name, file_path: path, display_order: position,
+        url, thumbnail_url: url,
       });
     }
     return ok(uploaded);
   },
-
 
   async removeImage(_productId: string, imageId: string): Promise<ApiResponse<{ id: string }>> {
     const { data: img } = await supabase.from('product_images').select('storage_path').eq('id', imageId).maybeSingle();
@@ -512,95 +531,72 @@ async function loadSaleAsOrder(saleId: string): Promise<Order> {
 
 export const ordersApi = {
   async create(input: any): Promise<ApiResponse<Order>> {
-    const { data: userData } = await supabase.auth.getUser();
-    const cashierId = userData.user?.id ?? null;
-
-    const clientId = await ensureClient(input.customer_name, input.customer_phone, input.customer_document);
-
-    const { data: sale, error: saleErr } = await supabase.from('sales').insert({
-      client_id: clientId,
-      cashier_id: cashierId,
-      subtotal: Number(input.subtotal ?? 0),
-      discount: Number(input.total_discount ?? 0),
-      total: Number(input.total ?? 0),
-      status: 'completed',
-      notes: input.observations ?? null,
-    }).select().single();
-    if (saleErr) fail(saleErr.message);
-
-    const itemsPayload = (input.items || []).map((it: any) => ({
-      sale_id: sale.id,
-      product_id: it.product_id,
-      product_name: it.product_name ?? it.name ?? '',
-      quantity: Number(it.quantity),
-      unit_price: Number(it.unit_price),
-      discount: Number(it.discount ?? 0),
-      total: Number(it.unit_price) * Number(it.quantity) - Number(it.discount ?? 0),
-    }));
-
-    if (itemsPayload.length) {
-      // preencher product_name se ausente
-      const missingNames = itemsPayload.filter(i => !i.product_name).map(i => i.product_id);
-      if (missingNames.length) {
-        const { data: prods } = await supabase.from('products').select('id, name').in('id', missingNames);
-        const nameMap = new Map((prods || []).map((p: any) => [p.id, p.name]));
-        itemsPayload.forEach(i => { if (!i.product_name) i.product_name = nameMap.get(i.product_id) || 'Produto'; });
-      }
-      const { error: itErr } = await supabase.from('sale_items').insert(itemsPayload);
-      if (itErr) fail(itErr.message);
+    if (input.order_type === 'rental' && (input.items || []).every((item: any) => item.item_type === 'rental')) {
+      return ok(await createRentalOrder(input));
     }
-
-    // Registrar transação financeira
-    await supabase.from('financial_transactions').insert({
-      type: 'income',
-      category: 'sale',
-      description: `Venda #${sale.id.slice(0, 8)}`,
-      amount: Number(sale.total),
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-      reference_id: sale.id,
-      reference_type: 'sale',
-      created_by: cashierId,
-    });
-
-    return ok(await loadSaleAsOrder(sale.id));
+    if (input.order_type !== 'sale' || (input.items || []).some((item: any) => item.item_type === 'rental')) {
+      return fail('Pedidos mistos ainda não são suportados; finalize o aluguel separadamente.', 501);
+    }
+    // A Closet Festa opera locações; o fluxo legado de vendas ainda não é transacional.
+    return fail('Vendas estão desabilitadas neste PDV. Utilize o fluxo de aluguel.', 501);
   },
-
   async findAll(params: {
     status?: string; order_type?: string; customer_name?: string;
     date_from?: string; date_to?: string; limit?: number; offset?: number;
   } = {}): Promise<ApiResponse<Order[]>> {
-    let q = supabase.from('sales').select('id', { count: 'exact' }).order('created_at', { ascending: false });
-    if (params.status) q = q.eq('status', params.status);
-    if (params.date_from) q = q.gte('created_at', params.date_from);
-    if (params.date_to) q = q.lte('created_at', params.date_to);
-    if (params.limit) q = q.limit(params.limit);
-    if (params.offset != null && params.limit) q = q.range(params.offset, params.offset + params.limit - 1);
-    const { data, error, count } = await q;
-    if (error) fail(error.message);
-    const orders = await Promise.all((data || []).map((r: any) => loadSaleAsOrder(r.id)));
-    return ok(orders, { total: count ?? orders.length });
+    // A Closet Festa trabalha exclusivamente com locação: contratos
+    // são gravados em rental_contracts, não na tabela legada sales.
+    // A consulta de sales podia fazer a aba Pedidos falhar inteira mesmo
+    // quando os contratos de aluguel já estavam salvos corretamente.
+    if (params.order_type === 'sale' || params.order_type === 'hybrid') {
+      return ok([], { total: 0 });
+    }
+    const rentals = await listRentalOrders({
+      status: params.status,
+      customer_name: params.customer_name,
+      date_from: params.date_from,
+      date_to: params.date_to,
+      limit: params.limit,
+      offset: params.offset,
+    });
+    return ok(rentals.rows, { total: rentals.total });
   },
 
   async findById(id: string): Promise<ApiResponse<Order>> {
-    return ok(await loadSaleAsOrder(id));
+    const rental = await findRentalOrder(id);
+    return ok(rental ?? await loadSaleAsOrder(id));
   },
 
   async updateStatus(id: string, status: string): Promise<ApiResponse<{ id: string }>> {
+    if (await findRentalOrder(id)) {
+      return fail('Alteração do contrato de aluguel requer fluxo auditado. Operação não realizada.', 501);
+    }
     const { error } = await supabase.from('sales').update({ status }).eq('id', id);
     if (error) fail(error.message);
     return ok({ id });
   },
 
-  async returnItem(_orderId: string, itemId: string, _returnData: any): Promise<ApiResponse<{ id: string }>> {
-    return ok({ id: itemId });
+  async pickupItem(orderId: string, itemId: string): Promise<ApiResponse<{ id: string }>> {
+    const contract = await findRentalOrder(orderId);
+    if (!contract || !contract.items.some(item => item.id === itemId)) {
+      return fail('Traje não pertence ao contrato de aluguel informado.', 404);
+    }
+    return ok({ id: await confirmRentalPickup(itemId) });
   },
 
-  async generateContract(id: string): Promise<ApiResponse<{ url: string | null }>> {
-    return ok({ url: null }, { message: `Contrato #${id.slice(0, 8)} — geração PDF ainda não configurada.` });
+  async returnItem(orderId: string, itemId: string, returnData: { observations?: string }): Promise<ApiResponse<{ id: string }>> {
+    const contract = await findRentalOrder(orderId);
+    if (!contract || !contract.items.some(item => item.id === itemId)) {
+      return fail('Traje não pertence ao contrato de aluguel informado.', 404);
+    }
+    return ok({ id: await confirmRentalReturn(itemId, returnData.observations) });
   },
-  async generateReceipt(id: string): Promise<ApiResponse<{ url: string | null }>> {
-    return ok({ url: null }, { message: `Recibo #${id.slice(0, 8)} — geração PDF ainda não configurada.` });
+
+  async generateContract(_id: string): Promise<ApiResponse<{ url: string | null }>> {
+    return fail('Geração de contrato ainda não configurada. Nenhum PDF foi emitido.', 501);
+  },
+  async generateReceipt(_id: string): Promise<ApiResponse<{ url: string | null }>> {
+    return fail('Geração de recibo ainda não configurada. Nenhum documento foi emitido.', 501);
   },
 };
 
@@ -612,6 +608,26 @@ export const paymentsApi = {
     payment_method: 'cash' | 'card' | 'pix' | 'transfer';
     payment_details?: any;
   }): Promise<ApiResponse<Payment>> {
+    const rental = await findRentalOrder(input.order_id);
+    if (rental) {
+      const requestId = input.payment_details?.request_id;
+      if (!requestId) return fail('Chave de idempotência obrigatória para pagamento complementar.', 400);
+      const method = input.payment_method === 'card'
+        ? (input.payment_details?.card_type === 'debit' ? 'debit' : 'credit')
+        : input.payment_method;
+      const id = await recordRentalPayment({
+        contractId: rental.id,
+        requestId,
+        method,
+        amount: Number(input.amount),
+        installments: Number(input.payment_details?.installments ?? 1),
+      });
+      return ok({
+        id, order_id: rental.id, amount: Number(input.amount),
+        payment_method: input.payment_method, status: 'completed',
+        created_at: new Date().toISOString(),
+      });
+    }
     const { data, error } = await supabase.from('sale_payments').insert({
       sale_id: input.order_id,
       method: input.payment_method,
@@ -645,7 +661,7 @@ export const paymentsApi = {
 
 export const alertsApi = {
   async findAll(_params: any = {}): Promise<ApiResponse<RentalAlert[]>> { return ok([], { total: 0 }); },
-  async markAsRead(id: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
+  async markAsRead(_id: string): Promise<ApiResponse<{ id: string }>> { return fail('Confirmação de leitura de alerta ainda não implementada.', 501); },
 };
 
 export const lateFeeApi = {
@@ -653,8 +669,8 @@ export const lateFeeApi = {
   async createConfig(_c: any): Promise<ApiResponse<LateFeeConfig>> { return fail('Multas ainda não configuradas', 501) as any; },
   async updateConfig(_id: string, _c: any): Promise<ApiResponse<LateFeeConfig>> { return fail('Multas ainda não configuradas', 501) as any; },
   async calculateFee(orderItemId: string, _r?: string): Promise<ApiResponse<LateFeeCalculation | null>> { return ok(null, { message: `Sem multa configurada para ${orderItemId}` }); },
-  async applyFee(orderItemId: string, _f: any): Promise<ApiResponse<{ id: string }>> { return ok({ id: orderItemId }); },
-  async waiveFee(orderItemId: string, _reason: string): Promise<ApiResponse<{ id: string }>> { return ok({ id: orderItemId }); },
+  async applyFee(_orderItemId: string, _f: any): Promise<ApiResponse<{ id: string }>> { return fail('Cobrança de multa ainda não implementada. Nenhuma cobrança foi aplicada.', 501); },
+  async waiveFee(_orderItemId: string, _reason: string): Promise<ApiResponse<{ id: string }>> { return fail('Isenção de multa ainda não implementada. Nenhuma isenção foi registrada.', 501); },
   async getFeeHistory(_p: any = {}): Promise<ApiResponse<LateFeeCalculation[]>> { return ok([], { total: 0 }); },
 };
 
@@ -662,12 +678,12 @@ export const reservationsApi = {
   async create(_r: any): Promise<ApiResponse<Reservation>> { return fail('Reservas ainda não configuradas', 501) as any; },
   async findAll(_p: any = {}): Promise<ApiResponse<Reservation[]>> { return ok([], { total: 0 }); },
   async findById(_id: string): Promise<ApiResponse<Reservation | null>> { return ok(null); },
-  async updateStatus(id: string, _s: string, _n?: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async confirm(id: string, _c?: any): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async cancel(id: string, _r: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async convertToOrder(id: string): Promise<ApiResponse<{ id: string }>> { return ok({ id }); },
-  async checkAvailability(product_id: string, date_from: string, date_to: string): Promise<ApiResponse<AvailabilityCheck>> {
-    return ok({ product_id, date_from, date_to, is_available: true, conflicting_reservations: [] });
+  async updateStatus(_id: string, _s: string, _n?: string): Promise<ApiResponse<{ id: string }>> { return fail('Atualização de reserva ainda não implementada.', 501); },
+  async confirm(_id: string, _c?: any): Promise<ApiResponse<{ id: string }>> { return fail('Confirmação de reserva ainda não implementada.', 501); },
+  async cancel(_id: string, _r: string): Promise<ApiResponse<{ id: string }>> { return fail('Cancelamento de reserva ainda não implementado.', 501); },
+  async convertToOrder(_id: string): Promise<ApiResponse<{ id: string }>> { return fail('Conversão de reserva em contrato ainda não implementada.', 501); },
+  async checkAvailability(_product_id: string, _date_from: string, _date_to: string): Promise<ApiResponse<AvailabilityCheck>> {
+    return fail('Disponibilidade ainda não está integrada aos contratos. Não é seguro confirmar esta reserva.', 501);
   },
   async getAvailableSlots(_date: string, _duration_hours = 4): Promise<ApiResponse<TimeSlot[]>> { return ok([]); },
   async getCalendar(_p: any): Promise<ApiResponse<Reservation[]>> { return ok([]); },

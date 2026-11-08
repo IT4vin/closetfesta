@@ -1,55 +1,18 @@
-# ===============================
-# CONFIGURAÇÃO DO RENDER.COM
-# ===============================
-
+# Deploy do administrativo usando Supabase gerenciado (sem backend legado).
+# Para implantação via Render Blueprint; a implantação atual usa Static Site direto.
 services:
-  # Frontend React (Static Site)
   - type: web
-    name: closetfesta-frontend
-    env: static
-    buildCommand: bun install && bun run build:render
+    name: closet-festa-administrativo
+    runtime: static
+    buildCommand: npm install --ignore-scripts --no-audit --no-fund && npm run build
     staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: true
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: VITE_API_URL
-        value: https://closetfesta-backend.onrender.com/api
-    
-  # Backend Node.js (Web Service)
-  - type: web
-    name: closetfesta-backend
-    env: node
-    buildCommand: cd backend && npm ci --only=production --silent
-    startCommand: cd backend && chmod +x scripts/init-render.sh && ./scripts/init-render.sh
-    plan: free
     pullRequestPreviewsEnabled: false
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3001
-      - key: HOST
-        value: 0.0.0.0
-      - key: DB_TYPE
-        value: sqlite
-      - key: DB_PATH
-        value: ./data/closetfesta.db
-      - key: CORS_ORIGINS
-        value: https://closetfesta-frontend.onrender.com,https://closetfesta.onrender.com
-      - key: JWT_SECRET
-        value: closet-festa-render-secret-key-2024-production
-      - key: LOG_LEVEL
-        value: info
-    disk:
-      name: backend-data
-      mountPath: /opt/render/project/src/backend/data
-      sizeGB: 1
-    healthCheckPath: /health
-
-databases:
-  # PostgreSQL Database (para produção futura)
-  - name: closetfesta-db
-    databaseName: closetfesta
-    user: closetfesta_user
-    plan: free
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

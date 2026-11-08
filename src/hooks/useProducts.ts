@@ -132,16 +132,37 @@ export function useProducts(options: UseProductsOptions = {}) {
   };
 
   const handleFormSubmit = async (productData: any) => {
+    const files: File[] = productData.imageFiles ?? [];
+    const rentalPrice = Number(productData.rentalPrice ?? productData.rental_price ?? 0);
+    const payload = {
+      name: String(productData.name ?? "").trim(),
+      description: String(productData.description ?? "").trim(),
+      sku: String(productData.fullCode || productData.sku || "").trim(),
+      quantity: Number(productData.quantity ?? 1),
+      category_id: String(productData.category_id ?? editingProduct?.category_id ?? ""),
+      price: rentalPrice,
+      rental_price: rentalPrice,
+      cost: Number(productData.cost ?? 0),
+      sizes: productData.size ? [productData.size] : (productData.sizes ?? []),
+      type: productData.productType || productData.type || "",
+      color: productData.color || "",
+    };
     try {
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
-      } else {
-        await createProduct(productData);
+      const saved = editingProduct
+        ? await updateProduct(editingProduct.id, payload)
+        : await createProduct(payload);
+      if (files.length) {
+        try {
+          await uploadImages(saved.id, files);
+        } catch (error) {
+          setEditingProduct(saved);
+          throw new Error(`Produto salvo (código ${saved.sku || saved.id}), mas as fotos não foram totalmente enviadas. Reabra o produto para reenviar. ${error instanceof Error ? error.message : ''}`);
+        }
       }
       setEditingProduct(null);
-    } catch (err) {
-      console.error('Erro ao salvar produto:', err);
-      throw err;
+    } catch (error) {
+      console.error("Erro ao salvar produto:", error);
+      throw error;
     }
   };
 

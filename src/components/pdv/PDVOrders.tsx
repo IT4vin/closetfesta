@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -29,6 +30,8 @@ import {
 } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { Order } from "@/lib/api";
+import RentalItemActions from "@/components/pdv/RentalItemActions";
+import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,27 +39,46 @@ import { ptBR } from "date-fns/locale";
 const PDVOrders = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [dateFromFilter, setDateFromFilter] = useState("");
   const [dateToFilter, setDateToFilter] = useState("");
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   
   const { 
     orders, 
     loading, 
     error, 
     total,
+    refetch,
     updateOrderStatus,
     returnItem,
     generateContract,
     generateReceipt
   } = useOrders({
     customer_name: searchTerm,
-    status: statusFilter,
-    order_type: typeFilter,
+    status: statusFilter === "all" ? undefined : statusFilter,
+    order_type: typeFilter === "all" ? undefined : typeFilter,
     date_from: dateFromFilter,
     date_to: dateToFilter
   });
+
+  // Atualizar os contratos após retornar à aba ou quando a janela recuperar o foco.
+  // A referência evita criar listeners novos a cada render.
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+  useEffect(() => {
+    const refresh = () => { void refetchRef.current(); };
+    const onVisible = () => { if (!document.hidden) refresh(); };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("closetfesta:order-created", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("closetfesta:order-created", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -135,8 +157,8 @@ const PDVOrders = () => {
 
   const clearFilters = () => {
     setSearchTerm("");
-    setStatusFilter("");
-    setTypeFilter("");
+    setStatusFilter("all");
+    setTypeFilter("all");
     setDateFromFilter("");
     setDateToFilter("");
   };
@@ -161,6 +183,9 @@ const PDVOrders = () => {
           <div className="text-center">
             <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
             <p className="text-red-600">Erro ao carregar pedidos: {error}</p>
+            <Button variant="outline" className="mt-3" onClick={() => void refetch()}>
+              <RotateCcw className="mr-2 h-4 w-4" /> Tentar novamente
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -257,7 +282,7 @@ const PDVOrders = () => {
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="draft">Rascunho</SelectItem>
                   <SelectItem value="confirmed">Confirmado</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
@@ -273,7 +298,7 @@ const PDVOrders = () => {
                   <SelectValue placeholder="Todos os tipos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
                   <SelectItem value="sale">Venda</SelectItem>
                   <SelectItem value="rental">Aluguel</SelectItem>
                   <SelectItem value="hybrid">Híbrido</SelectItem>
@@ -311,16 +336,28 @@ const PDVOrders = () => {
         </CardContent>
       </Card>
 
-      {/* Orders Table */}
+      {/* Pedidos registrados no Supabase */}
       <Card>
-        <CardHeader>
-          <CardTitle>Pedidos ({orders.length})</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Pedidos ({orders.length})</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Contratos de aluguel registrados no Supabase.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={loading}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Atualizar pedidos
+          </Button>
         </CardHeader>
         <CardContent>
           {orders.length === 0 ? (
             <div className="text-center py-8">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">Nenhum pedido encontrado</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Se você acabou de finalizar uma locação, clique em Atualizar pedidos.
+                Confira também se há algum filtro ativo.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -338,13 +375,18 @@ const PDVOrders = () => {
                 </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
-                    <TableRow key={order.id}>
+                    <React.Fragment key={order.id}>
+                    <TableRow>
                       <TableCell className="font-medium">
-                        #{order.order_number}
+                        <Link to={`/pdv/pedidos/${order.id}`} className="text-blue-700 hover:underline underline-offset-2 focus-visible:underline" aria-label={`Abrir detalhes do pedido ${order.order_number}`}>
+                          {order.order_number}
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{order.customer_name}</p>
+                          <Link to={`/pdv/pedidos/${order.id}`} className="font-medium text-slate-900 hover:text-blue-700 hover:underline underline-offset-2" aria-label={`Abrir pedido de ${order.customer_name}`}>
+                            {order.customer_name}
+                          </Link>
                           {order.customer_document && (
                             <p className="text-sm text-gray-500">{order.customer_document}</p>
                           )}
@@ -372,7 +414,15 @@ const PDVOrders = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="outline">
+                          <Button asChild size="sm" variant="outline">
+                            <Link to={`/pdv/pedidos/${order.id}`} aria-label={`Abrir tela completa do pedido ${order.order_number}`}>
+                              Detalhes
+                            </Link>
+                          </Button>
+                          <Button size="sm" variant="outline"
+                            aria-label={`Ver trajes do pedido ${order.order_number}`}
+                            aria-expanded={expandedOrderId === order.id}
+                            onClick={() => setExpandedOrderId(previous => previous === order.id ? null : order.id)}>
                             <Eye size={14} />
                           </Button>
                           
@@ -394,7 +444,7 @@ const PDVOrders = () => {
                             <Printer size={14} />
                           </Button>
 
-                          {order.status !== 'completed' && order.status !== 'cancelled' && (
+                          {order.order_type === 'sale' && order.status !== 'completed' && order.status !== 'cancelled' && (
                             <Select onValueChange={(value) => handleStatusChange(order.id, value)}>
                               <SelectTrigger className="w-[100px] h-8">
                                 <SelectValue placeholder="Status" />
@@ -409,6 +459,36 @@ const PDVOrders = () => {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {expandedOrderId === order.id && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="bg-muted/30">
+                          <div className="space-y-3 py-2">
+                            <h3 className="font-semibold">Trajes do pedido {order.order_number}</h3>
+                            {order.items.map(item => (
+                              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background p-3">
+                                <div className="min-w-0 space-y-1">
+                                  <p className="font-medium">{item.product?.name ?? "Traje"}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Código: {item.product?.sku ?? item.product_id} | Retirada: {item.pickup_date ?? "—"} | Devolução prevista: {item.return_date ?? "—"}
+                                  </p>
+                                  <p className="text-sm">Situação: {item.status === "picked_up" ? "Retirado" : item.status === "returned" ? "Devolvido" : "Aguardando retirada"}</p>
+                                </div>
+                                {order.order_type === "rental" && (
+                                  <RentalItemActions orderId={order.id} item={item} onChanged={() => refetch()} />
+                                )}
+                              </div>
+                            ))}
+                            {order.order_type === "rental" && (
+                              <>
+                                <RentalPaymentActions contractId={order.id} contractTotal={order.total} />
+                                <p className="text-xs text-muted-foreground">Após a devolução, o traje fica em lavanderia até ser liberado. Cobranças por atraso ainda dependem de integração específica.</p>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>

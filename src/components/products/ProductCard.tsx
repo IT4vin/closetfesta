@@ -2,7 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Calendar, Edit, Tag } from "lucide-react";
+import { CreditCard, Eye, Edit, Tag } from "lucide-react";
 
 interface ProductCardProps {
   product: any;
@@ -76,7 +76,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit }) => {
           
           <div className="text-right">
             <p className="text-sm text-neutral-500">Adicionado em</p>
-            <p className="text-sm">{product.dateAdded}</p>
+            <p className="text-sm">{product.created_at ? new Date(product.created_at).toLocaleDateString("pt-BR") : "—"}</p>
           </div>
         </div>
         
@@ -97,8 +97,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit }) => {
             className="flex-1 bg-marsala hover:bg-marsala-700"
             onClick={handleClick}
           >
-            <Calendar size={16} className="mr-1" />
-            <span>Alugar</span>
+            <Eye size={16} className="mr-1" />
+            <span>Ver ficha</span>
           </Button>
         </div>
       </div>

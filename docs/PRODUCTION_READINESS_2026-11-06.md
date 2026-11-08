@@ -1,0 +1,103 @@
+# Preparação para produção — diagnóstico inicial (06/11/2026)
+
+## Status
+**BLOQUEADO PARA PRODUÇÃO.** Este PR é apenas a primeira etapa. Não foi executada migração no Supabase, deploy nem reconciliação financeira.
+
+## Verificação de origem
+- Repositório analisado: `IT4vin/closetfesta`, base commit `ef389ee3e9735bbe8a5c61fa5f5c64678f8cfd3a`.
+- O frontend principal utiliza `src/lib/api.ts` para acesso direto ao Supabase. O backend Express continua no repositório e o README descreve uma arquitetura diferente.
+- A conexão Supabase da sessão de revisão não retornou projetos. Não houve leitura ou teste do banco real.
+- Foi realizada análise estática do código; não há comprovação de testes ponta a ponta ou implantação.
+- A pipeline de frontend identificou divergência do `package-lock.json` com `package.json` (ausência do pacote Supabase declarado). Temporariamente utiliza `npm install` apenas para diagnosticar build e testes; **não aprovar release até restaurar `npm ci` reprodutível**.
+
+## Correções incluídas neste PR
+1. Reconciliação dos nomes de papéis no frontend com as migrations: `admin`, `manager`, `staff`, `cashier`; contas sem papel reconhecido são recusadas.
+2. Verificação de permissão por recurso e ação no frontend, sem acesso implícito para todos os autenticados.
+3. Funções que simulavam sucesso de devolução, contrato/recibo, multa e reserva agora retornam erro explícito `501` em vez de confirmar uma operação que não aconteceu.
+4. No build de produção, o fluxo legado de criação de contratos via `localStorage` é bloqueado, e a API recusa sincronizar aluguel como uma venda. **Isso é uma medida temporária de segurança, não a implementação do PDV de produção.**
+5. Prevenção de novas inclusões acidentais de `.env` e bancos locais, com aviso sobre arquivos já rastreados.
+6. Testes de matriz de acesso.
+
+**Atenção:** essas verificações no frontend são apenas UX/defesa em profundidade. A segurança real depende de RLS e autorização no backend. O PR não está pronto para merge sem testar os papéis dos funcionários.
+
+## Bloqueios críticos restantes
+| Severidade | Fluxo | Evidência | Ação necessária |
+| --- | --- | --- | --- |
+| Crítica | Segurança do Supabase | Migrations permitem `INSERT/UPDATE/DELETE` amplos a `authenticated` em tabelas operacionais; funções de permissões eram permissivas | Auditar RLS real e criar migrations, testes de acesso negativo por papel e `GRANT/REVOKE` |
+| Crítica | Credenciais no Git | `.env` e `backend/.env` rastreados em repo público; dados SQLite também versionados | Avaliar conteúdo e histórico, revogar/rotacionar segredos reais, remover do índice com backup e revisar histórico conforme política |
+| Crítica | Contratos | `src/hooks/useOrders.ts` salva pedidos no `localStorage`; `src/lib/api.ts` escreve pedidos na tabela `sales` sem datas de aluguel | Criar tabelas transacionais de contratos, itens físicos, datas, histórico e pagamentos; migrar o hook |
+| Crítica | Conflito de datas | `reservationsApi.checkAvailability` era simulado | Validar períodos e impedir dupla reserva no banco sob concorrência |
+| Crítica | Caixa | `src/components/pdv/PDVCashier.tsx` usa somente estado de componente | Persistir abertura, movimentos e fechamento com auditoria e conciliação |
+| Alta | Pagamento | `PDVPaymentModal.tsx` usa `setTimeout` e não valida transação com adquirente | Separar registro manual de confirmação de adquirente; pagar apenas quando autorizado/confirmado |
+| Alta | Clientes | `src/pages/Clients.tsx` lista exemplos e o formulário não grava nessa tela | Integrar lista, gravação, duplicidades e histórico |
+| Alta | Fotos de produtos | Formulário `ProductForm.tsx` usa URLs `blob:`; API oferece upload no Storage separadamente | Encadear cadastro + upload real e tratamento de falha |
+| Alta | Controle de estoque | Não há modelo consolidado de exemplar físico, contratos e movimentações | Modelar exemplar, lavanderia, manutenção e disponibilidade |
+| Alta | Documentos | Geração de PDF/recibo por API não foi implementada | Gerar documento real, versionável e auditável |
+| Alta | Testes/CI | Há testes `.disabled` e etapas `continue-on-error: true` | Habilitar testes críticos e impedir merge com falha |
+
+## Plano de execução posterior
+1. **Ambiente**: conectar Supabase de homologação, inspecionar `pg_policies`, `information_schema` e dados não sensíveis; revisar credenciais e criar backup.
+2. **Banco e RLS**: elaborar migrations versionadas com papéis, clientes, estoque, financeiro e restrições de acesso; testar cenários permitidos e negados; não aplicar sem autorização.
+3. **Contratos**: implementar gravação transacional e idempotente, com datas por exemplar e bloqueio de sobreposição.
+4. **Caixa e pagamentos**: conciliação e persistência reais; distinguir registro manual de confirmação eletrônica.
+5. **Operação**: clientes, produtos/imagens, agenda, devoluções, lavanderia, multas, documentos e relatórios.
+6. **Homologação**: testes concorrentes em vários operadores, falha de rede, restauração de backup e regressões.
+7. **Produção**: somente com aceite operacional e plano de reversão.
+
+## Critérios de liberação (não atendidos)
+- 100% das operações críticas persistidas e reconciliadas no banco.
+- Nenhuma confirmação fictícia, nenhuma disponibilidade sempre positiva.
+- Restrições efetivas no banco contra acesso indevido, dupla reserva e pagamento duplicado.
+- Caixa confiável, relatórios reconciliados, documentos reais.
+- Testes unitários, integração, E2E e restauração de backup aprovados.
+- Deploy em homologação validado antes de produção.
+
+## Observações de compatibilidade
+- A configuração de roles do banco usa `staff` e `cashier`. Verificar contas já existentes que dependiam do antigo `seller`, bem como telas de gestão de perfis ainda simuladas.
+- O `.gitignore` protege apenas arquivos futuros não versionados; arquivos e segredos já publicados permanecem no histórico. A rotação de segredos verdadeiros é uma ação operacional indispensável.
+- Não conectar o catálogo público `IT4vin/closetfesta-catalog` antes de estabilizar a origem dos dados e testar as regras de acesso.
+
+## Continuação — cadastros e políticas RLS
+- A página de clientes e o seletor de clientes no PDV agora consultam e cadastram no Supabase; dados demonstrativos removidos dessas duas telas.
+- A migration `20261106170000_secure_existing_rls.sql` retira escrita ampla de várias tabelas financeiras e operacionais e limita escrita de produtos/imagens aos responsáveis autorizados.
+- A migration foi apenas versionada, NÃO APLICADA. Conferir papéis reais, acessos de funcionários, políticas legadas e impacto em homologação.
+- A integração de clientes ainda requer testes E2E no banco. Algumas telas antigas e módulos auxiliares ainda podem ter dados simulados.
+
+## Continuação — modelo transacional de locações (migration proposta)
+- Migration `20261106190000_rental_contracts.sql`: exemplares físicos, contratos, itens e pagamentos manuais registrados por operador.
+- Restrição GIST impede duas reservas confirmadas sobrepostas do mesmo exemplar; RPC cria o contrato em transação única e usa uma chave de idempotência.
+- Regras atualmente bloqueiam entre a retirada e a devolução, inclusive. Política de dias adicionais de lavanderia/manutenção ainda precisa ser definida e testada.
+- Unidades são geradas inicialmente com base em `stock_quantity`; redução posterior de estoque requer conciliação manual (não apaga exemplares).
+- Pagamentos iniciais são registrados como `operator_recorded`, NÃO como liquidados por adquirente; conciliação obrigatória.
+- Não foi aplicada nem validada no banco: revisar SQL, dados existentes, performance e funções com privilégio elevado em homologação.
+
+## Continuação — caixa transacional
+- `PDVCashier.tsx` não usa mais caixa de demonstração e recupera o histórico do Supabase após recarga de página.
+- Migration `20261106210000_cashier_operations.sql` propõe funções transacionais para abertura, sangria/reforço e fechamento, bloqueando escrita direta em registros históricos.
+- O fechamento calcula abertura e movimentações manuais; **recebimentos de contratos ainda não entram automaticamente nesse caixa**. A interface informa explicitamente essa limitação e não pode ser tratada como fechamento financeiro final.
+- Migration não executada. Validar RLS, integridade do histórico e controle de concorrência em banco de homologação.
+
+## Restrições adicionais de segurança e operação
+- A leitura de produtos, agenda, vendas, financeiros e imagens privadas também exige papel Supabase autorizado.
+- O fluxo de venda antigo foi desabilitado na API e na interface do PDV de aluguel para não executar gravações parciais de vendas.
+- Descontos distribuídos por unidade física no contrato para suportar quantidades maiores que um traje.
+
+## Continuação de implementação — ciclo de locação
+- Nova migration `20261106230000_rental_lifecycle.sql`: histórico de movimentações, RPCs auditáveis de retirada e devolução, lançamento complementar de pagamentos com chave de idempotência e bloqueio de recebimento acima do total.
+- Nova migration `20261107001000_laundry_release.sql`: liberação de lavanderia autorizada exclusivamente à gerência, com histórico.
+- Página de pedidos expandida para visualizar trajes e registrar retirada/devolução por item, sempre com confirmação explícita do operador.
+- Consulta de valores já recebidos e registro manual de pagamentos complementares no PDV com confirmação de conferência.
+- Testes unitários de confirmação e falha dos RPCs. **Não há teste do SQL no banco de homologação**, pois a conexão Supabase não lista projetos.
+- A conciliação com banco/adquirente, multas, PDF de contratos, auditoria de RLS e deploy continuam pendentes. Não afirmar que essas etapas estão concluídas.
+
+**CRÍTICO:** as migrations foram preparadas no GitHub mas NÃO aplicadas. O deploy do frontend não torna essas funcionalidades utilizáveis até a instalação e validação no banco de homologação; na ausência das RPCs, o sistema retorna erro explícito.
+
+## Continuação — cadastro de produtos e fotos (frontend)
+- O formulário de produto agora transforma as fotos já salvas em URLs exibíveis, distinguindo-as de prévias locais `blob:`.
+- Fotos novas são validadas por formato/tamanho e enviadas ao `product-images` no Storage após cadastrar ou atualizar o registro no banco.
+- Código do traje, tipo, cor, tamanho, custo e preço de aluguel passam a ser normalizados antes de gravar no banco.
+- O modal só fecha quando a operação assíncrona termina com sucesso. Falhas de upload são exibidas e não silenciosamente tratadas como cadastro completo.
+- A gravação no Storage ainda requer validação integrada com papéis administrativos e bucket reais.
+- A remoção de imagens já persistidas deve ser realizada pela API de imagens e ainda precisa de UX própria no formulário.
+- **Risco pendente:** atualmente as URLs assinadas para imagens privadas são gravadas por um ano; planejar renovação de URLs ou estratégia adequada ao catálogo público.
+- Verificação do frontend do commit `1fa9a6a`: build e testes automatizados aprovados no GitHub; não equivale a teste com Storage conectado.
