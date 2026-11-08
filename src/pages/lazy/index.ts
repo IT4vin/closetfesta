@@ -66,6 +66,19 @@ export const LazyCatalog = createLazyPage(
   pageConfigs.catalog
 );
 
+export const LazyClockPunch = createLazyPage(
+  () => import('../ClockPunch'),
+  {fallbackTitle:"Preparando câmera de ponto...",fallbackDescription:"Carregando registro seguro"}
+);
+export const LazyMyHours = createLazyPage(
+  () => import('../MyHours'),
+  {fallbackTitle:"Carregando banco de horas...",fallbackDescription:"Consultando suas marcações"}
+);
+export const LazyClockAdmin = createLazyPage(
+  () => import('../ClockAdmin'),
+  {fallbackTitle:"Carregando painel de ponto...",fallbackDescription:"Preparando os relatórios"}
+);
+
 // Páginas que não precisam de lazy loading (muito pequenas ou críticas)
 export { default as Login } from '../Login';
 export { default as NotFound } from '../NotFound'; 
