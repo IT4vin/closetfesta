@@ -11,6 +11,9 @@ const relatedPages: Record<string, string[]> = {
   '/inventory': ['products', 'catalog'],
   '/pdv': ['products', 'clients', 'inventory'],
   '/reports': ['financial', 'products', 'clients'],
+  '/clock': ['my-hours'],
+  '/my-hours': ['clock'],
+  '/clock-admin': [],
   '/settings': []
 };
 
@@ -24,6 +27,9 @@ const pageImports: Record<string, () => Promise<any>> = {
   'catalog': () => import('../pages/Catalog'),
   'pdv': () => import('../pages/PDV'),
   'reports': () => import('../pages/Reports'),
+  'clock': () => import('../pages/ClockPunch'),
+  'my-hours': () => import('../pages/MyHours'),
+  'clock-admin': () => import('../pages/ClockAdmin'),
   'settings': () => import('../pages/Settings')
 };
 

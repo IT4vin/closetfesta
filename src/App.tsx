@@ -11,6 +11,7 @@ import MainLayout from "./components/layout/MainLayout";
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth, initializeAuthStore } from '@/stores/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ClockRoleRoute from './components/time-clock/ClockRoleRoute';
 
 // Importar páginas lazy-loaded
 import {
@@ -27,6 +28,9 @@ import {
   LazyReports,
   LazySettings,
   LazyCatalog,
+  LazyClockPunch,
+  LazyMyHours,
+  LazyClockAdmin,
   Login,
   NotFound
 } from './pages/lazy';
@@ -172,6 +176,15 @@ function App() {
                           <ErrorBoundary level="component" enableRecovery={true}>
                             <LazyReports />
                           </ErrorBoundary>
+                        } />
+                        <Route path="clock" element={
+                          <ClockRoleRoute action="punch"><LazyClockPunch /></ClockRoleRoute>
+                        } />
+                        <Route path="my-hours" element={
+                          <ClockRoleRoute action="read"><LazyMyHours /></ClockRoleRoute>
+                        } />
+                        <Route path="clock-admin" element={
+                          <ClockRoleRoute action="manage"><LazyClockAdmin /></ClockRoleRoute>
                         } />
                         <Route path="settings" element={
                           <ErrorBoundary level="component" enableRecovery={true}>

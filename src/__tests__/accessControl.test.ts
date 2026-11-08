@@ -23,6 +23,14 @@ describe("controle de acesso (frontend — não substitui RLS)", () => {
     expect(hasRolePermission("cashier", "payments", "create")).toBe(true);
     expect(hasRolePermission("cashier", "products", "delete")).toBe(false);
     expect(hasRolePermission("viewer", "orders", "read")).toBe(false);
+    expect(hasRolePermission("staff","timeClock","punch")).toBe(true);
+    expect(hasRolePermission("cashier","timeClock","read")).toBe(true);
+    expect(hasRolePermission("manager","timeClock","manage")).toBe(true);
+    expect(hasRolePermission("admin","timeClock","correct")).toBe(true);
+    expect(hasRolePermission("staff","timeClock","qr")).toBe(false);
+    expect(hasRolePermission("cashier","timeClock","manage")).toBe(false);
+    expect(hasRolePermission("viewer","timeClock","read")).toBe(false);
+
   });
 
   it("nega papéis, recursos e ações desconhecidos por padrão", () => {

@@ -36,6 +36,7 @@ const ADMIN_ACTIONS: PermissionMatrix = {
   reports: ["read", "export"],
   settings: ["read", "update"],
   users: ["read", "create", "update", "delete"],
+  timeClock: ["read", "punch", "manage", "correct", "schedule", "qr", "export"],
 };
 
 const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
@@ -53,6 +54,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     reports: ADMIN_ACTIONS.reports,
     settings: ["read"],
     users: ["read"],
+    timeClock: ADMIN_ACTIONS.timeClock,
   },
   staff: {
     orders: ["read", "create", "update"],
@@ -61,6 +63,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     products: ["read"],
     clients: ["read", "create", "update"],
     inventory: ["read"],
+    timeClock: ["read", "punch"],
   },
   cashier: {
     orders: ["read", "create"],
@@ -70,6 +73,7 @@ const PERMISSIONS: Record<AppRole, PermissionMatrix> = {
     cash: ["read", "create", "update", "close"],
     payments: ["read", "create"],
     reports: ["read"],
+    timeClock: ["read", "punch"],
   },
   viewer: {},
 };
