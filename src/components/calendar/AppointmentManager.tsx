@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import OperationsCalendar from "@/components/calendar/OperationsCalendar";
 
 const types = ["Prova", "Retirada", "Devolução", "Atendimento", "Evento"];
 export default function AppointmentManager() {
@@ -39,6 +40,7 @@ export default function AppointmentManager() {
 
   async function refresh() {
     await cache.invalidateQueries({queryKey:["closet-live-operations"]});
+    await cache.invalidateQueries({queryKey:["closet-calendar-month"]});
   }
 
   async function submit(e: React.FormEvent) {
@@ -109,7 +111,7 @@ export default function AppointmentManager() {
   return <div className="space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="flex items-center gap-2 text-2xl font-semibold"><CalendarDays className="h-6 w-6 text-rose-900"/>Agenda</h2>
-        <p className="text-sm text-muted-foreground">Agendamentos reais vinculados aos clientes do Supabase.</p></div>
+        <p className="text-sm text-muted-foreground">Calendário mensal de provas, retiradas e devoluções por data e horário, incluindo contratos existentes.</p></div>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => void query.refetch()}><RefreshCw className="mr-2 h-4 w-4"/>Atualizar</Button>
         {canWrite && <Button onClick={() => setShowForm(!showForm)} className="bg-rose-900 text-white hover:bg-rose-800">
@@ -164,21 +166,6 @@ export default function AppointmentManager() {
     {query.isPending && <p>Carregando agendamentos...</p>}
     {query.error && <p role="alert" className="text-sm text-red-700">
       Erro de leitura: {query.error instanceof Error?query.error.message:"indisponível"}</p>}
-    {data && <Card><CardHeader><CardTitle>Registros ({list.length})</CardTitle></CardHeader>
-      <CardContent className="divide-y">
-        {list.length===0 && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum agendamento cadastrado.</p>}
-        {list.map(item=><div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
-          <div><p className="font-semibold">{item.title}</p>
-            <p className="text-muted-foreground">{item.client_id ? (names.get(item.client_id) ?? "Cliente indisponível") : "Sem cliente"}</p>
-            <p className="text-muted-foreground">{dateTimeBR(item.start_at)} até {dateTimeBR(item.end_at)}</p>
-            {item.description && <p className="mt-1">{item.description}</p>}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border px-3 py-1">{item.status==="cancelled"?"Cancelado":item.status==="scheduled"?"Agendado":item.status}</span>
-            {canWrite && item.status!=="cancelled" && <Button size="sm" variant="outline" disabled={busy}
-              onClick={()=>void cancel(item.id)}><XCircle className="mr-1 h-4 w-4"/>Cancelar</Button>}
-          </div>
-        </div>)}
-      </CardContent></Card>}
+    <OperationsCalendar />
   </div>;
 }
