@@ -376,7 +376,7 @@ function OrderEditPanel({detail,onChanged},ref){
                 Confirmo que o cliente concordou em manter os valores como crédito na loja,
                 respeitados os direitos de reembolso aplicáveis.
               </label>
-            </div>
+            </div>}
           {editor.action==="remove_item"&&<p className="text-sm text-muted-foreground">
             O traje será retirado da reserva, mas permanecerá no histórico. O total do contrato será recalculado.
           </p>}
