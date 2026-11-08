@@ -34,6 +34,8 @@ export type ItemProgress = {
   picked_up_at: string | null;
   actual_return_at: string | null;
   return_notes: string | null;
+  unit_id: string;
+  product_units: { status: string } | null;
 };
 export type OrderDetail = {
   order: Order;
@@ -92,7 +94,7 @@ export async function loadRentalOrderDetail(id: string, canReadPayments: boolean
         .in("product_id", ids).order("position",{ascending:true})
       : Promise.resolve({ data:[], error:null }),
     itemIds.length
-      ? db.from("rental_items").select("id,status,picked_up_at,actual_return_at,return_notes")
+      ? db.from("rental_items").select("id,status,picked_up_at,actual_return_at,return_notes,unit_id,product_units(status)")
         .in("id",itemIds)
       : Promise.resolve({ data:[], error:null }),
     canReadPayments
