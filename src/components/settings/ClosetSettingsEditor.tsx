@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, RotateCcw, Save } from "lucide-react";
 import UserAccessSettings from "@/components/settings/UserAccessSettings";
+import PermissionManager from "@/lib/permissions";
 import { loadClosetSettings, saveClosetSettings, type ClosetSettingsSection, type ClosetSettingValues } from "@/lib/closetSettings";
 
 type FieldType = "text" | "email" | "number" | "time" | "url" | "textarea" | "boolean";
@@ -199,6 +200,7 @@ function validate(section: ClosetSettingsSection, values: ClosetSettingValues): 
 export default function ClosetSettingsEditor({
   section, onDirtyChange,
 }: { section: ClosetSettingsSection; onDirtyChange?: (dirty: boolean) => void }) {
+  const canManageSettings = PermissionManager.hasPermission("settings", "update");
   const [draft, setDraft] = useState<ClosetSettingValues>({});
   const [original, setOriginal] = useState<ClosetSettingValues>({});
   const [loading, setLoading] = useState(false);
@@ -232,11 +234,13 @@ export default function ClosetSettingsEditor({
   const definition = definitions[section];
 
   const update = (field: Field, next: string | boolean) => {
+    if (!canManageSettings) return;
     const value = field.type === "number" ? (next === "" ? "" : Number(next)) : next;
     setDraft(previous => ({ ...previous, [field.key]: value }));
     setMessage(""); setError("");
   };
   const save = async () => {
+    if (!canManageSettings) { setError("Seu perfil possui acesso de leitura, não pode alterar parâmetros da loja."); return; }
     const validationError = validate(section, draft);
     if (validationError) { setError(validationError); return; }
     setSaving(true); setError(""); setMessage("");
@@ -251,6 +255,7 @@ export default function ClosetSettingsEditor({
 
   return <div className="space-y-5">
     <div><h3 className="text-lg font-semibold">{definition.title}</h3>
+      {!canManageSettings && <p className="mt-2 rounded-md border p-3 text-sm text-muted-foreground">Acesso de consulta. Somente administradores podem alterar estas configurações.</p>}
       {definition.notice && <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
         <AlertTriangle className="mr-2 inline h-4 w-4"/>{definition.notice}
       </p>}
@@ -268,14 +273,14 @@ export default function ClosetSettingsEditor({
             {field.type === "boolean" ?
               <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
                 <Label htmlFor={field.key}>{field.title}</Label>
-                <Switch id={field.key} checked={draft[field.key] === true}
+                <Switch id={field.key} disabled={!canManageSettings} checked={draft[field.key] === true}
                   onCheckedChange={checked => update(field, checked)} />
               </div> :
               <><Label htmlFor={field.key}>{field.title}{field.required ? " *" : ""}</Label>
                 {field.type === "textarea" ?
-                  <Textarea id={field.key} rows={3} value={String(draft[field.key] ?? "")}
+                  <Textarea id={field.key} rows={3} disabled={!canManageSettings} value={String(draft[field.key] ?? "")}
                     onChange={e => update(field, e.target.value)} placeholder={field.placeholder} /> :
-                  <Input id={field.key} type={field.type ?? "text"} min={field.min} max={field.max}
+                  <Input id={field.key} disabled={!canManageSettings} type={field.type ?? "text"} min={field.min} max={field.max}
                     step={field.type === "number" ? "any" : undefined}
                     value={draft[field.key] === undefined ? "" : String(draft[field.key])}
                     onChange={e => update(field, e.target.value)} placeholder={field.placeholder} />}
@@ -290,16 +295,16 @@ export default function ClosetSettingsEditor({
       </details> : form;
     })}
     {!loading && <div className="flex flex-wrap items-center justify-end gap-2">
-      <Button variant="outline" disabled={saving} onClick={() => {
+      <Button variant="outline" disabled={!canManageSettings || saving} onClick={() => {
         if (isDirty && !window.confirm("Descartar alterações não salvas?")) return;
         setDraft(original); setError(""); setMessage("");
       }}>Descartar alterações</Button>
       <Button variant="outline" disabled={saving || isDirty} onClick={() => setReload(v => v + 1)}>
         <RotateCcw className="mr-2 h-4 w-4"/> Recarregar
       </Button>
-      <Button className="bg-marsala-600 hover:bg-marsala-700" disabled={saving || !isDirty} onClick={() => void save()}>
+      {canManageSettings && <Button className="bg-marsala-600 hover:bg-marsala-700" disabled={saving || !isDirty} onClick={() => void save()}>
         <Save className="mr-2 h-4 w-4"/>{saving ? "Salvando..." : "Salvar alterações"}
-      </Button>
+      </Button>}
     </div>}
   </div>;
 }
