@@ -72,7 +72,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
       .then(([payments,operations]) => {
         if (!alive) return;
         setPaymentRules(payments); setOperationalRules(operations);
-        const first = ["pix","cash","debit","credit"].find(method=>isMethodEnabled(payments,method));
+        const first = ["pix","cash","debit","credit","transfer"].find(method=>isMethodEnabled(payments,method));
         if (first) setPaymentMethod(first);
         setRulesLoading(false);
       }).catch(error => {
@@ -102,6 +102,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
     { id: "credit", name: "Cartão de Crédito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "debit", name: "Cartão de Débito", icon: <CreditCard className="h-5 w-5" /> },
     { id: "pix", name: "PIX", icon: <Wallet className="h-5 w-5" /> },
+    { id: "transfer", name: "Transferência", icon: <Wallet className="h-5 w-5" /> },
   ].filter(method => isMethodEnabled(paymentRules,method.id));
   
   const requiredPayment=minimumInitialPayment(operationalRules,total);
@@ -267,7 +268,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
             // Single payment method
             <>
               <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="mb-6">
-                <TabsList className="grid grid-cols-2 sm:grid-cols-4">
+                <TabsList className="grid grid-cols-2 sm:grid-cols-5">
                   {paymentMethods.map(method => (
                     <TabsTrigger 
                       key={method.id} 
@@ -334,6 +335,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
                   </div>
                 </TabsContent>
                 
+                <TabsContent value="transfer" className="mt-4"><p className="rounded-md border p-3 text-sm">Confirme a transferência no extrato da loja antes de registrar o recebimento.</p></TabsContent>
                 <TabsContent value="pix" className="mt-4">
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                     <div className="flex flex-col items-center justify-center p-4 border border-dashed border-gray-300 rounded-md mb-3">
@@ -459,7 +461,7 @@ const PDVPaymentModal: React.FC<PDVPaymentModalProps> = ({
           </Button>
           <Button 
             onClick={handleFinishPayment} 
-            disabled={isProcessing || !paymentConfirmed || !isPaymentComplete() || !customer}
+            disabled={isProcessing || rulesLoading || Boolean(rulesError) || !paymentConfirmed || !isPaymentComplete() || !customer}
             className="bg-marsala hover:bg-marsala-700"
           >
             {isProcessing ? (
