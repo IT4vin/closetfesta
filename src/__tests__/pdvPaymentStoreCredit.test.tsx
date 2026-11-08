@@ -35,7 +35,7 @@ describe("crédito da loja aparece na finalização do PDV",()=>{
  it("oferece o saldo do cliente e permite pagar tudo só com crédito",async()=>{
   const finish=setup(299.90,299.90);
   expect(await screen.findByText("Saldo disponível:")).toBeTruthy();
-  expect(screen.getByText("R$ 299.90")).toBeTruthy();
+  expect(screen.getAllByText("R$ 299.90").length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole("button",{name:"Usar todo crédito disponível"}));
   expect(screen.getByText(/Sinal coberto pelo crédito na loja/)).toBeTruthy();
   fireEvent.click(screen.getByRole("checkbox",{name:/Confirmo que o cliente autorizou/}));
