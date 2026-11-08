@@ -412,6 +412,19 @@ BEGIN
   IF v_unit_status <> 'available' THEN
     RAISE EXCEPTION 'Traje não está liberado para retirada' USING ERRCODE = '22023';
   END IF;
+  -- A reserva original tem prioridade: o item excepcional não pode ser
+  -- retirado enquanto o contrato que justificou o bloqueio ainda estiver confirmado.
+  IF v_item.conflict_override AND EXISTS (
+    SELECT 1 FROM public.rental_items earlier
+    WHERE earlier.unit_id=v_item.unit_id AND earlier.id<>v_item.id
+      AND earlier.status='confirmed'
+      AND daterange(earlier.pickup_date,earlier.return_date,'[]') &&
+          daterange(v_item.pickup_date,v_item.return_date,'[]')
+      AND earlier.created_at<=v_item.created_at
+  ) THEN
+    RAISE EXCEPTION 'Reserva original ainda ativa; gerente precisa resolver o conflito antes da retirada'
+      USING ERRCODE='23P01';
+  END IF;
   -- A exceção permite a reserva, mas jamais entrega física simultânea.
   IF EXISTS (
     SELECT 1 FROM public.rental_items other_item
