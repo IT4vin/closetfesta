@@ -48,7 +48,8 @@ export function validatePaymentLines(
   if (!lines.length) return "Registre pelo menos uma forma de pagamento.";
   if (lines.some(p=>!isMethodEnabled(settings,p.method))) return "Existe uma forma de pagamento desativada nas configurações.";
   if (lines.some(p=>!Number.isFinite(p.value)||p.value<=0||Math.abs(p.value*100-Math.round(p.value*100))>0.0001)) return "Valor de pagamento inválido.";
-  if (lines.some(p=>!Number.isInteger(p.installments)||!availableInstallments(settings,p.value).includes(p.installments))) {
+  if (lines.some(p=>!Number.isInteger(p.installments)||
+    (p.method==="credit" ? !availableInstallments(settings,p.value).includes(p.installments) : p.installments!==1))) {
     return "Parcelamento incompatível com as regras cadastradas.";
   }
   if (lines.reduce((sum,p)=>sum+p.value,0)>total+0.005) return "Os pagamentos ultrapassam o total do pedido.";
