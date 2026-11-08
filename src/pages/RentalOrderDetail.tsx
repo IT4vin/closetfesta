@@ -188,6 +188,7 @@ export default function RentalOrderDetail(){
                   </div>}
                   {allowActions&&<div className="print:hidden pt-1">
                     <RentalItemActions orderId={order.id} item={{...item,status:rawStatus==="picked_up"?"picked_up":rawStatus==="returned"?"returned":"pending"}}
+                      unitStatus={state?.product_units?.status ?? null}
                       onChanged={refresh}/>
                   </div>}
                 </div>

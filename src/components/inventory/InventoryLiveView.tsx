@@ -4,6 +4,7 @@ import { PackageCheck, RefreshCw } from "lucide-react";
 import { useLiveClosetData } from "@/hooks/useLiveClosetData";
 import { localDay } from "@/lib/operationalAnalytics";
 import { freeUnitsToday } from "@/lib/inventoryAvailability";
+import InventoryCarePanel from "@/components/inventory/InventoryCarePanel";
 import { Button } from "@/components/ui/button";
 import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 
@@ -51,6 +52,8 @@ export default function InventoryLiveView() {
         </div>;
       })}
     </CardContent></Card>
+    <InventoryCarePanel units={units} products={liveProducts} items={items}
+      onChanged={() => query.refetch()} />
     <p className="text-xs text-muted-foreground">
       A contagem de unidades fisicamente livres é referente a {today} (horário de Brasília): reservas futuras não bloqueiam o estoque atual, mas retiradas em aberto bloqueiam mesmo após o prazo. A disponibilidade para qualquer data futura deve sempre ser verificada no PDV e no calendário de contratos.
       Produtos excluídos e inativos não aparecem neste painel; permanecem preservados nos contratos históricos.

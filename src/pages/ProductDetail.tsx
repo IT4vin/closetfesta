@@ -224,9 +224,9 @@ export default function ProductDetail() {
       <CardContent className="space-y-2 text-sm">
         <p>{activeRows.length} item(ns) com contrato ativo ou retirado no histórico consultado.</p>
         <p className="text-muted-foreground">
-          Não existe ainda uma tabela de ordens de manutenção nesta implantação.
-          Até sua implementação, nenhuma manutenção será exibida como realizada sem registro no banco.
+          As ordens de lavanderia e manutenção são registradas no Supabase e podem ser consultadas no painel de Estoque.
         </p>
+        <Button variant="outline" size="sm" asChild><Link to="/inventory">Consultar ordens de manutenção</Link></Button>
       </CardContent>
     </Card>
     <Sheet open={edit} onOpenChange={setEdit}>

@@ -9,9 +9,10 @@ interface RentalItemActionsProps {
   orderId: string;
   item: OrderItem;
   onChanged: () => Promise<unknown> | void;
+  unitStatus?: string | null;
 }
 
-export default function RentalItemActions({ orderId, item, onChanged }: RentalItemActionsProps) {
+export default function RentalItemActions({ orderId, item, onChanged, unitStatus }: RentalItemActionsProps) {
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
 
@@ -46,6 +47,9 @@ export default function RentalItemActions({ orderId, item, onChanged }: RentalIt
   };
 
   if (item.status === "returned") {
+    if (unitStatus === "available") return <span className="text-sm text-emerald-700">Traje conferido e liberado</span>;
+    if (unitStatus === "maintenance") return <span className="text-sm text-amber-700">Traje em manutenção — acompanhe no Estoque</span>;
+    if (unitStatus !== "laundry") return <span className="text-sm text-muted-foreground">Estado do exemplar indisponível: consulte o estoque</span>;
     if (!PermissionManager.hasPermission("inventory", "update")) {
       return <span className="text-sm text-muted-foreground">Aguardando liberação da lavanderia</span>;
     }
