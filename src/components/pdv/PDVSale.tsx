@@ -13,6 +13,7 @@ import { useAuth } from "@/stores/authStore";
 import { availabilityKey, checkCartProductAvailability, conflictApproved, datesForAvailability, type ProductCartAvailability, type CartConflictApproval } from "@/lib/cartAvailability";
 import {rentalPrice} from "./PDVProductGallery";
 import { getVisitSlot } from "@/lib/closetCalendar";
+import { pdvCheckoutSignature } from "@/lib/pdvCheckoutSignature";
 import {calculatePDVCart} from "@/lib/pdvCalculations";
 import {
   savePDVDraft, loadPDVDraft, deletePDVDraft,
@@ -317,7 +318,7 @@ export default function PDVSale(){
         observations,
         payment_details:paymentDetails,
       };
-      const signature=JSON.stringify(orderData);
+      const signature=pdvCheckoutSignature(orderData);
       if(!checkoutRequestRef.current||checkoutRequestRef.current.signature!==signature){
         checkoutRequestRef.current={signature,key:crypto.randomUUID()};
       }
