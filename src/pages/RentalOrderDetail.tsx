@@ -315,9 +315,15 @@ export default function RentalOrderDetail(){
               <Wallet className="mr-2 h-4 w-4"/>Novo pagamento
             </Button>}
           <Button className="w-full bg-marsala text-white hover:bg-marsala-700 print:hidden"
-            onClick={()=>{try{printRentalContract(detail);}catch(cause){window.alert(cause instanceof Error?cause.message:"Erro ao preparar impressão.");}}}>
+            onClick={()=>{void printRentalContract(detail).catch(cause=>window.alert(
+              cause instanceof Error?cause.message:"Erro ao preparar impressão."));}}>
             <Printer className="mr-2 h-4 w-4"/>Imprimir contrato
           </Button>
+          {manager && <Button variant="outline" className="w-full border-marsala-300 text-marsala-800 print:hidden"
+            onClick={()=>{if(!window.confirm("Emitir uma nova versão do contrato com os dados atuais? A anterior ficará preservada."))return;
+              void printRentalContract(detail,{newRevision:true}).catch(cause=>window.alert(cause instanceof Error?cause.message:"Erro ao emitir versão."));}}>
+            <FileText className="mr-2 h-4 w-4"/>Emitir nova versão do contrato
+          </Button>}
           <Button variant="outline" className="w-full print:hidden" onClick={()=>window.print()}>
             <Printer className="mr-2 h-4 w-4"/>Imprimir resumo do pedido
           </Button>
