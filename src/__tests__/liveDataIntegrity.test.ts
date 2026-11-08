@@ -54,7 +54,7 @@ describe("consultas reais e proteção contra dados fantasmas", () => {
 
   it("não inventa dados financeiros em um banco sem movimentações", async () => {
     const finance = await loadLiveFinanceData();
-    expect(finance).toEqual({payments:[],transactions:[],registers:[],movements:[]});
+    expect(finance).toEqual({payments:[],transactions:[],registers:[],movements:[],creditApplications:[]});
     expect(from).toHaveBeenCalledWith("rental_payments");
     expect(from).toHaveBeenCalledWith("cash_movements");
   });
