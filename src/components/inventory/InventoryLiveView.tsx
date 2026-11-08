@@ -2,6 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { PackageCheck, RefreshCw } from "lucide-react";
 import { useLiveClosetData } from "@/hooks/useLiveClosetData";
+import { localDay } from "@/lib/operationalAnalytics";
+import { freeUnitsToday } from "@/lib/inventoryAvailability";
 import { Button } from "@/components/ui/button";
 import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 
@@ -15,9 +17,9 @@ export default function InventoryLiveView() {
   </div>;
   const {products,units,items}=query.data;
   const liveProducts=products.filter(p=>p.active&&!p.deleted_at);
-  const ongoingItems=items.filter(i=>i.status==="confirmed"||i.status==="picked_up");
-  const allocated=new Set(ongoingItems.map(i=>i.unit_id));
-  const available=units.filter(u=>u.status==="available"&&!allocated.has(u.id)&&liveProducts.some(p=>p.id===u.product_id));
+  const today=localDay(new Date());
+  const available=freeUnitsToday(units,liveProducts,items,today);
+  const availableIds=new Set(available.map(unit=>unit.id));
   return <main className="page-transition space-y-5">
     <header className="flex flex-wrap justify-between gap-3">
       <div><h1 className="text-3xl font-semibold">Controle de estoque</h1>
@@ -29,7 +31,7 @@ export default function InventoryLiveView() {
       {[
         ["Produtos ativos",liveProducts.length],
         ["Unidades físicas cadastradas",units.filter(u=>liveProducts.some(p=>p.id===u.product_id)).length],
-        ["Unidades livres agora",available.length],
+        ["Unidades fisicamente livres hoje",available.length],
       ].map(([name,value])=><Card key={String(name)}><CardContent className="p-5">
         <p className="text-sm text-muted-foreground">{name}</p><p className="mt-2 text-2xl font-semibold">{value}</p>
       </CardContent></Card>)}
@@ -38,19 +40,19 @@ export default function InventoryLiveView() {
       {liveProducts.length===0&&<p className="py-4 text-sm text-muted-foreground">Nenhum traje ativo cadastrado.</p>}
       {liveProducts.map(p=>{
         const own=units.filter(u=>u.product_id===p.id);
-        const free=own.filter(u=>u.status==="available"&&!allocated.has(u.id));
+        const free=own.filter(u=>availableIds.has(u.id));
         return <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
           <div><p className="flex items-center gap-2 font-semibold"><PackageCheck className="h-4 w-4 text-rose-900"/>{p.name}</p>
             <p className="text-muted-foreground">SKU {p.sku??"—"} • Cadastro: {p.stock_quantity} unidade(s)</p></div>
           <div className="text-right"><p>Exemplares: {own.length}</p>
-            <p className="text-muted-foreground">Livres agora: {free.length}</p>
+            <p className="text-muted-foreground">Livres hoje: {free.length}</p>
             {p.stock_quantity!==own.length&&<p className="text-xs font-semibold text-amber-700">Divergência entre cadastro e unidades físicas</p>}
           </div>
         </div>;
       })}
     </CardContent></Card>
     <p className="text-xs text-muted-foreground">
-      A disponibilidade para uma data futura depende da agenda de locações, não apenas do status atual.
+      A contagem de unidades fisicamente livres é referente a {today} (horário de Brasília): reservas futuras não bloqueiam o estoque atual, mas retiradas em aberto bloqueiam mesmo após o prazo. A disponibilidade para qualquer data futura deve sempre ser verificada no PDV e no calendário de contratos.
       Produtos excluídos e inativos não aparecem neste painel; permanecem preservados nos contratos históricos.
     </p>
   </main>;
