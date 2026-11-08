@@ -250,7 +250,7 @@ export default function RentalOrderDetail(){
               </table></div>}
             {financial&&<div className="flex flex-wrap justify-between gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm">
               <span>Recebido: <strong>{currency(financial.received)}</strong></span>
-              <span>Saldo em aberto: <strong className={financial.remaining>0?"text-rose-700":"text-emerald-700"}>{currency(financial.remaining)}</strong></span>
+              <span>Saldo em aberto: <strong className={effectiveRemaining>0?"text-rose-700":"text-emerald-700"}>{currency(effectiveRemaining)}</strong></span>
             </div>}
             {financial?.exceeded&&<p role="alert" className="text-xs text-red-700">A soma dos recebimentos supera o total do contrato. Solicite conferência financeira.</p>}
             {showPayment&&canRecord&&order.status!=="cancelled"&&
@@ -319,7 +319,7 @@ export default function RentalOrderDetail(){
           {financial?<><div className="flex justify-between gap-2 text-sm"><span>Recebido</span>
               <span className="font-semibold text-emerald-700">{currency(financial.received)}</span></div>
             <div className="flex justify-between gap-2 text-sm"><span>Saldo aberto</span>
-              <strong className={financial.remaining>0?"text-rose-600":"text-emerald-700"}>{currency(financial.remaining)}</strong></div></>:
+              <strong className={effectiveRemaining>0?"text-rose-600":"text-emerald-700"}>{currency(effectiveRemaining)}</strong></div></>:
             <p className="rounded bg-amber-50 p-2 text-xs text-amber-900">Informações financeiras restritas ao seu perfil.</p>}
           {manager&&order.status!=="cancelled"&&order.status!=="completed"&&<>
             <Button variant="outline" className="w-full border-marsala-300 text-marsala-800 print:hidden"
@@ -327,7 +327,7 @@ export default function RentalOrderDetail(){
             <Button variant="outline" className="w-full border-red-200 text-red-700 print:hidden"
               onClick={()=>openEditor("cancel_contract")}>Cancelar pedido</Button>
           </>}
-          {canRecord&&financial&&financial.remaining>0&&order.status!=="cancelled"&&
+          {canRecord&&financial&&effectiveRemaining>0&&order.status!=="cancelled"&&
             <Button className="w-full bg-marsala hover:bg-marsala-700 print:hidden" onClick={()=>setShowPayment(true)}>
               <Wallet className="mr-2 h-4 w-4"/>Novo pagamento
             </Button>}
