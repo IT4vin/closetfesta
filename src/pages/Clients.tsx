@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Plus, RefreshCw, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -123,7 +124,7 @@ const ClientsPage = () => {
     <div className="page-transition w-full space-y-5">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div><h1 className="text-2xl md:text-3xl font-semibold">Clientes</h1>
-          <p className="text-sm text-muted-foreground">Cadastros reais do Supabase. Histórico de locações em implementação.</p>
+          <p className="text-sm text-muted-foreground">Cadastros e detalhes reais do Supabase, com histórico de contratos.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => void loadClients()} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" />Atualizar</Button>
@@ -156,6 +157,7 @@ const ClientsPage = () => {
                 </select> : <p className="text-xs">{client.acquisition_source || "Não informado"}</p>}
               </div>
               <p className="text-xs text-muted-foreground">Cadastro: {new Date(client.created_at).toLocaleDateString("pt-BR")}</p>
+              <Button variant="outline" size="sm" className="mt-2 w-full" asChild><Link to={"/clients/" + client.id}>Ver cadastro e histórico</Link></Button>
             </div>
           ))}
         </div>}
