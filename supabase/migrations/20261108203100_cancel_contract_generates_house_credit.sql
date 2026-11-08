@@ -108,6 +108,13 @@ BEGIN
    v_after := jsonb_build_object('client_id',v_client_id,'fields_changed',p_data);
 
  ELSIF p_action='client_reassign' THEN
+   IF EXISTS(
+     SELECT 1 FROM public.client_credit_entries
+     WHERE source_contract_id=p_contract_id AND kind='redemption'
+   ) THEN
+     RAISE EXCEPTION 'Contrato com crédito aplicado não pode trocar de titular; reverta o uso de crédito antes da troca'
+       USING ERRCODE='22023';
+   END IF;
    v_client_id:=nullif(p_data->>'client_id','')::uuid;
    IF v_client_id IS NULL OR NOT EXISTS(SELECT 1 FROM public.clients WHERE id=v_client_id) THEN
      RAISE EXCEPTION 'Selecione um cliente cadastrado' USING ERRCODE='22023'; END IF;
