@@ -1,8 +1,8 @@
 import type { ClosetSettingValues } from "@/lib/closetSettings";
-export type PaymentMethodCode = "pix" | "cash" | "debit" | "credit";
-const methods = ["pix", "cash", "debit", "credit"] as const;
+export type PaymentMethodCode = "pix" | "cash" | "debit" | "credit" | "transfer";
+const methods = ["pix", "cash", "debit", "credit", "transfer"] as const;
 const keyByMethod: Record<PaymentMethodCode, string> = {
-  pix: "pix_enabled", cash: "cash_enabled", debit: "debit_enabled", credit: "credit_enabled",
+  pix: "pix_enabled", cash: "cash_enabled", debit: "debit_enabled", credit: "credit_enabled", transfer: "transfer_enabled",
 };
 export function isMethodEnabled(settings: ClosetSettingValues, method: string): boolean {
   return methods.includes(method as PaymentMethodCode) &&
