@@ -12,6 +12,7 @@ import RentalAvailabilityDialog from "./RentalAvailabilityDialog";
 import { useAuth } from "@/stores/authStore";
 import { availabilityKey, checkCartProductAvailability, conflictApproved, datesForAvailability, type ProductCartAvailability, type CartConflictApproval } from "@/lib/cartAvailability";
 import {rentalPrice} from "./PDVProductGallery";
+import { getVisitSlot } from "@/lib/closetCalendar";
 import {calculatePDVCart} from "@/lib/pdvCalculations";
 import {
   savePDVDraft, loadPDVDraft, deletePDVDraft,
@@ -44,6 +45,7 @@ export default function PDVSale(){
   const [cart,setCart]=useState<CartItem[]>([]);
   const [searchValue,setSearchValue]=useState("");
   const [orderDates,setOrderDates]=useState<OrderDates>(emptyDates);
+  const [visitTimes,setVisitTimes]=useState({tryOnTime:"",pickupTime:""});
   const [observations,setObservations]=useState("");
   const [globalDiscount,setGlobalDiscount]=useState(0);
   const [globalDiscountType,setGlobalDiscountType]=useState<"percentage"|"amount">("percentage");
@@ -131,6 +133,28 @@ export default function PDVSale(){
     return true;
   },[orderDates,toast]);
 
+  const validateVisitTimes=useCallback(()=>{
+    if(!visitTimes.pickupTime || (orderDates.tryOnDate && !visitTimes.tryOnTime)){
+      toast({title:"Horário obrigatório",description:"Escolha o horário da retirada e, quando houver prova, também o horário da prova.",variant:"destructive"});
+      return false;
+    }
+    return true;
+  },[visitTimes,orderDates.tryOnDate,toast]);
+  const verifyVisitSlots=async()=>{
+    const entries: Array<{kind:"Prova"|"Retirada";day:string;time:string}> = [
+      {kind:"Retirada",day:orderDates.pickupDate,time:visitTimes.pickupTime},
+    ];
+    if(orderDates.tryOnDate)entries.push({
+      kind:"Prova",day:orderDates.tryOnDate,time:visitTimes.tryOnTime,
+    });
+    const checked=await Promise.all(entries.map(async entry=>({
+      ...entry,result:await getVisitSlot(entry.kind,entry.day,entry.time),
+    })));
+    const unavailable=checked.find(item=>!item.result.available);
+    if(unavailable)throw new Error(unavailable.kind+" às "+unavailable.time+": "+
+      (unavailable.result.reason||"Horário sem vagas"));
+  };
+
   const addProduct=useCallback((product:Product,count=1)=>{
     if(!canRent(product)){
       toast({title:"Traje indisponível",description:"Consulte a disponibilidade antes de adicioná-lo.",variant:"destructive"});return;
@@ -194,7 +218,7 @@ export default function PDVSale(){
   const clearCart=useCallback(()=>{
     if(!cart.length&&!selectedCustomer&&!observations)return;
     if(!window.confirm("Cancelar este atendimento sem gravar contrato? O rascunho salvo, se existir, continuará disponível."))return;
-    setCart([]);setSelectedCustomer(null);setOrderDates(emptyDates());
+    setCart([]);setSelectedCustomer(null);setOrderDates(emptyDates());setVisitTimes({tryOnTime:"",pickupTime:""});
     setOverrideApprovals({});setConflictProductId(null);
     setObservations("");setGlobalDiscount(0);setGlobalDiscountType("percentage");
     setSearchValue("");checkoutRequestRef.current=null;
@@ -211,7 +235,7 @@ export default function PDVSale(){
       toast({title:"Cliente obrigatório",description:"Selecione ou cadastre um cliente para gerar o contrato.",variant:"destructive"});
       setCustomerModalOpen(true);return;
     }
-    if(!validateDates())return;
+    if(!validateDates()||!validateVisitTimes())return;
     if(!finance.valid||!Number.isFinite(finance.total)||finance.total<=0){
       toast({title:"Total inválido",description:"Confira os preços e descontos antes de continuar.",variant:"destructive"});return;
     }
@@ -221,6 +245,7 @@ export default function PDVSale(){
     const token=++checkSequence.current;
     setAvailabilityBusy(true);setAvailabilityError("");
     try{
+      await verifyVisitSlots();
       const results=await Promise.all(cart.map(item=>checkCartProductAvailability(
         item.id,item.quantity,orderDates,
       )));
@@ -247,21 +272,24 @@ export default function PDVSale(){
     }finally{
       if(token===checkSequence.current)setAvailabilityBusy(false);
     }
-  },[isProcessingOrder,availabilityBusy,cart,selectedCustomer,validateDates,finance.valid,finance.total,toast,orderDates,overrideApprovals]);
+  },[isProcessingOrder,availabilityBusy,cart,selectedCustomer,validateDates,validateVisitTimes,visitTimes,finance.valid,finance.total,toast,orderDates,overrideApprovals]);
 
   const handlePaymentComplete=async(paymentDetails:any)=>{
     if(!selectedCustomer?.id||!cart.length){
       throw new Error("Cliente e produtos são obrigatórios.");
     }
-    if(!validateDates())throw new Error("Datas do aluguel não confirmadas.");
+    if(!validateDates()||!validateVisitTimes())throw new Error("Datas e horários não confirmados.");
     setProcessingOrder(true);
     try{
+      await verifyVisitSlots();
       const orderData={
         customer_name:selectedCustomer.name,
         client_id:selectedCustomer.id,
         customer_document:selectedCustomer.document,
         customer_phone:selectedCustomer.phone,
         order_type:"rental" as const,
+        try_on_time:orderDates.tryOnDate?visitTimes.tryOnTime:null,
+        pickup_time:visitTimes.pickupTime,
         items:cart.map(item=>({
           product_id:item.id,
           product_name:item.name,
@@ -300,7 +328,7 @@ export default function PDVSale(){
         </Button>});
       window.dispatchEvent(new Event("closetfesta:order-created"));
       window.dispatchEvent(new Event("closetfesta:open-orders"));
-      setCart([]);setOrderDates(emptyDates());setObservations("");
+      setCart([]);setOrderDates(emptyDates());setVisitTimes({tryOnTime:"",pickupTime:""});setObservations("");
       setOverrideApprovals({});setConflictProductId(null);
       setGlobalDiscount(0);setGlobalDiscountType("percentage");
       setSelectedCustomer(null);setPaymentModalOpen(false);setSearchValue("");
@@ -321,7 +349,7 @@ export default function PDVSale(){
     }
     const payload:PDVDraftPayload={
       version:1,items:cart.map(item=>({product_id:item.id,quantity:item.quantity,discount:item.discount})),
-      customer_id:selectedCustomer?.id??null,dates:orderDates,
+      customer_id:selectedCustomer?.id??null,dates:orderDates,visitTimes,
       observations:observations.slice(0,3000),
       global_discount:globalDiscount,
       global_discount_type:globalDiscountType,
@@ -331,7 +359,7 @@ export default function PDVSale(){
       toast({title:"Atendimento salvo",description:"Rascunho privado deste operador salvo no Supabase. Nenhum traje foi reservado."});
     }catch(cause){toast({title:"Rascunho não salvo",description:cause instanceof Error?cause.message:"Erro no banco.",variant:"destructive"});}
     finally{setDraftBusy(false);}
-  },[draftBusy,cart,selectedCustomer,orderDates,observations,globalDiscount,globalDiscountType,toast]);
+  },[draftBusy,cart,selectedCustomer,orderDates,visitTimes,observations,globalDiscount,globalDiscountType,toast]);
 
   const restoreDraft=useCallback(async()=>{
     if(draftBusy)return;
@@ -363,7 +391,9 @@ export default function PDVSale(){
       }
       setCart(kept);setSelectedCustomer(nextCustomer);
       setOverrideApprovals({});setConflictProductId(null);
-      setOrderDates(draft.payload.dates);setObservations(draft.payload.observations);
+      setOrderDates(draft.payload.dates);
+      setVisitTimes(draft.payload.visitTimes??{tryOnTime:"",pickupTime:""});
+      setObservations(draft.payload.observations);
       setGlobalDiscount(draft.payload.global_discount);setGlobalDiscountType(draft.payload.global_discount_type);
       checkoutRequestRef.current=null;
       toast({title:"Rascunho recuperado",description:dropped.length
@@ -382,7 +412,9 @@ export default function PDVSale(){
   return <>
     <PDVWorkspace
       products={productsList} loading={loadingProducts} error={productsError}
-      cart={cart} dates={orderDates} customer={selectedCustomer}
+      cart={cart} dates={orderDates} visitTimes={visitTimes}
+      onVisitTimesChange={times=>{setVisitTimes(times);checkoutRequestRef.current=null;}}
+      customer={selectedCustomer}
       searchValue={searchValue} setSearchValue={setSearchValue}
       observations={observations} setObservations={setObservations}
       globalDiscount={globalDiscount} setGlobalDiscount={value=>{
@@ -395,7 +427,13 @@ export default function PDVSale(){
       availability={availability} availabilityBusy={availabilityBusy}
       availabilityError={availabilityError} overrides={overrideApprovals}
       onReviewConflict={id=>setConflictProductId(id)}
-      onDatesChange={dates=>{setOrderDates(dates);checkoutRequestRef.current=null;}}
+      onDatesChange={dates=>{
+        setVisitTimes(old=>({
+          tryOnTime:dates.tryOnDate===orderDates.tryOnDate?old.tryOnTime:"",
+          pickupTime:dates.pickupDate===orderDates.pickupDate?old.pickupTime:"",
+        }));
+        setOrderDates(dates);checkoutRequestRef.current=null;
+      }}
       onAdd={(product,quantity)=>addProduct(product,quantity)}
       onQuantityChange={updateQuantity} onItemDiscount={updateItemDiscount}
       onRemove={removeItem} onCustomer={()=>setCustomerModalOpen(true)}
