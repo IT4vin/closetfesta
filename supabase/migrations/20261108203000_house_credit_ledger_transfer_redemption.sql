@@ -161,3 +161,34 @@ REVOKE EXECUTE ON FUNCTION public.credit_redeem_for_contract(uuid,numeric,text,u
  FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.credit_redeem_for_contract(uuid,numeric,text,uuid)
  TO authenticated;
+
+
+-- Resumo do crédito já utilizado em um contrato (separado dos pagamentos reais).
+CREATE OR REPLACE FUNCTION public.credit_contract_usage(p_contract uuid)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $function$
+DECLARE v_actor uuid:=auth.uid();v_status text;v_total numeric;
+ v_used numeric;v_cash numeric;v_customer uuid;
+BEGIN
+ IF v_actor IS NULL OR NOT (
+   public.has_role(v_actor,'admin'::public.app_role) OR
+   public.has_role(v_actor,'manager'::public.app_role) OR
+   public.has_role(v_actor,'staff'::public.app_role) OR
+   public.has_role(v_actor,'cashier'::public.app_role)
+ ) THEN RAISE EXCEPTION 'Sem acesso aos valores do contrato' USING ERRCODE='42501'; END IF;
+ SELECT status,total,client_id INTO v_status,v_total,v_customer
+ FROM public.rental_contracts WHERE id=p_contract;
+ IF v_status IS NULL THEN RAISE EXCEPTION 'Contrato não encontrado' USING ERRCODE='P0002'; END IF;
+ SELECT coalesce(-sum(delta),0) INTO v_used
+ FROM public.client_credit_entries
+ WHERE kind='redemption' AND source_contract_id=p_contract;
+ SELECT coalesce(sum(amount) FILTER(WHERE status<>'reversed'),0) INTO v_cash
+ FROM public.rental_payments WHERE contract_id=p_contract;
+ RETURN jsonb_build_object('contract_id',p_contract,'client_id',v_customer,
+   'status',v_status,'total',v_total,'cash_paid',v_cash,
+   'credit_applied',v_used,'remaining',greatest(0,v_total-v_cash-v_used));
+END;
+$function$;
+REVOKE EXECUTE ON FUNCTION public.credit_contract_usage(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.credit_contract_usage(uuid) TO authenticated;
