@@ -25,12 +25,12 @@ const active:RentalOrderSummaryPalette={
 };
 
 const cancelled:RentalOrderSummaryPalette={
-  container:"border border-red-200 bg-[#FAF7F2] text-red-950",
+  container:"border border-red-200 bg-[#FDFCFB] text-red-950",
   muted:"text-red-800",
   icon:"text-red-700",
-  badge:"border-red-300 bg-[#FAF7F2] text-red-900 hover:bg-[#FAF7F2]",
+  badge:"border-red-300 bg-[#FDFCFB] text-red-900 hover:bg-[#FDFCFB]",
   link:"text-red-900 hover:text-red-700",
-  chip:"bg-[#FAF7F2] text-red-900 hover:bg-[#FAF7F2]",
+  chip:"bg-[#FDFCFB] text-red-900 hover:bg-[#FDFCFB]",
   notes:"border border-red-200 bg-white/65 text-red-950",
   editButton:"border-red-300 bg-white/70 text-red-900 hover:bg-white hover:text-red-950",
 };
