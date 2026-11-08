@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, RotateCcw, Save } from "lucide-react";
-import { useAuth } from "@/stores/authStore";
+import UserAccessSettings from "@/components/settings/UserAccessSettings";
 import { loadClosetSettings, saveClosetSettings, type ClosetSettingsSection, type ClosetSettingValues } from "@/lib/closetSettings";
 
 type FieldType = "text" | "email" | "number" | "time" | "url" | "textarea" | "boolean";
@@ -194,19 +194,6 @@ function validate(section: ClosetSettingsSection, values: ClosetSettingValues): 
   return null;
 }
 
-function CurrentAccess() {
-  const { user } = useAuth();
-  return <div className="space-y-4">
-    <Card><CardHeader><CardTitle>Perfil e permissões</CardTitle>
-      <CardDescription>Informações reais da autenticação Supabase.</CardDescription></CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        <p><strong>Usuário:</strong> {user?.full_name ?? "Não identificado"}</p>
-        <p><strong>Perfil:</strong> {user?.role.name ?? "Não identificado"}</p>
-        <p><strong>E-mail:</strong> {user?.email ?? "Não informado"}</p>
-        <p className="rounded-md border p-3 text-muted-foreground">Atribuição e revogação de perfis dependem de um endpoint administrativo seguro com validação no servidor. O editor de usuários demonstrativo não será exibido como se alterasse permissões reais.</p>
-      </CardContent></Card>
-  </div>;
-}
 
 export default function ClosetSettingsEditor({
   section, onDirtyChange,
@@ -240,7 +227,7 @@ export default function ClosetSettingsEditor({
     return () => { cancelled = true; };
   }, [section, reload]);
 
-  if (section === "permissions") return <CurrentAccess />;
+  if (section === "permissions") return <UserAccessSettings />;
   const definition = definitions[section];
 
   const update = (field: Field, next: string | boolean) => {
