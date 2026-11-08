@@ -33,7 +33,7 @@ export function availabilityKey(productId: string, quantity: number, dates: Orde
 }
 export function datesForAvailability(dates: OrderDates): boolean {
   return Boolean(dates.pickupDate && dates.eventDate && dates.returnDate &&
-    dates.pickupDate <= dates.eventDate && dates.eventDate <= dates.returnDate &&
+    dates.pickupDate < dates.eventDate && dates.eventDate < dates.returnDate &&
     (!dates.tryOnDate || dates.tryOnDate < dates.pickupDate));
 }
 export function conflictApproved(
