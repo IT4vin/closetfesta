@@ -40,8 +40,8 @@
     --marsala: 353 69% 25%; /* #800020 */
     --marsala-foreground: 0 0% 100%;
     /* Off-white quente: substitui somente os tons vermelhos muito claros. */
-    --marsala-50: 37 44% 96%; /* #FAF7F2 */
-    --marsala-100: 37 44% 96%; /* #FAF7F2 */
+    --marsala-50: 30 33.3% 98.8%; /* #FDFCFB */
+    --marsala-100: 30 33.3% 98.8%; /* #FDFCFB */
     --marsala-200: 353 95% 90%;
     --marsala-300: 353 82% 82%;
     --marsala-400: 353 80% 68%;
@@ -220,7 +220,7 @@
     .bg-rose-50, .bg-rose-100, .bg-rose-200,
     .bg-pink-50, .bg-pink-100, .bg-pink-200
   ) {
-    background-color: #FAF7F2;
+    background-color: #FDFCFB;
   }
 
   :root:not(.dark):not(.high-contrast) :is(
@@ -228,6 +228,6 @@
     .hover\:bg-rose-50:hover, .hover\:bg-rose-100:hover, .hover\:bg-rose-200:hover,
     .hover\:bg-pink-50:hover, .hover\:bg-pink-100:hover, .hover\:bg-pink-200:hover
   ) {
-    background-color: #FAF7F2;
+    background-color: #FDFCFB;
   }
 }
