@@ -22,7 +22,7 @@ import {
   ShoppingCart,
   Clock3,
   CalendarClock,
-  ClipboardClock,
+  ClipboardList,
   X
 } from "lucide-react";
 
@@ -47,7 +47,7 @@ const MobileMenu = () => {
       {name:"Meu Banco de Horas",href:"/my-hours",icon:CalendarClock},
     ]:[]),
     ...(canManageClock?[
-      {name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardClock},
+      {name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardList},
     ]:[]),
     { name: "Configurações", href: "/settings", icon: Settings },
   ];
