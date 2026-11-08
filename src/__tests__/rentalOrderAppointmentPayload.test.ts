@@ -23,6 +23,18 @@ describe("horários obrigatórios chegam da venda ao Supabase",()=>{
     items:expect.arrayContaining([expect.objectContaining({product_id:request.items[0].product_id})])})
   });
  });
+ it("envia o crédito da loja na finalização do mesmo RPC do contrato",async()=>{
+  rpc.mockResolvedValueOnce({data:null,error:{message:"Erro controlado",code:"22023"}});
+  await expect(createRentalOrder({...request,payment_details:{
+    store_credit_amount:150,payments:[],
+  }})).rejects.toThrow("Erro controlado");
+  expect(rpc).toHaveBeenCalledWith("create_rental_contract",{
+    p_request:expect.objectContaining({
+      store_credit_amount:150,payments:[],
+      client_id:request.client_id,
+    }),
+  });
+ });
  it("preserva compatibilidade com contratos legados que ainda não possuem hora",async()=>{
   rpc.mockResolvedValueOnce({data:null,error:{message:"Falha simulada",code:"22023"}});
   await expect(createRentalOrder(request)).rejects.toThrow("Falha simulada");
