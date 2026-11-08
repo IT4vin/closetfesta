@@ -225,7 +225,7 @@ BEGIN
  IF EXISTS(
    SELECT 1 FROM public.time_clock_punches
    WHERE user_id=v_user AND work_date=v_day
-   AND kind<>ANY(CASE v_count
+   AND kind<>ALL(CASE v_count
      WHEN 0 THEN ARRAY[]::text[]
      WHEN 1 THEN ARRAY['entry']::text[]
      WHEN 2 THEN ARRAY['entry','lunch_out']::text[]
