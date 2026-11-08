@@ -15,7 +15,7 @@ describe("Ponto: cliente do Supabase",()=>{
   expect(rpc).toHaveBeenCalledWith("time_clock_record",{p_qr:payload,p_location:null});
  });
  it("valida formato do QR antes de realizar chamadas",async()=>{
-  await expect(recordClockPoint("CF-PONTO:V1:invalido")).rejects.toThrow("QR Code inválido");
+  expect(()=>recordClockPoint("CF-PONTO:V1:invalido")).toThrow("QR Code inválido");
   expect(rpc).not.toHaveBeenCalled();
  });
  it("usa sempre autorização no banco para leitura de QR secreto",async()=>{
