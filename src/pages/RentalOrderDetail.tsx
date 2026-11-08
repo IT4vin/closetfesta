@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RentalItemActions from "@/components/pdv/RentalItemActions";
 import OrderVisitTimes from "@/components/calendar/OrderVisitTimes";
+import ClientHouseCreditPanel from "@/components/clients/ClientHouseCreditPanel";
+import { getCreditUsage } from "@/lib/houseCredits";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
 import { printRentalContract } from "@/lib/rentalContractPrint";
@@ -69,6 +71,12 @@ export default function RentalOrderDetail(){
     refetchOnWindowFocus:true,
     retry:1,
   });
+  const creditUsage=useQuery({
+    queryKey:["house-credit-contract",id],
+    queryFn:()=>getCreditUsage(id!),
+    enabled:Boolean(user?.id&&validId&&canRead),
+    staleTime:0,refetchOnMount:"always",
+  });
   const detail=query.data;
   const order=detail?.order;
   const client=detail?.customer;
@@ -86,6 +94,8 @@ export default function RentalOrderDetail(){
   const contact=contactLinks(client?.phone??null);
   const address=readableAddress(client?.address??null);
   const financial=detail?.payments?paymentTotals(order?.total??0,detail.payments):null;
+  const effectiveRemaining=creditUsage.data
+    ?Number(creditUsage.data.remaining):financial?.remaining??0;
   const refresh=async()=>{
     await queryClient.invalidateQueries({queryKey:["rental-order-detail",user?.id,id]});
   };
@@ -133,6 +143,7 @@ export default function RentalOrderDetail(){
         </Card>
 
         <OrderVisitTimes contractId={order.id} />
+        <ClientHouseCreditPanel clientId={client.id} contractId={order.id} onChanged={refresh} />
 
         <Card className="shadow-sm">
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
@@ -209,7 +220,7 @@ export default function RentalOrderDetail(){
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-marsala-700"/>Pagamentos</CardTitle>
-            {canRecord && financial && financial.remaining>0 && order.status!=="cancelled"&&
+            {canRecord && financial && effectiveRemaining>0 && order.status!=="cancelled"&&
               <Button size="sm" className="print:hidden" onClick={()=>setShowPayment(v=>!v)}>
                 <CreditCard className="mr-2 h-4 w-4"/> {showPayment?"Fechar formulário":"Novo pagamento"}
               </Button>}
@@ -244,7 +255,7 @@ export default function RentalOrderDetail(){
             {financial?.exceeded&&<p role="alert" className="text-xs text-red-700">A soma dos recebimentos supera o total do contrato. Solicite conferência financeira.</p>}
             {showPayment&&canRecord&&order.status!=="cancelled"&&
               <div className="rounded-lg border p-3 print:hidden">
-                <RentalPaymentActions contractId={order.id} contractTotal={order.total}
+                <RentalPaymentActions contractId={order.id} contractTotal={Math.max(0,order.total-Number(creditUsage.data?.credit_applied??0))}
                   onChanged={()=>void refresh()}/>
               </div>}
             <p className="text-xs text-muted-foreground">Pagamentos registrados no sistema não comprovam, por si só, conciliação bancária.</p>
