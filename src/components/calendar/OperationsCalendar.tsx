@@ -10,6 +10,7 @@ import { Card,CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import PermissionManager from "@/lib/permissions";
 import VisitSlotInput from "@/components/calendar/VisitSlotInput";
+import { supabase } from "@/integrations/supabase/client";
 import {
  countCalendarDay,dateKey,dateText,fetchCalendarMonth,monthRange,scheduleContractVisit,
  type CalendarVisit,
@@ -70,6 +71,23 @@ export default function OperationsCalendar(){
  const openVisit=(visit:CalendarVisit)=>{
   if(!visit.contract_id||!["Prova","Retirada"].includes(visit.kind)||!canWrite)return;
   setEditing(visit);setEditTime(visit.time||"");setError("");
+ };
+ const cancelManual=async(visit:CalendarVisit)=>{
+  if(!canWrite||visit.contract_id||visit.source!=="appointment"||saving)return;
+  if(!window.confirm("Cancelar o agendamento manual de "+visit.client_name+"? O histórico será mantido."))return;
+  setSaving(true);
+  try{
+   const id=visit.id.replace(/^appointment:/,"");
+   const {data,error}=await (supabase as any).from("appointments")
+    .update({status:"cancelled"}).eq("id",id).select("id").single();
+   if(error||!data?.id)throw new Error(error?.message||"Cancelamento não confirmado.");
+   await queryClient.invalidateQueries({queryKey:["closet-calendar-month"]});
+   await queryClient.invalidateQueries({queryKey:["closet-live-operations"]});
+   toast({title:"Agendamento cancelado",description:"Registro preservado no Supabase."});
+  }catch(cause){toast({title:"Não foi possível cancelar",
+    description:cause instanceof Error?cause.message:"Erro ao cancelar",
+    variant:"destructive"});}
+  finally{setSaving(false);}
  };
  const save=async(e:React.FormEvent)=>{
   e.preventDefault();
@@ -205,6 +223,10 @@ export default function OperationsCalendar(){
      {canWrite&&visit.contract_id&&(visit.kind==="Prova"||visit.kind==="Retirada")&&
        <Button size="sm" variant="outline" className="border-marsala-200 text-marsala-800"
         onClick={()=>openVisit(visit)}>{visit.time?"Remarcar":"Definir horário"}</Button>}
+     {canWrite&&!visit.contract_id&&visit.source==="appointment"&&
+       <Button size="sm" variant="outline" disabled={saving}
+        className="border-red-200 text-red-700"
+        onClick={()=>void cancelManual(visit)}>Cancelar agendamento</Button>}
     </div>)}
     {selected.length>0&&<p className="text-xs text-muted-foreground">
      Cada cliente/contrato é contado uma vez por tipo e dia, mesmo com vários trajes.
