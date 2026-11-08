@@ -3,6 +3,7 @@ import React from "react";
 import {describe,it,expect,vi,afterEach} from "vitest";
 import {render,screen,fireEvent,cleanup} from "@testing-library/react";
 import type {Product} from "@/lib/api";
+vi.mock("@/integrations/supabase/client",()=>({supabase:{rpc:vi.fn()}}));
 vi.mock("@/stores/authStore",()=>({
   useAuth:()=>({user:{id:"operator-1",full_name:"Consultora da loja",role:{id:"staff"}}}),
 }));
