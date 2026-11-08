@@ -367,8 +367,7 @@ BEGIN
   RETURN jsonb_build_object('id',v_contract_id,'number',v_number,'total',v_total,
     'paid',v_paid,'already_exists',false);
 END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.rental_confirm_pickup(p_item_id uuid)
  RETURNS jsonb
@@ -444,5 +443,4 @@ BEGIN
     VALUES (p_item_id, v_actor, 'pickup');
   RETURN jsonb_build_object('id', p_item_id, 'status', 'picked_up');
 END;
-$function$
-
+$function$;
