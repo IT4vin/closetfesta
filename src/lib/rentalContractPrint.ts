@@ -1,7 +1,7 @@
 import type { OrderDetail } from "@/lib/rentalOrderDetails";
 import { supabase } from "@/integrations/supabase/client";
-import { loadClosetSettings, type ClosetSettingValues } from "@/lib/closetSettings";
-import { paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
+import type { ClosetSettingValues } from "@/lib/closetSettings";
+import { readableAddress } from "@/lib/rentalOrderDetails";
 
 export function escapeContractHtml(input:unknown):string {
   return String(input??"").replace(/[&<>"']/g, c=>({
@@ -14,10 +14,9 @@ const date=(s?:string|null)=>{
   const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);
   return m?m[3]+"/"+m[2]+"/"+m[1]:"Não informado";
 };
-export interface ContractPrintOptions { company?: ClosetSettingValues; documents?: ClosetSettingValues }
+export interface ContractPrintOptions { company?: ClosetSettingValues; documents?: ClosetSettingValues; issuedAt?: string }
 export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptions={}):string {
   const {order,customer}=detail;
-  const payments=detail.payments?paymentTotals(Number(order.total),detail.payments):null;
   const E=escapeContractHtml;
   const companyName=String(options.company?.trading_name||"Closet Festa");
   const legalName=String(options.company?.legal_name||"");
@@ -35,7 +34,10 @@ export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptio
       "<br>Evento: ",E(date(item.event_date)),"<br>Devolução: ",E(date(item.return_date)),"</small></td>",
       "<td>",E(money(Number(item.unit_price))),"</td><td>",E(money(Number(item.discount))),"</td></tr>"
     ].join("")).join("");
-  const today=new Date().toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"});
+  const emittedAt=options.issuedAt ? new Date(options.issuedAt) : new Date();
+  const today=Number.isFinite(emittedAt.getTime())
+    ? emittedAt.toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"})
+    : "Data de emissão indisponível";
   const parts=[
     "<!doctype html><html lang='pt-BR'><head><meta charset='UTF-8'><title>Contrato ",
     E(order.order_number)," · ",E(companyName),"</title>",
@@ -68,7 +70,7 @@ export function rentalContractHtml(detail:OrderDetail,options:ContractPrintOptio
     "<section><h2>3. Valores da locação</h2><p>Subtotal: ",E(money(Number(order.subtotal))),"</p>",
     "<p>Descontos: ",E(money(Number(order.total_discount))),"</p>",
     "<p><strong>Total contratado: ",E(money(Number(order.total))),"</strong></p>",
-    payments?"<p>Recebido no sistema: "+E(money(payments.received))+"</p><p>Saldo registrado: "+E(money(payments.remaining))+"</p>":"<p>Recebimentos: não disponíveis neste perfil.</p>",
+    "<p>Pagamentos, saldos e estornos são consultados separadamente no histórico financeiro e recibos da locação.</p>",
     "<p class='hint'>Registros internos de pagamento não substituem comprovantes bancários.</p></section>",
     "<section><h2>4. Condições para assinatura e conferência</h2><ol>",
     "<li>O(a) locatário(a) conferirá os trajes, acessórios e ajustes no ato da retirada, observando as datas acertadas.</li>",
@@ -107,12 +109,11 @@ export async function printRentalContract(
     const latest=versions?.[0];
     let saved=latest?.payload;
     if(!saved || options.newRevision===true){
-      const [company,documents]=await Promise.all([
-        loadClosetSettings("company"),loadClosetSettings("documents")
-      ]);
       const {data:session,error:authError}=await supabase.auth.getUser();
       if(authError||!session.user)throw new Error("Sessão expirada. Entre novamente.");
-      const payload={detail,company,documents};
+      // O banco reconstrói o documento com preços, cliente e cláusulas oficiais.
+      // Não arquivar objetos de pagamento, observações internas nem dados fornecidos pelo navegador.
+      const payload={};
       const {data:inserted,error:writeError}=await db.from("rental_document_snapshots")
         .insert({contract_id:detail.order.id,revision:(latest?.revision??0)+1,
           issued_by:session.user.id,payload})
@@ -121,7 +122,7 @@ export async function printRentalContract(
       saved=inserted.payload;
     }
     if(!saved?.detail?.order||!saved?.detail?.customer)throw new Error("Versão de documento incompleta.");
-    show(rentalContractHtml(saved.detail,{company:saved.company,documents:saved.documents}));
+    show(rentalContractHtml(saved.detail,{company:saved.company,documents:saved.documents,issuedAt:saved.issued_at}));
   }catch(cause){
     const error=cause instanceof Error?cause.message:"Falha desconhecida.";
     show("<html lang='pt-BR'><body><h2>Documento não emitido</h2><p>"+
