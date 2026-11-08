@@ -3,6 +3,8 @@ import { NavLink } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/stores/authStore";
+import {hasRolePermission} from "@/lib/accessControl";
 import {
   Drawer,
   DrawerClose,
@@ -18,12 +20,18 @@ import {
   LineChart, 
   Settings, 
   ShoppingCart,
+  Clock3,
+  CalendarClock,
+  ClipboardClock,
   X
 } from "lucide-react";
 
 const MobileMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { colorScheme } = useTheme();
+  const {user}=useAuth();
+  const canClock=hasRolePermission(user?.role?.id,"timeClock","read");
+  const canManageClock=hasRolePermission(user?.role?.id,"timeClock","manage");
   
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart },
@@ -34,6 +42,13 @@ const MobileMenu = () => {
     { name: "Financeiro", href: "/financial", icon: Wallet },
     { name: "Estoque", href: "/inventory", icon: LineChart },
     { name: "PDV", href: "/pdv", icon: ShoppingCart },
+    ...(canClock?[
+      {name:"Bater Ponto",href:"/clock",icon:Clock3},
+      {name:"Meu Banco de Horas",href:"/my-hours",icon:CalendarClock},
+    ]:[]),
+    ...(canManageClock?[
+      {name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardClock},
+    ]:[]),
     { name: "Configurações", href: "/settings", icon: Settings },
   ];
 
