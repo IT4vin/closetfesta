@@ -326,7 +326,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6 max-h-[80vh] overflow-y-auto">
+    <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
       
       {/* Mensagem de rascunho */}
       {showDraftMessage && (
@@ -358,8 +358,40 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
+            <header className="space-y-3 rounded-xl border border-marsala-100 bg-gradient-to-r from-marsala-50 to-white p-4 sm:p-5">
+        <span className="inline-flex rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-marsala-800">
+          Cadastro de traje para locação
+        </span>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight text-marsala-950">
+              {initialData?"Atualizar informações do produto":"Novo produto no catálogo"}
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Preencha a identificação, preço de aluguel, características e fotografias.
+              As demais informações podem ser adicionadas conforme a necessidade.
+            </p>
+          </div>
+          <span className="rounded-lg border border-marsala-200 bg-white px-3 py-2 text-xs text-marsala-900">
+            {formData.quantity} exemplar(es) · {formData.rentalPrice?Number(formData.rentalPrice)
+              .toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):"Preço a definir"}
+          </span>
+        </div>
+      </header>
+      <nav aria-label="Seções do cadastro de produto"
+        className="flex flex-wrap items-center gap-2 rounded-xl border bg-white p-2 text-xs">
+        {([
+          ["#produto-basico","Identificação"],["#produto-caracteristicas","Características"],
+          ["#produto-valores","Valores"],["#produto-imagens","Imagens"],
+          ["#produto-eventos","Eventos"],["#produto-adicionais","Detalhes"],
+          ["#produto-fiscal","Fiscal"],
+        ] as const).map(([href,label],i)=><a key={href} href={href}
+          className="rounded-lg px-3 py-2 font-medium text-muted-foreground hover:bg-marsala-50 hover:text-marsala-900 focus-visible:outline-2 focus-visible:outline-marsala-700">
+          <span className="mr-1.5 text-marsala-700">{i+1}.</span>{label}
+        </a>)}
+      </nav>
       {/* SEÇÃO: INFORMAÇÕES BÁSICAS */}
-      <FormSection title="Informações Básicas" icon="📋" bgColor="marsala">
+      <FormSection id="produto-basico" title="Informações Básicas" icon="📋" bgColor="marsala">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CustomSelectField
             label="Tipo de Produto"
@@ -446,7 +478,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
       </FormSection>
 
       {/* SEÇÃO: CARACTERÍSTICAS FÍSICAS */}
-      <FormSection title="Características Físicas" icon="👗" bgColor="marsala" collapsible>
+      <FormSection id="produto-caracteristicas" title="Características Físicas" icon="👗" bgColor="marsala" collapsible>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <CustomSelectField
             label="Cor"
@@ -517,25 +549,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       </FormSection>
 
-      {/* SEÇÃO: TIPOS DE EVENTO */}
-      <FormSection title="Tipos de Evento" icon="🎉" bgColor="marsala" collapsible>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {EVENT_TYPES.map(eventType => (
-            <label key={eventType} className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.eventTypes.includes(eventType)}
-                onChange={() => handleEventTypeChange(eventType)}
-                className="rounded"
-              />
-              <span className="text-sm">{eventType}</span>
-            </label>
-          ))}
-        </div>
-      </FormSection>
-
       {/* SEÇÃO: VALORES FINANCEIROS */}
-      <FormSection title="Valores Financeiros" icon="💰" bgColor="marsala">
+      <FormSection id="produto-valores" title="Valores Financeiros" icon="💰" bgColor="marsala">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             label="Custo"
@@ -615,81 +630,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       </FormSection>
 
-      {/* SEÇÃO: CÓDIGOS FISCAIS */}
-      <FormSection title="Códigos Fiscais" icon="📋" bgColor="gray" collapsible defaultCollapsed>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            label="Código NCM"
-            name="ncmCode"
-            type="masked"
-            value={formData.ncmCode}
-            onChange={handleChange}
-            onMaskedChange={handleMaskedChange}
-            mask={formatNCM}
-            placeholder="0000.00.00"
-            error={getFieldError('ncmCode')}
-            help="Nomenclatura Comum do Mercosul"
-          />
-
-          <FormField
-            label="Código CFOP"
-            name="cfopCode"
-            type="masked"
-            value={formData.cfopCode}
-            onChange={handleChange}
-            onMaskedChange={handleMaskedChange}
-            mask={formatCFOP}
-            placeholder="0000"
-            error={getFieldError('cfopCode')}
-            help="Código Fiscal de Operações e Prestações"
-          />
-        </div>
-      </FormSection>
-
-      {/* SEÇÃO: INFORMAÇÕES ADICIONAIS */}
-      <FormSection title="Informações Adicionais" icon="📝" bgColor="gray" collapsible defaultCollapsed>
-        <div className="space-y-4">
-          <FormField
-            label="Descrição"
-            name="description"
-            type="textarea"
-            value={formData.description}
-            onChange={handleChange}
-            rows={3}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Instruções de Limpeza"
-              name="cleaningInstructions"
-              type="textarea"
-              value={formData.cleaningInstructions}
-              onChange={handleChange}
-              rows={3}
-            />
-
-            <FormField
-              label="Observações"
-              name="notes"
-              type="textarea"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-            />
-          </div>
-
-          <FormField
-            label="Localização no Estoque"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder="Ex: Prateleira A3, Setor B"
-          />
-        </div>
-      </FormSection>
-
       {/* SEÇÃO: IMAGENS */}
-      <FormSection title="Imagens do Produto" icon="📷" bgColor="marsala">
+      <FormSection id="produto-imagens" title="Imagens do Produto" icon="📷" bgColor="marsala">
         {formData.images.length > 0 && (
           <div className="flex flex-wrap gap-4 mb-4">
             {formData.images.map((img, i) => (
@@ -744,29 +686,119 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </p>
       </FormSection>
 
-      {saveError && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
+{/* SEÇÃO: TIPOS DE EVENTO */}
+      <FormSection id="produto-eventos" title="Tipos de Evento" icon="🎉" bgColor="marsala" collapsible>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {EVENT_TYPES.map(eventType => (
+            <label key={eventType} className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.eventTypes.includes(eventType)}
+                onChange={() => handleEventTypeChange(eventType)}
+                className="rounded"
+              />
+              <span className="text-sm">{eventType}</span>
+            </label>
+          ))}
+        </div>
+      </FormSection>
+
+      {/* SEÇÃO: INFORMAÇÕES ADICIONAIS */}
+      <FormSection id="produto-adicionais" title="Informações Adicionais" icon="📝" bgColor="gray" collapsible defaultCollapsed>
+        <div className="space-y-4">
+          <FormField
+            label="Descrição"
+            name="description"
+            type="textarea"
+            value={formData.description}
+            onChange={handleChange}
+            rows={3}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              label="Instruções de Limpeza"
+              name="cleaningInstructions"
+              type="textarea"
+              value={formData.cleaningInstructions}
+              onChange={handleChange}
+              rows={3}
+            />
+
+            <FormField
+              label="Observações"
+              name="notes"
+              type="textarea"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
+
+          <FormField
+            label="Localização no Estoque"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            placeholder="Ex: Prateleira A3, Setor B"
+          />
+        </div>
+      </FormSection>
+
+      {/* SEÇÃO: CÓDIGOS FISCAIS */}
+      <FormSection id="produto-fiscal" title="Códigos Fiscais" icon="📋" bgColor="gray" collapsible defaultCollapsed>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            label="Código NCM"
+            name="ncmCode"
+            type="masked"
+            value={formData.ncmCode}
+            onChange={handleChange}
+            onMaskedChange={handleMaskedChange}
+            mask={formatNCM}
+            placeholder="0000.00.00"
+            error={getFieldError('ncmCode')}
+            help="Nomenclatura Comum do Mercosul"
+          />
+
+          <FormField
+            label="Código CFOP"
+            name="cfopCode"
+            type="masked"
+            value={formData.cfopCode}
+            onChange={handleChange}
+            onMaskedChange={handleMaskedChange}
+            mask={formatCFOP}
+            placeholder="0000"
+            error={getFieldError('cfopCode')}
+            help="Código Fiscal de Operações e Prestações"
+          />
+        </div>
+      </FormSection>
+
+            {saveError && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
 
       {/* BOTÕES DE AÇÃO */}
-      <div className="flex gap-4 pt-4 border-t">
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t bg-white/95 px-4 py-4 shadow-[0_-8px_18px_-15px_rgba(0,0,0,.25)] backdrop-blur sm:-mx-6 sm:px-6">
         <button
           type="submit"
           disabled={!isValid || saving}
-          className={`px-6 py-3 rounded font-medium transition-colors ${
+          className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors ${
             isValid 
               ? 'bg-marsala text-white hover:bg-marsala-700' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {saving ? "Salvando produto e imagens..." : "💾 Salvar Produto"}
+          {saving ? "Salvando produto e imagens..." : initialData ? "Salvar alterações" : "Cadastrar produto"}
         </button>
         
         {onCancel && (
           <button
             type="button"
             onClick={handleCancel}
-            className="bg-gray-600 text-white rounded px-6 py-3 hover:bg-gray-700 transition-colors font-medium"
+            className="rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >
-            ❌ Cancelar
+            Cancelar
           </button>
         )}
 
