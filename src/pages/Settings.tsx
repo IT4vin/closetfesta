@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import ClosetSettingsEditor from "@/components/settings/ClosetSettingsEditor";
+import CurrentUserProfileEditor from "@/components/settings/CurrentUserProfileEditor";
 import type { ClosetSettingsSection } from "@/lib/closetSettings";
 
 const sections = [
@@ -54,9 +55,7 @@ export default function Settings() {
         <Badge variant="outline">{user?.role.name ?? "Sem perfil"}</Badge>
       </div>
     </div>
-    {!canRead ? <Card><CardContent className="p-6">
-      <p role="alert">Seu perfil não possui acesso às configurações administrativas.</p>
-    </CardContent></Card> :
+    {!canRead ? <CurrentUserProfileEditor/> :
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
       <div className="lg:col-span-1">
         <Card className="sticky top-6">
@@ -112,6 +111,7 @@ export default function Settings() {
           </div></CardHeader>
           <CardContent className="p-6">
             <ClosetSettingsEditor key={activeSection} section={activeSection} onDirtyChange={setUnsaved}/>
+            {activeSection==="company" && <div className="mt-6"><CurrentUserProfileEditor/></div>}
           </CardContent>
         </Card>
       </div>

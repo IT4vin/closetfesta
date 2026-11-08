@@ -19,7 +19,7 @@ type Definition = { title: string; notice?: string; groups: Group[] };
 const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definition> = {
   company: {
     title: "Dados e funcionamento da loja",
-    notice: "As informações cadastradas ficam salvas no Supabase. A impressão e outros módulos utilizarão estes dados após a integração específica de cada fluxo.",
+    notice: "Os dados da loja são usados nos contratos emitidos, e os horários cadastrados limitam novos agendamentos. Outras telas ainda podem exigir integração específica.",
     groups: [
       { title: "Identificação", fields: [
         {key:"trading_name",title:"Nome fantasia",required:true,placeholder:"Closet Festa"},
@@ -53,7 +53,7 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
   },
   operations: {
     title: "Regras operacionais",
-    notice: "A duração, os bloqueios de data, a antecedência e o limite de atendimentos são utilizados na tela de agendamentos. Outras regras exigem validações adicionais nos fluxos de locação.",
+    notice: "Agenda usa duração, intervalo, antecedência, bloqueios e capacidade no banco. Regras de locação e lavanderia ainda precisam de integração própria.",
     groups: [
       { title: "Agenda", fields: [
         {key:"fitting_minutes",title:"Duração da prova (minutos)",type:"number",min:5,max:480},
@@ -114,7 +114,7 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
   },
   documents: {
     title: "Modelos de documentos",
-    notice: "Este cadastro guarda textos de referência; a geração e o versionamento definitivo de contratos ainda precisam ser conectados ao emissor. Documentos já emitidos não são alterados.",
+    notice: "O título e rodapé são aplicados na impressão dos contratos, com versões imutáveis no Supabase. Orientações de retirada e devolução ainda não são inseridas automaticamente no documento.",
     groups: [
       { title: "Textos configuráveis", fields: [
         {key:"contract_title",title:"Título do contrato"},
@@ -140,7 +140,7 @@ const definitions: Record<Exclude<ClosetSettingsSection, "permissions">, Definit
   },
   goals: {
     title: "Metas comerciais",
-    notice: "As metas ficam registradas no banco. A apuração automática de contratos, recebimentos, cancelamentos e comissões será integrada aos relatórios posteriormente.",
+    notice: "Metas mensais de contratos, recebimentos e ticket médio são comparadas com registros reais em Relatórios. Metas por consultora e comissões permanecem separadas.",
     groups: [
       { title: "Metas mensais", fields: [
         {key:"monthly_contracts_amount",title:"Valor total contratado (R$)",type:"number",min:0},
