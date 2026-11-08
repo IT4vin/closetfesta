@@ -83,6 +83,7 @@ BEGIN
   -- Conjunto mínimo para imprimir a minuta: recibos, notas internas,
   -- perfil do funcionário e pagamentos não fazem parte do arquivo.
   NEW.payload := jsonb_build_object(
+    'issued_at',NEW.issued_at,
     'detail',jsonb_build_object(
       'order',jsonb_build_object(
         'id',v_contract.id,
