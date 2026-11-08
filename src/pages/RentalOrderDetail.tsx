@@ -10,6 +10,7 @@ import RentalItemActions from "@/components/pdv/RentalItemActions";
 import OrderVisitTimes from "@/components/calendar/OrderVisitTimes";
 import ClientHouseCreditPanel from "@/components/clients/ClientHouseCreditPanel";
 import { getCreditUsage } from "@/lib/houseCredits";
+import { rentalOrderSummaryPalette } from "@/lib/rentalOrderSummaryPalette";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
 import { printRentalContract } from "@/lib/rentalContractPrint";
@@ -115,6 +116,8 @@ export default function RentalOrderDetail(){
     <p role="alert">Pedido não encontrado ou indisponível para este usuário.</p>
     <Button variant="outline" asChild><Link to="/pdv?tab=pedidos">Voltar aos pedidos</Link></Button>
   </CardContent></Card>;
+
+  const sidebarPalette=rentalOrderSummaryPalette(order.status);
 
   return <div className="page-transition space-y-5 pb-10">
     <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
@@ -283,31 +286,31 @@ export default function RentalOrderDetail(){
       </div>
 
       <aside className="min-w-0 space-y-4 xl:sticky xl:top-4">
-        <div className="rounded-xl bg-marsala p-5 text-white shadow-sm">
-          <p className="text-xs font-medium text-marsala-100">Pedido de aluguel</p>
+        <div className={`rounded-xl p-5 shadow-sm ${sidebarPalette.container}`}>
+          <p className={`text-xs font-medium ${sidebarPalette.muted}`}>Pedido de aluguel</p>
           <p className="my-1 break-all text-2xl font-bold">{order.order_number}</p>
-          <Badge className="my-2 border-white/30 bg-white/15 text-white hover:bg-white/15">{labelStatus(order.status)}</Badge>
+          <Badge className={`my-2 ${sidebarPalette.badge}`}>{labelStatus(order.status)}</Badge>
           <div className="mt-3 flex items-start gap-2">
-            <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-marsala-100"/>
+            <UserRound className={`mt-0.5 h-5 w-5 shrink-0 ${sidebarPalette.icon}`}/>
             <h2 className="break-words text-xl font-semibold leading-tight">{client.full_name}</h2>
           </div>
           <div className="mt-4 space-y-2 text-sm">
             {client.phone?<div className="flex flex-wrap items-center gap-2">
-              <Phone className="h-4 w-4"/><a className="underline underline-offset-2" href={contact.tel??undefined}>{client.phone}</a>
+              <Phone className={`h-4 w-4 ${sidebarPalette.icon}`}/><a className={`underline underline-offset-2 ${sidebarPalette.link}`} href={contact.tel??undefined}>{client.phone}</a>
               {contact.whatsapp&&<a href={contact.whatsapp} target="_blank" rel="noopener noreferrer"
-                className="rounded-md bg-white/15 px-2 py-1 text-xs underline underline-offset-2">WhatsApp</a>}
-            </div>:<p className="text-marsala-100">Telefone não cadastrado</p>}
-            {client.email&&<a className="flex items-start gap-2 break-all underline underline-offset-2"
-              href={`mailto:${client.email}`}><Mail className="mt-0.5 h-4 w-4 shrink-0"/>{client.email}</a>}
+                className={`rounded-md px-2 py-1 text-xs underline underline-offset-2 ${sidebarPalette.chip}`}>WhatsApp</a>}
+            </div>:<p className={sidebarPalette.muted}>Telefone não cadastrado</p>}
+            {client.email&&<a className={`flex items-start gap-2 break-all underline underline-offset-2 ${sidebarPalette.link}`}
+              href={`mailto:${client.email}`}><Mail className={`mt-0.5 h-4 w-4 shrink-0 ${sidebarPalette.icon}`}/>{client.email}</a>}
             {client.document&&<p>Documento: {client.document}</p>}
-            {address&&<p className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0"/>{address}</p>}
-            {client.notes&&<p className="rounded-lg bg-white/10 p-2 text-xs">Observações do cadastro: {client.notes}</p>}
+            {address&&<p className="flex items-start gap-2"><MapPin className={`mt-0.5 h-4 w-4 shrink-0 ${sidebarPalette.icon}`}/>{address}</p>}
+            {client.notes&&<p className={`rounded-lg p-2 text-xs ${sidebarPalette.notes}`}>Observações do cadastro: {client.notes}</p>}
             {canEditDates&&order.status!=="cancelled"&&
-              <Button size="sm" className="mt-3 border-white/50 bg-white/15 text-white hover:bg-white/25 print:hidden"
+              <Button size="sm" className={`mt-3 print:hidden ${sidebarPalette.editButton}`}
                 variant="outline" onClick={()=>openEditor("client")}>Editar contato e cadastro</Button>}
           </div>
-          <p className="mt-5 text-xs text-marsala-100">Criado em {timestamp(order.created_at)}</p>
-          {detail.attendant&&<p className="mt-1 text-xs text-marsala-100">Atendido por {detail.attendant}</p>}
+          <p className={`mt-5 text-xs ${sidebarPalette.muted}`}>Criado em {timestamp(order.created_at)}</p>
+          {detail.attendant&&<p className={`mt-1 text-xs ${sidebarPalette.muted}`}>Atendido por {detail.attendant}</p>}
         </div>
         <Card className="shadow-sm"><CardContent className="space-y-3 p-5">
           <div className="flex justify-between gap-2 text-sm"><span className="text-muted-foreground">Subtotal</span>
