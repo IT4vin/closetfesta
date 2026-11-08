@@ -54,7 +54,7 @@ describe("histórico do produto via relógio",()=>{
   });
   it("permite continuar navegando pelo histórico completo",async()=>{
     rpc.mockImplementation(async (_name:string,args:{p_offset:number})=>({
-      data:makeData(args.p_offset),error:null
+      data:makeData(args?.p_offset ?? 0),error:null
     }));
     renderHistory();
     expect(await screen.findByText("Juliana Macedo")).toBeTruthy();
