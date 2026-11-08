@@ -6,6 +6,26 @@ describe("contrato com dados reais",()=>{
   it("escapa conteúdo do cliente, impedindo HTML inserido no contrato",()=>{
     expect(escapeContractHtml("<script>alert('x')</script>")).toBe("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;");
   });
+  it("não inclui dados bancários nem saldos de pagamentos em minuta canônica",()=>{
+    const detail = {
+      order:{
+        id:"a", order_number:"ALU-000123", items:[{
+          id:"item", product:{name:"Vestido real",sku:"F-123"},
+          unit_price:450,discount:30,try_on_date:"2026-11-10",
+          pickup_date:"2026-11-15",event_date:"2026-11-16",return_date:"2026-11-18"
+        }],subtotal:450,total_discount:30,total:420,observations:null
+      },
+      customer:{full_name:"Cliente exemplo",document:null,phone:null,email:null,address:null},
+      itemProgress:[{id:"item",status:"confirmed"}],payments:null
+    } as unknown as OrderDetail;
+    const html=rentalContractHtml(detail);
+    expect(html).toContain("ALU-000123");
+    expect(html).toContain("Vestido real");
+    expect(html).toContain("R$ 420,00");
+    expect(html).toContain("saldos e estornos são consultados separadamente");
+    expect(html).not.toContain("Recebido no sistema");
+    expect(html).not.toContain("Saldo registrado");
+  });
   it("usa o número verdadeiro do contrato e não inventa CNPJ, multas ou pagamentos",()=>{
     const detail:OrderDetail={
       order:{id:"uuid",order_number:"ALU-000042",customer_id:"c",customer_name:"Cliente",
