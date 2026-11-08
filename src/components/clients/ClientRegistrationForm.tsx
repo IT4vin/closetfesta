@@ -18,6 +18,20 @@ const sections=[
 const formFieldClass="space-y-1.5";
 const selectClass="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marsala/40";
 
+const ClientFormSection=({index,children}: {index:number;children:React.ReactNode})=>{
+  const {title,description,Icon}=sections[index];
+  return <section className="overflow-hidden rounded-xl border border-border bg-card">
+    <header className="flex items-center gap-3 border-b border-marsala-100 bg-marsala-50/50 px-4 py-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-marsala-800 shadow-sm">
+        <Icon className="h-4 w-4"/>
+      </span>
+      <div><h3 className="text-sm font-semibold text-marsala-900">{title}</h3>
+      <p className="text-xs text-muted-foreground">{description}</p></div>
+    </header>
+    <div className="p-4">{children}</div>
+  </section>;
+};
+
 export default function ClientRegistrationForm({
   onSaved,onCancel,compact=false,
 }:{
@@ -52,26 +66,13 @@ export default function ClientRegistrationForm({
     }finally{setSaving(false);}
   };
   const cols=compact?"grid gap-3 sm:grid-cols-2":"grid gap-4 sm:grid-cols-2";
-  const Section=({index,children}: {index:number;children:React.ReactNode})=>{
-    const {title,description,Icon}=sections[index];
-    return <section className="overflow-hidden rounded-xl border border-border bg-card">
-      <header className="flex items-center gap-3 border-b border-marsala-100 bg-marsala-50/50 px-4 py-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-marsala-800 shadow-sm">
-          <Icon className="h-4 w-4"/>
-        </span>
-        <div><h3 className="text-sm font-semibold text-marsala-900">{title}</h3>
-        <p className="text-xs text-muted-foreground">{description}</p></div>
-      </header>
-      <div className="p-4">{children}</div>
-    </section>;
-  };
   return <form onSubmit={e=>void submit(e)} className="space-y-4">
     <div className="rounded-lg border-l-4 border-marsala-700 bg-marsala-50/50 px-4 py-3">
       <p className="text-sm font-semibold text-marsala-900">Cadastro completo de cliente</p>
       <p className="text-xs text-muted-foreground">Os campos opcionais podem ser preenchidos depois.
         As informações serão utilizadas nos contratos e atendimentos da loja.</p>
     </div>
-    <Section index={0}>
+    <ClientFormSection index={0}>
       <div className={cols}>
         <div className="sm:col-span-2">{fieldInput("full_name","Nome completo *",{
           required:true,maxLength:160,autoComplete:"name",placeholder:"Nome e sobrenome",
@@ -79,8 +80,8 @@ export default function ClientRegistrationForm({
         {fieldInput("document","CPF ou CNPJ",{inputMode:"numeric",maxLength:20,placeholder:"Somente números ou formatado"})}
         {fieldInput("birth_date","Data de nascimento",{type:"date",max:"9999-12-31"})}
       </div>
-    </Section>
-    <Section index={1}>
+    </ClientFormSection>
+    <ClientFormSection index={1}>
       <div className={cols}>
         {fieldInput("phone","Celular / WhatsApp",{type:"tel",autoComplete:"tel",placeholder:"(21) 99999-9999"})}
         {fieldInput("secondary_phone","Telefone alternativo",{type:"tel",placeholder:"(21) 99999-9999"})}
@@ -94,8 +95,8 @@ export default function ClientRegistrationForm({
           </select>
         </div>
       </div>
-    </Section>
-    <Section index={2}>
+    </ClientFormSection>
+    <ClientFormSection index={2}>
       <div className={cols}>
         {fieldInput("cep","CEP",{inputMode:"numeric",autoComplete:"postal-code",placeholder:"00000-000"})}
         <div className="hidden sm:block"/>
@@ -106,16 +107,16 @@ export default function ClientRegistrationForm({
         {fieldInput("city","Cidade",{placeholder:"Rio de Janeiro"})}
         {fieldInput("state","UF",{maxLength:2,placeholder:"RJ"})}
       </div>
-    </Section>
-    <Section index={3}>
+    </ClientFormSection>
+    <ClientFormSection index={3}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {fieldInput("bust","Busto (cm)",{inputMode:"decimal",placeholder:"Ex.: 92"})}
         {fieldInput("waist","Cintura (cm)",{inputMode:"decimal",placeholder:"Ex.: 74"})}
         {fieldInput("hips","Quadril (cm)",{inputMode:"decimal",placeholder:"Ex.: 102"})}
         {fieldInput("height","Altura (cm)",{inputMode:"decimal",placeholder:"Ex.: 165"})}
       </div>
-    </Section>
-    <Section index={4}>
+    </ClientFormSection>
+    <ClientFormSection index={4}>
       <div className={formFieldClass}>
         <Label htmlFor="new-client-notes">Observações internas</Label>
         <Textarea id="new-client-notes" rows={3} maxLength={3000}
@@ -123,7 +124,7 @@ export default function ClientRegistrationForm({
           disabled={saving} value={data.notes} onChange={e=>field("notes",e.target.value)}/>
         <p className="text-xs text-muted-foreground">{data.notes.length}/3000 caracteres</p>
       </div>
-    </Section>
+    </ClientFormSection>
     {error&&<p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
       {error}
     </p>}
