@@ -60,18 +60,11 @@ export default function PDVSale(){
   const [conflictProductId,setConflictProductId]=useState<string|null>(null);
   const [overrideApprovals,setOverrideApprovals]=useState<Record<string,CartConflictApproval>>({});
   const checkSequence=useRef(0);
-  const datesReady=datesForAvailability(orderDates);
   const cartAvailabilitySignature=JSON.stringify({
     dates:orderDates,items:cart.map(item=>[item.id,item.quantity])
   });
   const liveSignature=useRef(cartAvailabilitySignature);
   liveSignature.current=cartAvailabilitySignature;
-  const missingApproval=cart.find(item=>{
-    const check=availability[item.id];
-    return check&&!check.available&&!conflictApproved(
-      overrideApprovals[item.id],item.id,item.quantity,orderDates
-    );
-  });
 
   useEffect(()=>{
     const token=++checkSequence.current;
