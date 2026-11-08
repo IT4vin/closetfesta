@@ -7,6 +7,7 @@ import {
   Calendar, 
   Wallet, 
   LineChart, 
+  BarChart3,
   Settings, 
   ShoppingCart, 
   X 
@@ -36,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: "Financeiro", href: "/financial", icon: Wallet, preloadKey: "financial" },
     { name: "Estoque", href: "/inventory", icon: LineChart, preloadKey: "inventory" },
     { name: "PDV", href: "/pdv", icon: ShoppingCart, preloadKey: "pdv" },
+    { name: "Relatórios", href: "/reports", icon: BarChart3, preloadKey: "reports" },
     { name: "Configurações", href: "/settings", icon: Settings, preloadKey: "settings" },
   ];
 
