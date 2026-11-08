@@ -7,7 +7,7 @@ ALTER TABLE public.rental_items
   ADD CONSTRAINT rental_override_reason_check
     CHECK (
       (NOT conflict_override AND override_reason IS NULL AND override_authorized_by IS NULL)
-      OR (conflict_override AND length(btrim(override_reason)) BETWEEN 10 AND 500
+      OR (conflict_override AND COALESCE(length(btrim(override_reason)),0) BETWEEN 10 AND 500
           AND override_authorized_by IS NOT NULL)
     );
 -- Preservar exclusão estrita para reservas normais; autorizações ficam fora da constraint
@@ -42,6 +42,47 @@ CREATE POLICY "Authorized rental operators inspect conflict overrides"
     public.has_role((select auth.uid()),'manager'::public.app_role) OR
     public.has_role((select auth.uid()),'staff'::public.app_role)
   );
+
+-- Impedir que inserções convencionais ignorem as reservas excepcionais.
+-- O bloqueio transacional do produto serializa a consulta com o fechamento normal.
+CREATE OR REPLACE FUNCTION public.closet_guard_rental_item_insert()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $insert_guard$
+BEGIN
+  IF NEW.status NOT IN ('confirmed','picked_up') THEN RETURN NEW; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(NEW.product_id::text,0));
+  IF NEW.conflict_override THEN
+    IF auth.uid() IS NULL OR NEW.override_authorized_by IS DISTINCT FROM auth.uid()
+       OR NOT (public.has_role(auth.uid(),'admin'::public.app_role)
+                OR public.has_role(auth.uid(),'manager'::public.app_role)) THEN
+      RAISE EXCEPTION 'Reserva excepcional exige gerente autenticado' USING ERRCODE='42501';
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.rental_items ri
+      WHERE ri.unit_id=NEW.unit_id AND ri.status IN ('confirmed','picked_up')
+        AND daterange(ri.pickup_date,ri.return_date,'[]') &&
+            daterange(NEW.pickup_date,NEW.return_date,'[]')
+    ) THEN
+      RAISE EXCEPTION 'Não há conflito que justifique desbloqueio excepcional'
+        USING ERRCODE='22023';
+    END IF;
+  ELSIF EXISTS (
+    SELECT 1 FROM public.rental_items ri
+    WHERE ri.unit_id=NEW.unit_id AND ri.status IN ('confirmed','picked_up')
+      AND daterange(ri.pickup_date,ri.return_date,'[]') &&
+          daterange(NEW.pickup_date,NEW.return_date,'[]')
+  ) THEN
+    RAISE EXCEPTION 'Reserva convencional conflita com outro contrato'
+      USING ERRCODE='23P01';
+  END IF;
+  RETURN NEW;
+END;
+$insert_guard$;
+REVOKE EXECUTE ON FUNCTION public.closet_guard_rental_item_insert() FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS trg_closet_guard_rental_item_insert ON public.rental_items;
+CREATE TRIGGER trg_closet_guard_rental_item_insert
+  BEFORE INSERT ON public.rental_items FOR EACH ROW
+  EXECUTE FUNCTION public.closet_guard_rental_item_insert();
 
 -- Ao alterar as datas, usar todas as reservas existentes, inclusive as excepcionais.
 CREATE OR REPLACE FUNCTION public.closet_guard_rental_item_reschedule()
