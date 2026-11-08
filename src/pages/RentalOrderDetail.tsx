@@ -10,6 +10,7 @@ import RentalItemActions from "@/components/pdv/RentalItemActions";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
 import { printRentalContract } from "@/lib/rentalContractPrint";
+import ManualOrderMessages from "@/components/settings/ManualOrderMessages";
 import PermissionManager from "@/lib/permissions";
 import { useAuth } from "@/stores/authStore";
 import { contactLinks, loadRentalOrderDetail, paymentTotals, readableAddress } from "@/lib/rentalOrderDetails";
@@ -328,6 +329,7 @@ export default function RentalOrderDetail(){
             <Printer className="mr-2 h-4 w-4"/>Imprimir resumo do pedido
           </Button>
           <p className="text-xs text-muted-foreground">Alterações exigem justificativa e ficam no histórico. Emissão fiscal e boletos dependem de integração própria.</p>
+          <ManualOrderMessages detail={detail}/>
         </CardContent></Card>
       </aside>
     </div>
