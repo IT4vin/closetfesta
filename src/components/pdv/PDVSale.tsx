@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import PDVWorkspace from "./PDVWorkspace";
 import PDVPaymentModal from "./PDVPaymentModal";
 import PDVQuickCustomer from "./PDVQuickCustomer";
+import RentalAvailabilityDialog from "./RentalAvailabilityDialog";
+import { useAuth } from "@/stores/authStore";
+import { availabilityKey, checkCartProductAvailability, conflictApproved, datesForAvailability, type ProductCartAvailability, type CartConflictApproval } from "@/lib/cartAvailability";
 import {rentalPrice} from "./PDVProductGallery";
 import {calculatePDVCart} from "@/lib/pdvCalculations";
 import {
@@ -34,6 +37,8 @@ const MAX_UNITS_PER_PRODUCT=20;
 
 export default function PDVSale(){
   const {toast}=useToast();
+  const {user}=useAuth();
+  const manager=user?.role?.id==="admin"||user?.role?.id==="manager";
   const {productsList,loading:loadingProducts,error:productsError,refetch:refetchProducts}=useProducts();
   const {createOrder}=useOrders();
   const [cart,setCart]=useState<CartItem[]>([]);
@@ -49,6 +54,66 @@ export default function PDVSale(){
   const [draftBusy,setDraftBusy]=useState(false);
   const [hasDraft,setHasDraft]=useState(false);
   const checkoutRequestRef=useRef<{signature:string;key:string}|null>(null);
+  const [availability,setAvailability]=useState<Record<string,ProductCartAvailability>>({});
+  const [availabilityBusy,setAvailabilityBusy]=useState(false);
+  const [availabilityError,setAvailabilityError]=useState("");
+  const [conflictProductId,setConflictProductId]=useState<string|null>(null);
+  const [overrideApprovals,setOverrideApprovals]=useState<Record<string,CartConflictApproval>>({});
+  const checkSequence=useRef(0);
+  const cartAvailabilitySignature=JSON.stringify({
+    dates:orderDates,items:cart.map(item=>[item.id,item.quantity])
+  });
+  const liveSignature=useRef(cartAvailabilitySignature);
+  liveSignature.current=cartAvailabilitySignature;
+
+  useEffect(()=>{
+    const token=++checkSequence.current;
+    setAvailability({});
+    setAvailabilityError("");
+    if(!cart.length||!datesForAvailability(orderDates)){
+      setAvailabilityBusy(false);
+      return;
+    }
+    setAvailabilityBusy(true);
+    void Promise.all(cart.map(item=>checkCartProductAvailability(
+      item.id,item.quantity,orderDates,
+    ))).then(results=>{
+      if(token!==checkSequence.current)return;
+      setAvailability(Object.fromEntries(results.map(result=>[result.product_id,result])));
+      const first=cart.find(item=>{
+        const result=results.find(entry=>entry.product_id===item.id);
+        return result&&!result.available&&!conflictApproved(
+          overrideApprovals[item.id],item.id,item.quantity,orderDates
+        );
+      });
+      if(first)setConflictProductId(first.id);
+    }).catch(cause=>{
+      if(token!==checkSequence.current)return;
+      setAvailabilityError(cause instanceof Error?cause.message:"Falha ao consultar disponibilidade");
+    }).finally(()=>{
+      if(token===checkSequence.current)setAvailabilityBusy(false);
+    });
+    return()=>{checkSequence.current++;};
+  },[cartAvailabilitySignature]);
+
+  const approveConflict=(productId:string,reason:string)=>{
+    const item=cart.find(row=>row.id===productId);
+    const check=availability[productId];
+    if(!manager||!item||!check||check.available||reason.length<10||reason.length>500){
+      toast({title:"Desbloqueio não autorizado",variant:"destructive"});return;
+    }
+    if(check.physical_available_units<item.quantity){
+      toast({title:"Sem exemplares físicos suficientes",variant:"destructive"});return;
+    }
+    if(!window.confirm("Autorizar reserva EXCEPCIONAL com datas sobrepostas? A retirada física ficará bloqueada se o mesmo traje estiver com outra cliente. Esta autorização e justificativa serão auditadas."))return;
+    setOverrideApprovals(previous=>({...previous,[productId]:{
+      key:availabilityKey(item.id,item.quantity,orderDates),reason
+    }}));
+    checkoutRequestRef.current=null;
+    setConflictProductId(null);
+    toast({title:"Desbloqueio autorizado no carrinho",
+      description:"A autorização gerencial será registrada no Supabase ao criar o contrato."});
+  };
 
   const finance=useMemo(()=>
     calculatePDVCart(cart,globalDiscount,globalDiscountType),
@@ -130,14 +195,17 @@ export default function PDVSale(){
     if(!cart.length&&!selectedCustomer&&!observations)return;
     if(!window.confirm("Cancelar este atendimento sem gravar contrato? O rascunho salvo, se existir, continuará disponível."))return;
     setCart([]);setSelectedCustomer(null);setOrderDates(emptyDates());
+    setOverrideApprovals({});setConflictProductId(null);
     setObservations("");setGlobalDiscount(0);setGlobalDiscountType("percentage");
     setSearchValue("");checkoutRequestRef.current=null;
     toast({title:"Atendimento cancelado",description:"Nenhum contrato foi criado."});
   },[cart.length,selectedCustomer,observations,toast]);
 
-  const beginCheckout=useCallback(()=>{
-    if(isProcessingOrder||cart.length===0){
-      toast({title:"Carrinho vazio",description:"Adicione ao menos um traje.",variant:"destructive"});return;
+  const beginCheckout=useCallback(async()=>{
+    if(isProcessingOrder||availabilityBusy||cart.length===0){
+      toast({title:availabilityBusy?"Consultando datas":"Carrinho vazio",
+        description:availabilityBusy?"Aguarde a consulta terminar.":"Adicione ao menos um traje.",
+        variant:"destructive"});return;
     }
     if(!selectedCustomer?.id){
       toast({title:"Cliente obrigatório",description:"Selecione ou cadastre um cliente para gerar o contrato.",variant:"destructive"});
@@ -147,8 +215,39 @@ export default function PDVSale(){
     if(!finance.valid||!Number.isFinite(finance.total)||finance.total<=0){
       toast({title:"Total inválido",description:"Confira os preços e descontos antes de continuar.",variant:"destructive"});return;
     }
-    setPaymentModalOpen(true);
-  },[isProcessingOrder,cart.length,selectedCustomer,validateDates,finance.total,toast]);
+    // Revalidar antes de abrir o pagamento: outro operador pode ter locado o traje
+    // desde a primeira seleção do carrinho.
+    const expected=liveSignature.current;
+    const token=++checkSequence.current;
+    setAvailabilityBusy(true);setAvailabilityError("");
+    try{
+      const results=await Promise.all(cart.map(item=>checkCartProductAvailability(
+        item.id,item.quantity,orderDates,
+      )));
+      if(token!==checkSequence.current||expected!==liveSignature.current)return;
+      setAvailability(Object.fromEntries(results.map(result=>[result.product_id,result])));
+      const pending=cart.find(item=>{
+        const result=results.find(row=>row.product_id===item.id);
+        return result&&!result.available&&!conflictApproved(
+          overrideApprovals[item.id],item.id,item.quantity,orderDates
+        );
+      });
+      if(pending){
+        setConflictProductId(pending.id);
+        toast({title:"Produto indisponível para a data",
+          description:"Consulte o histórico e remova ou solicite o desbloqueio.",variant:"destructive"});
+        return;
+      }
+      setPaymentModalOpen(true);
+    }catch(cause){
+      if(token!==checkSequence.current)return;
+      const message=cause instanceof Error?cause.message:"Não foi possível consultar disponibilidade";
+      setAvailabilityError(message);
+      toast({title:"Consulta de estoque não confirmada",description:message,variant:"destructive"});
+    }finally{
+      if(token===checkSequence.current)setAvailabilityBusy(false);
+    }
+  },[isProcessingOrder,availabilityBusy,cart,selectedCustomer,validateDates,finance.valid,finance.total,toast,orderDates,overrideApprovals]);
 
   const handlePaymentComplete=async(paymentDetails:any)=>{
     if(!selectedCustomer?.id||!cart.length){
@@ -171,6 +270,12 @@ export default function PDVSale(){
           unit_price:rentalPrice(item),
           discount:item.discount,
           item_type:"rental" as const,
+          override_conflict:conflictApproved(
+            overrideApprovals[item.id],item.id,item.quantity,orderDates
+          ),
+          override_reason:conflictApproved(
+            overrideApprovals[item.id],item.id,item.quantity,orderDates
+          )?overrideApprovals[item.id].reason:null,
           try_on_date:orderDates.tryOnDate,
           pickup_date:orderDates.pickupDate,
           event_date:orderDates.eventDate,
@@ -196,6 +301,7 @@ export default function PDVSale(){
       window.dispatchEvent(new Event("closetfesta:order-created"));
       window.dispatchEvent(new Event("closetfesta:open-orders"));
       setCart([]);setOrderDates(emptyDates());setObservations("");
+      setOverrideApprovals({});setConflictProductId(null);
       setGlobalDiscount(0);setGlobalDiscountType("percentage");
       setSelectedCustomer(null);setPaymentModalOpen(false);setSearchValue("");
       checkoutRequestRef.current=null;
@@ -256,6 +362,7 @@ export default function PDVSale(){
         if(data)nextCustomer={id:data.id,name:data.full_name,document:data.document??"",phone:data.phone??undefined};
       }
       setCart(kept);setSelectedCustomer(nextCustomer);
+      setOverrideApprovals({});setConflictProductId(null);
       setOrderDates(draft.payload.dates);setObservations(draft.payload.observations);
       setGlobalDiscount(draft.payload.global_discount);setGlobalDiscountType(draft.payload.global_discount_type);
       checkoutRequestRef.current=null;
@@ -285,6 +392,9 @@ export default function PDVSale(){
         setGlobalDiscountType(value);checkoutRequestRef.current=null;
       }}
       total={finance.total} totalDiscount={finance.totalDiscount} processing={isProcessingOrder}
+      availability={availability} availabilityBusy={availabilityBusy}
+      availabilityError={availabilityError} overrides={overrideApprovals}
+      onReviewConflict={id=>setConflictProductId(id)}
       onDatesChange={dates=>{setOrderDates(dates);checkoutRequestRef.current=null;}}
       onAdd={(product,quantity)=>addProduct(product,quantity)}
       onQuantityChange={updateQuantity} onItemDiscount={updateItemDiscount}
@@ -293,6 +403,14 @@ export default function PDVSale(){
       onContinue={beginCheckout} onSaveDraft={saveDraft} onLoadDraft={restoreDraft}
       onClear={clearCart} onOrders={()=>window.dispatchEvent(new Event("closetfesta:open-orders"))}
       draftBusy={draftBusy} hasDraft={hasDraft}
+    />
+    <RentalAvailabilityDialog
+      open={Boolean(conflictProductId)} item={cart.find(item=>item.id===conflictProductId)||null}
+      dates={orderDates} availability={conflictProductId?availability[conflictProductId]||null:null}
+      canOverride={manager}
+      onClose={()=>setConflictProductId(null)}
+      onRemove={id=>{removeItem(id);setConflictProductId(null);}}
+      onOverride={approveConflict}
     />
     <PDVPaymentModal isOpen={isPaymentModalOpen}
       onClose={()=>{if(!isProcessingOrder)setPaymentModalOpen(false);}}

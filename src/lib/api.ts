@@ -67,6 +67,7 @@ export interface OrderItem {
   event_date?: string;
   return_date?: string;
   actual_return_date?: string;
+  conflict_override?: boolean;
   late_fee?: number;
   status?: 'pending' | 'picked_up' | 'returned' | 'overdue';
 }

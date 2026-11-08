@@ -160,6 +160,7 @@ export default function RentalOrderDetail(){
                     {item.product?.name??"Traje arquivado"}
                   </p>
                   {rawStatus==="cancelled"&&<p className="text-xs text-red-700">Removido da reserva; preservado apenas no histórico</p>}
+                  {item.conflict_override&&<p role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-950">Reserva com conflito de datas desbloqueada pela gerência. Verifique o outro contrato e a disponibilidade física antes da retirada.</p>}
                   <p className="text-xs text-muted-foreground">Código: {item.product?.sku??"Não informado"} • Exemplar contratado: 1</p>
                   <Badge variant={rawStatus==="cancelled"?"destructive":"outline"}>{labelStatus(rawStatus)}</Badge>
                   <div className="grid gap-1 text-xs text-slate-600 sm:grid-cols-2">

@@ -3,6 +3,7 @@ import React from "react";
 import {describe,it,expect,vi,afterEach} from "vitest";
 import {render,screen,fireEvent,cleanup} from "@testing-library/react";
 import type {Product} from "@/lib/api";
+vi.mock("@/integrations/supabase/client",()=>({supabase:{rpc:vi.fn()}}));
 vi.mock("@/stores/authStore",()=>({
   useAuth:()=>({user:{id:"operator-1",full_name:"Consultora da loja",role:{id:"staff"}}}),
 }));
@@ -28,7 +29,10 @@ function options():PDVWorkspaceProps {
     customer:null,searchValue:"",setSearchValue:vi.fn(),observations:"",
     setObservations:vi.fn(),globalDiscount:0,setGlobalDiscount:vi.fn(),
     globalDiscountType:"percentage",setGlobalDiscountType:vi.fn(),total:0,
-    totalDiscount:0,processing:false,onDatesChange:vi.fn(),onAdd:vi.fn(),
+    totalDiscount:0,processing:false,
+    availability:{},availabilityBusy:false,availabilityError:"",
+    overrides:{},onReviewConflict:vi.fn(),
+    onDatesChange:vi.fn(),onAdd:vi.fn(),
     onQuantityChange:vi.fn(),onItemDiscount:vi.fn(),onRemove:vi.fn(),
     onCustomer:vi.fn(),onRefresh:vi.fn(),onContinue:vi.fn(),
     onSaveDraft:vi.fn(async()=>{}),onLoadDraft:vi.fn(async()=>{}),

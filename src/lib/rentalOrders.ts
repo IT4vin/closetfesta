@@ -27,6 +27,7 @@ function mapRentalRow(row: any): Order {
       event_date: item.event_date,
       return_date: item.return_date,
       actual_return_date: item.actual_return_at ?? undefined,
+      conflict_override: item.conflict_override === true,
       status: item.status === "returned" ? "returned" : item.status === "picked_up" ? "picked_up" : "pending",
     };
   });
