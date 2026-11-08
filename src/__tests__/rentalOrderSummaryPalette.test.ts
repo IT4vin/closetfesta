@@ -10,10 +10,10 @@ describe("cores da ficha lateral do pedido por status",()=>{
       expect(palette.badge).toContain("text-[#714B3A]");
     }
   );
-  it("usa vermelho claro em contrato cancelado",()=>{
+  it("usa off-white em contrato cancelado, mantendo alertas vermelhos",()=>{
     const palette=rentalOrderSummaryPalette("cancelled");
-    expect(palette.container).toContain("bg-red-50");
-    expect(palette.badge).toContain("bg-red-100");
+    expect(palette.container).toContain("bg-[#FAF7F2]");
+    expect(palette.badge).toContain("bg-[#FAF7F2]");
     expect(palette.muted).toContain("text-red-800");
     expect(palette.editButton).toContain("text-red-900");
   });
@@ -26,7 +26,7 @@ describe("cores da ficha lateral do pedido por status",()=>{
     }
   );
   it("normaliza estados e nunca considera a retirada como conclusão",()=>{
-    expect(rentalOrderSummaryPalette(" CANCELLED ").container).toContain("bg-red-50");
+    expect(rentalOrderSummaryPalette(" CANCELLED ").container).toContain("bg-[#FAF7F2]");
     expect(rentalOrderSummaryPalette("COMPLETED").container).toContain("bg-emerald-50");
     expect(rentalOrderSummaryPalette("picked_up").container).toContain("bg-[#FAF2E7]");
   });
