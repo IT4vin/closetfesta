@@ -12,7 +12,7 @@ import {
   ShoppingCart,
   Clock3,
   CalendarClock,
-  ClipboardClock,
+  ClipboardList,
   X 
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       { name:"Meu Banco de Horas",href:"/my-hours",icon:CalendarClock,preloadKey:"my-hours" },
     ]:[]),
     ...(canManageClock?[
-      { name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardClock,preloadKey:"clock-admin" },
+      { name:"Controle de Ponto",href:"/clock-admin",icon:ClipboardList,preloadKey:"clock-admin" },
     ]:[]),
     { name: "Configurações", href: "/settings", icon: Settings, preloadKey: "settings" },
   ];
