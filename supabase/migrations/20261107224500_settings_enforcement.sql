@@ -73,6 +73,7 @@ DECLARE
  limit_txt text;
  installments_txt text;
  tier integer;
+ matched_tier boolean := false;
 BEGIN
  SELECT s.value INTO cfg FROM public.settings s
  WHERE s.key='closet_festa.config.v1.payments';
@@ -95,13 +96,14 @@ BEGIN
    FOR tier IN 1..4 LOOP
      limit_txt := cfg->>('tier_'||tier||'_max');
      installments_txt := cfg->>('tier_'||tier||'_installments');
-     IF limit_txt ~ '^[0-9]+(\\.[0-9]+)?$'
+     IF limit_txt ~ '^[0-9]+([.][0-9]+)?$'
        AND installments_txt ~ '^[0-9]+$' AND NEW.amount <= limit_txt::numeric THEN
        max_allowed := LEAST(max_global,GREATEST(1,installments_txt::integer));
+       matched_tier := true;
        EXIT;
      END IF;
    END LOOP;
-   IF tier=5 THEN
+   IF NOT matched_tier THEN
      installments_txt := cfg->>'tier_5_installments';
      IF installments_txt ~ '^[0-9]+$' THEN
        max_allowed := LEAST(max_global,GREATEST(1,installments_txt::integer));
@@ -111,7 +113,7 @@ BEGIN
      RAISE EXCEPTION 'Número de parcelas excede as configurações da loja' USING ERRCODE='22023';
    END IF;
    value_txt := cfg->>'minimum_installment';
-   IF value_txt ~ '^[0-9]+(\\.[0-9]+)?$' THEN min_installment := value_txt::numeric; END IF;
+   IF value_txt ~ '^[0-9]+([.][0-9]+)?$' THEN min_installment := value_txt::numeric; END IF;
    IF NEW.amount/NEW.installments < min_installment - 0.005 THEN
      RAISE EXCEPTION 'Parcela menor que o valor mínimo configurado' USING ERRCODE='22023';
    END IF;
