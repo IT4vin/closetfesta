@@ -48,6 +48,7 @@ export interface LiveClosetData {
 }
 export interface LiveFinanceData {
   payments: LivePayment[]; transactions: LiveTransaction[];
+  creditApplications?: Array<{source_contract_id:string|null;delta:number;kind:string}>;
   registers: LiveCashRegister[]; movements: LiveCashMovement[];
 }
 
@@ -85,13 +86,16 @@ export async function loadLiveClosetData(): Promise<LiveClosetData> {
 }
 
 export async function loadLiveFinanceData(): Promise<LiveFinanceData> {
-  const [payments, transactions, registers, movements] = await Promise.all([
+  const [payments, transactions, registers, movements, creditEntries] = await Promise.all([
     fetchAllRows<LivePayment>("rental_payments", "id,contract_id,amount,method,status,recorded_at"),
     fetchAllRows<LiveTransaction>("financial_transactions", "id,type,category,description,amount,paid_at,due_date,status,created_at"),
     fetchAllRows<LiveCashRegister>("cash_registers", "id,opened_by,status,opening_amount,closing_amount,expected_amount,difference,opened_at"),
     fetchAllRows<LiveCashMovement>("cash_movements", "id,cash_register_id,type,amount,created_at,reference_id"),
+    fetchAllRows<{source_contract_id:string|null;delta:number;kind:string}>(
+      "client_credit_entries","source_contract_id,delta,kind"),
   ]);
-  return { payments, transactions, registers, movements };
+  return { payments, transactions, registers, movements,
+    creditApplications:creditEntries.filter(row=>row.kind==="redemption") };
 }
 
 export function useLiveClosetData() {

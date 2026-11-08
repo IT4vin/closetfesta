@@ -45,6 +45,13 @@ describe("painel operacional e relatórios sem valores fantasma",()=>{
     expect(receivableBalance(data,finance)).toBe(100);
     expect(payableBalance(finance)).toBe(50);
   });
+  it("abate crédito de conta a receber sem contá-lo como recebimento novo",()=>{
+    const withCredit={...finance,creditApplications:[{
+      source_contract_id:"r1",delta:-40,kind:"redemption",
+    }]};
+    expect(receivableBalance(data,withCredit)).toBe(60);
+    expect(periodResults(data,withCredit,"day",day).received).toBe(100);
+  });
   it("não contabiliza contrato cancelado ou pagamento estornado",()=>{
     const changed={...data,contracts:data.contracts.map(c=>({...c,status:"cancelled"}))};
     const reversed={...finance,payments:finance.payments.map(p=>({...p,status:"reversed"}))};

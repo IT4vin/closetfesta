@@ -84,6 +84,13 @@ export function receivableBalance(data: LiveClosetData, finance: LiveFinanceData
     if (payment.status === "reversed") continue;
     paid.set(payment.contract_id, (paid.get(payment.contract_id) ?? 0) + Number(payment.amount));
   }
+  // Crédito usado quita parte do contrato sem criar recebimento financeiro novo.
+  for (const entry of finance.creditApplications??[]) {
+    if (entry.source_contract_id && entry.kind==="redemption") {
+      paid.set(entry.source_contract_id,(paid.get(entry.source_contract_id)??0)
+        -Number(entry.delta));
+    }
+  }
   const pendingContracts = data.contracts.filter(c => c.status !== "cancelled")
     .reduce((sum,c) => sum + Math.max(0, Number(c.total) - (paid.get(c.id) ?? 0)), 0);
   const manualIncome = finance.transactions.filter(t => t.type === "income" && !t.paid_at)

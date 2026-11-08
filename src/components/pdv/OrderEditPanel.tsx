@@ -5,6 +5,7 @@ import { Edit3, Plus, ArrowRightLeft, BadgePercent, Trash2, CalendarDays,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter } from "@/components/ui/dialog";
@@ -195,12 +196,14 @@ function OrderEditPanel({detail,onChanged},ref){
       }else if(action==="reverse_payment"){
         if(!paymentId)throw new Error("Selecione um pagamento.");
         payload={payment_id:paymentId};
-      }else if(action==="cancel_contract")payload={confirmed:true};
+      }else if(action==="cancel_contract")payload={
+        confirmed:true,credit_authorized:fields.credit_authorized==="true",
+      };
 
       if(["reverse_payment","cancel_contract","remove_item"].includes(action)&&
         !window.confirm(action==="reverse_payment"?
           "O dinheiro já foi devolvido ou o estorno externo já foi realizado? Este registro ficará no histórico.":
-          action==="cancel_contract"?"Confirma o cancelamento do pedido? Pagamentos existentes impedem o cancelamento.":"Confirma retirar o traje? O histórico será preservado."))return;
+          action==="cancel_contract"?"Confirmar cancelamento? Os valores pagos que não foram estornados serão convertidos em crédito para o cliente, conforme autorização registrada.":"Confirma retirar o traje? O histórico será preservado."))return;
       const signature=JSON.stringify([order.id,action,payload,reason.trim()]);
       if(!request.current||request.current.signature!==signature)
         request.current={signature,id:crypto.randomUUID()};
@@ -211,12 +214,20 @@ function OrderEditPanel({detail,onChanged},ref){
       });
       request.current=null;
       setEditor(null);
-      toast({title:"Alteração registrada",description:"Atualizada no Supabase com histórico e justificativa."});
+      const createdCredit=action==="cancel_contract"
+        ?Number((result.result as Record<string,unknown>|undefined)?.credit_generated??0):0;
+      toast({title:action==="cancel_contract"?"Contrato cancelado":"Alteração registrada",
+        description:createdCredit>0
+          ?"Crédito de R$ "+createdCredit.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+
+           " lançado automaticamente no cadastro do cliente."
+          :"Atualizada no Supabase com histórico e justificativa."});
       try{
         await Promise.all([
           queryClient.invalidateQueries({queryKey:["closet-live-operations"]}),
           queryClient.invalidateQueries({queryKey:["closet-live-finance"]}),
           queryClient.invalidateQueries({queryKey:["rental-order-audit",order.id]}),
+          queryClient.invalidateQueries({queryKey:["house-credit-client"]}),
+          queryClient.invalidateQueries({queryKey:["house-credit-contract"]}),
           onChanged(),
         ]);
       }catch{
@@ -347,10 +358,25 @@ function OrderEditPanel({detail,onChanged},ref){
             <p className="text-sm">Lançamento: {selectedPayment?money(Number(selectedPayment.amount)):"indisponível"}</p>
           </>}
           {editor.action==="cancel_contract"&&
-            <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-              O cancelamento exige que não haja trajes retirados e que todos os pagamentos estejam regularizados.
-              O contrato será mantido no histórico.
-            </p>}
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+              <strong>Cancelar contrato e gerar crédito na casa</strong>
+              <p>O contrato será cancelado e os valores recebidos que ainda não foram estornados,
+                inclusive créditos já utilizados neste pedido, serão colocados automaticamente
+                no saldo do cliente. O registro ficará vinculado a este pedido.</p>
+              <p><strong>Recebimentos não estornados:</strong> {money((detail.payments??[])
+                .filter(payment=>payment.status!=="reversed")
+                .reduce((total,payment)=>total+Number(payment.amount),0))}
+              </p>
+              <p className="text-xs">O valor definitivo é calculado pelo banco. A conversão não substitui
+                reembolso ou estorno quando o consumidor tiver esse direito.
+                Para reembolso, utilize o fluxo de estorno antes de cancelar.</p>
+              <label className="flex items-start gap-2">
+                <Checkbox checked={fields.credit_authorized==="true"}
+                  onCheckedChange={v=>field("credit_authorized",v===true?"true":"false")}/>
+                Confirmo que o cliente concordou em manter os valores como crédito na loja,
+                respeitados os direitos de reembolso aplicáveis.
+              </label>
+            </div>}
           {editor.action==="remove_item"&&<p className="text-sm text-muted-foreground">
             O traje será retirado da reserva, mas permanecerá no histórico. O total do contrato será recalculado.
           </p>}
@@ -362,7 +388,8 @@ function OrderEditPanel({detail,onChanged},ref){
           {error&&<p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={close} disabled={busy}>Voltar</Button>
-            <Button disabled={busy||((editor.action==="add_item"||editor.action==="replace_item")&&!fields.product_id)}
+            <Button disabled={busy||((editor.action==="add_item"||editor.action==="replace_item")&&!fields.product_id)
+              ||(editor.action==="cancel_contract"&&fields.credit_authorized!=="true")}
               className={["cancel_contract","remove_item","reverse_payment"].includes(editor.action)
                 ?"bg-red-700 text-white hover:bg-red-800":"bg-marsala text-white hover:bg-marsala-700"}>
               {busy?"Salvando...":"Confirmar alteração"}
