@@ -1,316 +1,245 @@
-
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Edit, 
-  Calendar, 
-  DollarSign, 
-  Tag, 
-  Scissors, 
-  Clock, 
-  Users, 
-  ShoppingBag 
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, CalendarDays, PackageCheck, Pencil, RefreshCw, Shirt } from "lucide-react";
+import { productsApi, type Product } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+import PermissionManager from "@/lib/permissions";
+import { useToast } from "@/hooks/use-toast";
 import ProductForm from "@/components/products/ProductForm";
-import RentalHistoryTable from "@/components/products/RentalHistoryTable";
-import MaintenanceHistoryTable from "@/components/products/MaintenanceHistoryTable";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-// Sample data (would come from an API in a real app)
-const products = [
-  {
-    id: 1,
-    name: "Vestido de Noiva Elegance",
-    description: "Vestido longo de cetim com bordados",
-    type: "Vestido",
-    subtype: "Noiva",
-    price: 1200,
-    rentalPrice: 300,
-    image: "https://images.unsplash.com/photo-1594552072238-5b1076134e85?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    status: "available",
-    size: "M",
-    color: "Branco",
-    sku: "VEST-001",
-    dateAdded: "2023-10-12",
-    material: "Cetim e renda",
-    cleaningInstructions: "Lavagem a seco apenas",
-    notes: "Bordado feito à mão",
-    location: "Prateleira A3",
-    condition: "Excelente"
-  }
-];
-
-const ProductDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isRentalModalOpen, setIsRentalModalOpen] = useState(false);
-  
-  // In a real app, fetch the product by id from an API
-  const productId = parseInt(id || "0");
-  const product = products.find(p => p.id === productId);
-  
-  if (!product) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <h1 className="text-2xl font-semibold mb-4">Produto não encontrado</h1>
-        <Button onClick={() => navigate("/products")}>
-          Voltar para Produtos
-        </Button>
-      </div>
-    );
-  }
-  
-  const handleEditProduct = () => {
-    setIsEditModalOpen(true);
-  };
-  
-  const handleRentProduct = () => {
-    setIsRentalModalOpen(true);
-  };
-  
-  const handleFormSubmit = (data: any) => {
-    // In a real app, save the data to the backend
-    console.log("Updated product data:", data);
-    toast({
-      title: "Produto atualizado",
-      description: "As alterações foram salvas com sucesso."
-    });
-    setIsEditModalOpen(false);
-  };
-  
-  const handleScheduleMaintenance = () => {
-    toast({
-      title: "Manutenção agendada",
-      description: "A manutenção foi agendada com sucesso."
-    });
-  };
-  
-  return (
-    <div className="page-transition">
-      {/* Header with navigation and actions */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/products")}
-            className="h-10 w-10"
-          >
-            <ArrowLeft size={18} />
-          </Button>
-          
-          <div>
-            <h1 className="text-2xl font-semibold">{product.name}</h1>
-            <p className="text-neutral-500">SKU: {product.sku}</p>
-          </div>
-        </div>
-        
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleScheduleMaintenance}
-            className="border-marsala text-marsala hover:bg-marsala/10"
-          >
-            <Scissors size={18} className="mr-2" />
-            <span>Agendar Manutenção</span>
-          </Button>
-          
-          <Button
-            variant="outline" 
-            onClick={handleEditProduct}
-          >
-            <Edit size={18} className="mr-2" />
-            <span>Editar</span>
-          </Button>
-          
-          <Button 
-            onClick={handleRentProduct}
-            className="bg-marsala hover:bg-marsala-700"
-          >
-            <Calendar size={18} className="mr-2" />
-            <span>Alugar</span>
-          </Button>
-        </div>
-      </div>
-      
-      {/* Product content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left column - Image */}
-        <div className="lg:col-span-1">
-          <div className="premium-card p-0 overflow-hidden">
-            <img 
-              src={product.image} 
-              alt={product.name} 
-              className="w-full h-auto object-cover aspect-[3/4]"
-            />
-            
-            <div className="p-5">
-              <div className="flex justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">Preço</h3>
-                  <p className="text-2xl font-bold text-marsala">
-                    R$ {product.rentalPrice.toFixed(2)}
-                    <span className="text-sm text-neutral-500 font-normal">/diária</span>
-                  </p>
-                </div>
-                
-                <div className="text-right">
-                  <h3 className="font-semibold text-lg">Status</h3>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    product.status === 'available' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {product.status === 'available' ? 'Disponível' : 'Alugado'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="border border-neutral-200 rounded-md p-3">
-                  <p className="text-sm text-neutral-500">Tamanho</p>
-                  <p className="font-medium">{product.size}</p>
-                </div>
-                
-                <div className="border border-neutral-200 rounded-md p-3">
-                  <p className="text-sm text-neutral-500">Cor</p>
-                  <p className="font-medium">{product.color}</p>
-                </div>
-                
-                <div className="border border-neutral-200 rounded-md p-3">
-                  <p className="text-sm text-neutral-500">Categoria</p>
-                  <p className="font-medium">{product.type}</p>
-                </div>
-                
-                <div className="border border-neutral-200 rounded-md p-3">
-                  <p className="text-sm text-neutral-500">Subcategoria</p>
-                  <p className="font-medium">{product.subtype}</p>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <Button 
-                  className="w-full bg-marsala hover:bg-marsala-700"
-                  onClick={handleRentProduct}
-                >
-                  <Calendar size={18} className="mr-2" />
-                  <span>Alugar Agora</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Right column - Details and History tabs */}
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="details" className="premium-card">
-            <TabsList className="mb-6 bg-neutral-100">
-              <TabsTrigger value="details">Detalhes</TabsTrigger>
-              <TabsTrigger value="history">Histórico de Aluguéis</TabsTrigger>
-              <TabsTrigger value="maintenance">Manutenção</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="details" className="p-2">
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Tag size={18} className="text-neutral-400" />
-                    <h3 className="font-medium">Tipo de Produto</h3>
-                  </div>
-                  <p className="text-neutral-700 pl-7">{product.type} - {product.subtype}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <DollarSign size={18} className="text-neutral-400" />
-                    <h3 className="font-medium">Preço de Compra</h3>
-                  </div>
-                  <p className="text-neutral-700 pl-7">R$ {product.price.toFixed(2)}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Clock size={18} className="text-neutral-400" />
-                    <h3 className="font-medium">Data de Aquisição</h3>
-                  </div>
-                  <p className="text-neutral-700 pl-7">{product.dateAdded}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag size={18} className="text-neutral-400" />
-                    <h3 className="font-medium">Localização no Estoque</h3>
-                  </div>
-                  <p className="text-neutral-700 pl-7">{product.location}</p>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Descrição</h3>
-                <p className="text-neutral-700">{product.description}</p>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Material</h3>
-                <p className="text-neutral-700">{product.material}</p>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Instruções de Limpeza</h3>
-                <p className="text-neutral-700">{product.cleaningInstructions}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-2">Observações</h3>
-                <p className="text-neutral-700">{product.notes}</p>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="history" className="p-2">
-              <RentalHistoryTable productId={product.id} />
-            </TabsContent>
-            
-            <TabsContent value="maintenance" className="p-2">
-              <MaintenanceHistoryTable productId={product.id} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-      
-      {/* Edit Product Modal */}
-      <Sheet open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <SheetContent side="right" className="sm:max-w-[900px] w-[90vw] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Editar Produto</SheetTitle>
-          </SheetHeader>
-          <ProductForm 
-            initialData={product} 
-            onSubmit={handleFormSubmit} 
-            onCancel={() => setIsEditModalOpen(false)} 
-          />
-        </SheetContent>
-      </Sheet>
-      
-      {/* Rental Modal */}
-      <Sheet open={isRentalModalOpen} onOpenChange={setIsRentalModalOpen}>
-        <SheetContent side="right" className="sm:max-w-[600px] w-[90vw] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Novo Aluguel</SheetTitle>
-          </SheetHeader>
-          <div className="mt-6">
-            {/* We'll use the existing NovoLancamentoForm component */}
-            <p className="mb-4">Produto selecionado: <strong>{product.name}</strong></p>
-            {/* In a real implementation, you would pre-fill the form with the selected product */}
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
+type PhysicalUnit = { id: string; unit_number: number; status: string };
+type RentalLine = {
+  id: string; contract_id: string; unit_id: string;
+  pickup_date: string; event_date: string; return_date: string;
+  actual_return_at: string | null; unit_price: number; discount: number; status: string;
 };
+type RentalContract = { id: string; contract_number: number; client_id: string };
+type ClientName = { id: string; full_name: string };
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const brl = (amount: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amount);
+const date = (value: string) => value ? value.split("T")[0].split("-").reverse().join("/") : "—";
 
-export default ProductDetail;
+export default function ProductDetail() {
+  const { id } = useParams();
+  const { toast } = useToast();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [units, setUnits] = useState<PhysicalUnit[]>([]);
+  const [rentals, setRentals] = useState<RentalLine[]>([]);
+  const [contracts, setContracts] = useState<Record<string, RentalContract>>({});
+  const [clients, setClients] = useState<Record<string, ClientName>>({});
+  const [loading, setLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  const [edit, setEdit] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const canEdit = PermissionManager.hasPermission("products", "update");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setLoadError(""); setHistoryError("");
+    setProduct(null); setUnits([]); setRentals([]); setContracts({}); setClients({});
+    if (!id || !uuid.test(id)) {
+      setLoadError("Código de produto inválido."); setLoading(false);
+      return () => { active = false; };
+    }
+    void (async () => {
+      try {
+        const result = await productsApi.findById(id);
+        if (!result.success || !result.data) throw new Error("Produto não encontrado.");
+        if (!active) return;
+        setProduct(result.data);
+        try {
+          const db = supabase as any;
+          const [unitResult, rentResult] = await Promise.all([
+            db.from("product_units").select("id,unit_number,status").eq("product_id", id)
+              .order("unit_number"),
+            db.from("rental_items")
+              .select("id,contract_id,unit_id,pickup_date,event_date,return_date,actual_return_at,unit_price,discount,status")
+              .eq("product_id", id).order("created_at", { ascending: false }).limit(100),
+          ]);
+          if (unitResult.error) throw new Error(unitResult.error.message);
+          if (rentResult.error) throw new Error(rentResult.error.message);
+          if (!active) return;
+          setUnits((unitResult.data || []) as PhysicalUnit[]);
+          const lines = (rentResult.data || []) as RentalLine[];
+          setRentals(lines);
+          if (lines.length) {
+            const ids = Array.from(new Set(lines.map((line) => line.contract_id)));
+            const contractResult = await db.from("rental_contracts")
+              .select("id,contract_number,client_id").in("id", ids);
+            if (contractResult.error) throw new Error(contractResult.error.message);
+            if (!active) return;
+            const contractsFound = (contractResult.data || []) as RentalContract[];
+            setContracts(Object.fromEntries(contractsFound.map((row) => [row.id, row])));
+            if (contractsFound.length) {
+              const clientIds = Array.from(new Set(contractsFound.map((row) => row.client_id)));
+              const clientResult = await db.from("clients").select("id,full_name").in("id", clientIds);
+              if (clientResult.error) throw new Error(clientResult.error.message);
+              if (active) setClients(Object.fromEntries(
+                ((clientResult.data || []) as ClientName[]).map((row) => [row.id, row])
+              ));
+            }
+          }
+        } catch (cause) {
+          if (active) setHistoryError(cause instanceof Error ? cause.message : "Erro ao consultar o histórico.");
+        }
+      } catch (cause) {
+        if (active) setLoadError(cause instanceof Error ? cause.message : "Não foi possível carregar o traje.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [id, refresh]);
+
+  const submitProduct = async (data: any) => {
+    if (!product || !canEdit) throw new Error("Sem permissão para alterar o cadastro.");
+    setSaveError("");
+    try {
+      const rentalPrice = Number(data.rentalPrice ?? product.rental_price ?? product.price);
+      if (!Number.isFinite(rentalPrice) || rentalPrice < 0) throw new Error("Valor de locação inválido.");
+      const next = await productsApi.update(product.id, {
+        name: String(data.name ?? "").trim(),
+        description: String(data.description ?? "").trim(),
+        sku: String(data.fullCode ?? product.sku ?? "").trim(),
+        quantity: Number(data.quantity ?? product.quantity),
+        category_id: product.category_id,
+        price: rentalPrice, rental_price: rentalPrice,
+        cost: Number(data.cost ?? 0),
+        sizes: data.size ? [data.size] : product.sizes,
+        type: data.productType || product.type || "",
+        color: data.color || product.color || "",
+      });
+      if (!next.success || !next.data?.id) throw new Error("O Supabase não confirmou a edição.");
+      const files: File[] = data.imageFiles ?? [];
+      if (files.length) {
+        const images = await productsApi.uploadImages(product.id, files);
+        if (!images.success) throw new Error("Produto salvo, mas houve erro ao enviar as fotos.");
+      }
+      toast({ title: "Produto atualizado", description: "Cadastro salvo no Supabase." });
+      setEdit(false);
+      setRefresh((current) => current + 1);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Não foi possível salvar o produto.";
+      setSaveError(message);
+      throw new Error(message);
+    }
+  };
+
+  if (loading) return <main className="p-6 text-sm text-muted-foreground" role="status">Consultando o produto real...</main>;
+  if (loadError || !product) return <main className="space-y-4 p-6">
+    <p role="alert" className="text-red-700">{loadError || "Produto não encontrado."}</p>
+    <Button variant="outline" asChild><Link to="/products">Voltar aos produtos</Link></Button>
+    <Button variant="outline" onClick={() => setRefresh((current) => current + 1)}>Tentar novamente</Button>
+  </main>;
+
+  const image = product.images?.[0]?.url || product.image;
+  const productRentalPrice = Number(product.rental_price ?? product.rentalPrice ?? product.price);
+  const activeRows = rentals.filter((line) => line.status === "confirmed" || line.status === "picked_up");
+  const status = {available:"Livre",reserved:"Reservado",rented:"Alugado",maintenance:"Em manutenção"};
+  const statusText = (value: string) => status[value as keyof typeof status] || value;
+  return <main className="page-transition space-y-5">
+    <header className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <Button size="sm" variant="ghost" asChild><Link to="/products">
+          <ArrowLeft className="mr-2 h-4 w-4" />Produtos
+        </Link></Button>
+        <h1 className="mt-2 text-3xl font-semibold">{product.name}</h1>
+        <p className="text-sm text-muted-foreground">Código: {product.sku || "Não informado"}</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => setRefresh((current) => current + 1)}>
+          <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+        </Button>
+        {canEdit && <Button onClick={() => { setSaveError(""); setEdit(true); }}
+          className="bg-marsala hover:bg-marsala-700"><Pencil className="mr-2 h-4 w-4" />Editar</Button>}
+        <Button asChild variant="outline"><Link to="/pdv">Abrir PDV para locação</Link></Button>
+      </div>
+    </header>
+    <div className="grid gap-4 lg:grid-cols-3">
+      <Card className="lg:col-span-1"><CardContent className="p-5">
+        {image ? <img className="h-72 w-full rounded-lg object-contain" src={image} alt={product.name} />
+          : <div className="flex h-72 items-center justify-center rounded-lg bg-muted"><Shirt className="h-16 w-16 text-muted-foreground" /></div>}
+      </CardContent></Card>
+      <Card className="lg:col-span-2"><CardHeader><CardTitle className="text-base">Ficha do produto</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+          <div><p className="text-xs text-muted-foreground">Valor de aluguel</p>
+            <strong className="text-xl">{brl(productRentalPrice)}</strong></div>
+          <div><p className="text-xs text-muted-foreground">Quantidade cadastrada</p>
+            <strong className="text-xl">{product.quantity}</strong></div>
+          <div><p className="text-xs text-muted-foreground">Tipo</p><strong>{product.type || "Não informado"}</strong></div>
+          <div><p className="text-xs text-muted-foreground">Tamanhos</p><strong>{product.sizes?.join(", ") || "Não informado"}</strong></div>
+          <div><p className="text-xs text-muted-foreground">Cor</p><strong>{product.color || "Não informada"}</strong></div>
+          <div><p className="text-xs text-muted-foreground">Status cadastrado</p><strong>{statusText(product.status)}</strong></div>
+          <div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Descrição</p>
+            <p className="whitespace-pre-wrap">{product.description || "Sem descrição."}</p></div>
+        </CardContent></Card>
+    </div>
+    {historyError && <p role="alert" className="rounded-lg border border-red-200 p-3 text-sm text-red-700">
+      Não foi possível carregar todas as informações de histórico: {historyError}
+    </p>}
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base">
+        <PackageCheck className="h-4 w-4" />Exemplares físicos ({units.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {units.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma unidade física associada ao produto.</p>}
+          {units.map((unit) => <div className="flex justify-between gap-2 rounded-md border p-3 text-sm" key={unit.id}>
+            <strong>Exemplar {unit.unit_number}</strong><span>{statusText(unit.status)}</span>
+          </div>)}
+          <p className="text-xs text-muted-foreground">
+            Situação cadastral dos exemplares. Consulte as datas no PDV antes de confirmar disponibilidade ou uma manutenção.
+          </p>
+        </CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base">
+        <CalendarDays className="h-4 w-4" />Histórico de locações ({rentals.length})</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {rentals.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma locação registrada para este traje.</p>}
+          {rentals.map((line) => {
+            const order = contracts[line.contract_id];
+            const name = order ? clients[order.client_id]?.full_name : null;
+            return <Link to={"/pdv/pedidos/" + line.contract_id} key={line.id}
+              className="block rounded-md border p-3 text-sm hover:border-marsala-300">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <strong>{order ? "Contrato " + order.contract_number : "Contrato vinculado"}</strong>
+                <span>{brl(Number(line.unit_price) - Number(line.discount))}</span>
+              </div>
+              {name && <p className="text-muted-foreground">{name}</p>}
+              <p className="mt-1 text-xs text-muted-foreground">
+                Retirada: {date(line.pickup_date)} · Evento: {date(line.event_date)} · Devolução: {date(line.return_date)}
+              </p>
+              <p className="mt-1 text-xs">{statusText(line.status)}
+                {line.actual_return_at ? " · Devolvido em " + date(line.actual_return_at) : ""}
+              </p>
+            </Link>;
+          })}
+          <p className="text-xs text-muted-foreground">Até 100 registros recentes. Locação não implica autorização automática para retirar o traje.</p>
+        </CardContent></Card>
+    </div>
+    <Card><CardHeader><CardTitle className="text-base">Conservação e manutenção</CardTitle></CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p>{activeRows.length} item(ns) com contrato ativo ou retirado no histórico consultado.</p>
+        <p className="text-muted-foreground">
+          Não existe ainda uma tabela de ordens de manutenção nesta implantação.
+          Até sua implementação, nenhuma manutenção será exibida como realizada sem registro no banco.
+        </p>
+      </CardContent>
+    </Card>
+    <Sheet open={edit} onOpenChange={setEdit}>
+      <SheetContent side="right" className="w-[95vw] overflow-y-auto sm:max-w-2xl">
+        <SheetHeader><SheetTitle>Editar produto no Supabase</SheetTitle></SheetHeader>
+        {saveError && <p role="alert" className="mt-3 text-sm text-red-700">{saveError}</p>}
+        <ProductForm key={product.id} initialData={{
+          name: product.name, description: product.description, quantity: product.quantity,
+          fullCode: product.sku || "", productType: product.type || "",
+          rentalPrice: productRentalPrice, color: product.color || "",
+          size: product.size || product.sizes?.[0] || "", images: product.images,
+        }} onSubmit={submitProduct} onCancel={() => setEdit(false)} />
+      </SheetContent>
+    </Sheet>
+  </main>;
+}
