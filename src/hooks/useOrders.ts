@@ -829,7 +829,7 @@ export function useOrders(options: UseOrdersOptions = {}) {
     total_sales: number;
     total_rentals: number;
     observations?: string;
-    payment_details?: { payments: Array<{ method: string; value: number; installments?: number }> };
+    payment_details?: { payments: Array<{ method: string; value: number; installments?: number }>; store_credit_amount?: number };
   }): Promise<Order> => {
     if (!PermissionManager.hasPermission('orders', 'create')) {
       throw new Error('Sem permissão para criar pedidos');
