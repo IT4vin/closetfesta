@@ -3,9 +3,11 @@ import {rentalOrderSummaryPalette} from "@/lib/rentalOrderSummaryPalette";
 
 describe("cores da ficha lateral do pedido por status",()=>{
   it.each(["confirmed","pending","picked_up","reserved",""])(
-    "usa bege claro para pedido ativo (%s)",status=>{
+    "usa o mesmo off-white do sistema para pedido ativo (%s)",status=>{
       const palette=rentalOrderSummaryPalette(status);
-      expect(palette.container).toContain("bg-[#FAF2E7]");
+      expect(palette.container).toContain("bg-[#FDFCFB]");
+      expect(palette.badge).toContain("bg-[#FDFCFB]");
+      expect(palette.chip).toContain("bg-[#FDFCFB]");
       expect(palette.container).toContain("text-[#48382F]");
       expect(palette.badge).toContain("text-[#714B3A]");
     }
@@ -28,6 +30,6 @@ describe("cores da ficha lateral do pedido por status",()=>{
   it("normaliza estados e nunca considera a retirada como conclusão",()=>{
     expect(rentalOrderSummaryPalette(" CANCELLED ").container).toContain("bg-[#FDFCFB]");
     expect(rentalOrderSummaryPalette("COMPLETED").container).toContain("bg-emerald-50");
-    expect(rentalOrderSummaryPalette("picked_up").container).toContain("bg-[#FAF2E7]");
+    expect(rentalOrderSummaryPalette("picked_up").container).toContain("bg-[#FDFCFB]");
   });
 });
