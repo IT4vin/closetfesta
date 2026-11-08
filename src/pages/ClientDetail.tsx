@@ -13,9 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type ClientRow = {
-  id: string; full_name: string; phone: string | null; email: string | null;
+  id: string; full_name: string; phone: string | null; secondary_phone: string | null; email: string | null;
   document: string | null; birth_date: string | null; notes: string | null;
-  address: unknown; acquisition_source: string | null; created_at: string;
+  address: unknown; measurements: unknown; acquisition_source: string | null; created_at: string;
 };
 type ContractRow = {
   id: string; contract_number: number; status: string; total: number;
@@ -26,10 +26,11 @@ type PaymentRow = {
   status: string; recorded_at: string;
 };
 type Form = {
-  full_name: string; phone: string; email: string; document: string;
+  full_name: string; phone: string; secondary_phone: string; email: string; document: string;
   birth_date: string; acquisition_source: string; notes: string;
   cep: string; street: string; number: string; complement: string;
   neighborhood: string; city: string; state: string;
+  bust: string; waist: string; hips: string; height: string;
 };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const money = (amount: number) =>
@@ -40,18 +41,22 @@ const addressObject = (raw: unknown): Record<string, unknown> =>
 const textField = (value: unknown) => typeof value === "string" ? value : "";
 function toForm(client: ClientRow): Form {
   const a = addressObject(client.address);
+  const m = addressObject(client.measurements);
+  const cm = (key:string)=>m[key]==null?"":String(m[key]);
   return {
-    full_name: client.full_name, phone: client.phone || "", email: client.email || "",
+    full_name: client.full_name, phone: client.phone || "", secondary_phone: client.secondary_phone || "", email: client.email || "",
     document: client.document || "", birth_date: client.birth_date || "",
     acquisition_source: client.acquisition_source || "", notes: client.notes || "",
     cep: textField(a.cep), street: textField(a.street), number: textField(a.number),
     complement: textField(a.complement), neighborhood: textField(a.neighborhood),
     city: textField(a.city), state: textField(a.state),
+    bust: cm("bust"), waist: cm("waist"), hips: cm("hips"), height: cm("height"),
   };
 }
 const fields: { key: keyof Form; label: string; kind?: string }[] = [
   { key: "full_name", label: "Nome completo *" },
   { key: "phone", label: "Telefone" },
+  { key: "secondary_phone", label: "Telefone alternativo" },
   { key: "email", label: "E-mail", kind: "email" },
   { key: "document", label: "CPF/CNPJ" },
   { key: "birth_date", label: "Data de nascimento", kind: "date" },
@@ -60,6 +65,8 @@ const fields: { key: keyof Form; label: string; kind?: string }[] = [
   { key: "number", label: "Número" }, { key: "complement", label: "Complemento" },
   { key: "neighborhood", label: "Bairro" }, { key: "city", label: "Cidade" },
   { key: "state", label: "UF" },
+  { key: "bust", label: "Busto (cm)" }, { key: "waist", label: "Cintura (cm)" },
+  { key: "hips", label: "Quadril (cm)" }, { key: "height", label: "Altura (cm)" },
 ];
 
 export default function ClientDetail() {
@@ -91,7 +98,7 @@ export default function ClientDetail() {
       try {
         const db = supabase as any;
         const [clientResult, contractResult] = await Promise.all([
-          db.from("clients").select("id,full_name,phone,email,document,birth_date,notes,address,acquisition_source,created_at")
+          db.from("clients").select("id,full_name,phone,secondary_phone,email,document,birth_date,notes,address,measurements,acquisition_source,created_at")
             .eq("id", id).maybeSingle(),
           db.from("rental_contracts").select("id,contract_number,status,total,created_at")
             .eq("client_id", id).order("created_at", { ascending: false }).limit(100),
@@ -131,19 +138,29 @@ export default function ClientDetail() {
     if (form.full_name.trim().length < 2) {
       setSaveError("O nome deve ter pelo menos dois caracteres."); return;
     }
+    for(const key of ["bust","waist","hips","height"] as const){
+      const raw=form[key].replace(",",".").trim();
+      if(raw&&(!/^\d+(?:\.\d{1,2})?$/.test(raw)||Number(raw)<=0||Number(raw)>300)){
+        setSaveError("Informe medidas válidas em centímetros (até 300).");return;
+      }
+    }
     setSaving(true); setSaveError("");
     try {
+      const measures=Object.fromEntries((["bust","waist","hips","height"] as const)
+        .filter(key=>form[key].trim())
+        .map(key=>[key,Number(form[key].replace(",","."))]));
       const address = {
         ...addressObject(client.address),
         cep: form.cep.trim(), street: form.street.trim(), number: form.number.trim(),
         complement: form.complement.trim(), neighborhood: form.neighborhood.trim(),
         city: form.city.trim(), state: form.state.trim(),
       };
-      const { data, error } = await supabase.from("clients").update({
+      const { data, error } = await (supabase as any).from("clients").update({
         full_name: form.full_name.trim(), phone: form.phone.trim() || null,
+        secondary_phone: form.secondary_phone.trim() || null,
         email: form.email.trim() || null, document: form.document.trim() || null,
         birth_date: form.birth_date || null, acquisition_source: form.acquisition_source.trim() || null,
-        notes: form.notes.trim() || null, address,
+        notes: form.notes.trim() || null, address, measurements:measures,
       }).eq("id", client.id).select("id").single();
       if (error || !data) throw new Error(error?.message || "Gravação não confirmada pelo banco.");
       setEdit(false);
@@ -203,10 +220,15 @@ export default function ClientDetail() {
         <CardContent className="space-y-3 text-sm">
           <p><strong>Documento:</strong> {client.document || "Não informado"}</p>
           <p><strong>Telefone:</strong> {client.phone || "Não informado"}</p>
+          <p><strong>Telefone alternativo:</strong> {client.secondary_phone || "Não informado"}</p>
           <p><strong>E-mail:</strong> {client.email || "Não informado"}</p>
           <p><strong>Nascimento:</strong> {client.birth_date ? client.birth_date.split("-").reverse().join("/") : "Não informado"}</p>
           <p><strong>Origem:</strong> {client.acquisition_source || "Não informada"}</p>
           <p><strong>Endereço:</strong> {location || "Não informado"}</p>
+          <p><strong>Medidas:</strong> {Object.entries(addressObject(client.measurements))
+            .filter(([key,value])=>(["bust","waist","hips","height"].includes(key))&&value!=null)
+            .map(([key,value])=>({bust:"Busto",waist:"Cintura",hips:"Quadril",height:"Altura"} as Record<string,string>)[key]+": "+value+" cm")
+            .join(" · ")||"Não informadas"}</p>
           <p className="whitespace-pre-wrap"><strong>Observações:</strong> {client.notes || "Nenhuma"}</p>
         </CardContent></Card>
       <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4" />Histórico de locações</CardTitle></CardHeader>
