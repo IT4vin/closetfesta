@@ -224,9 +224,9 @@
   }
 
   :root:not(.dark):not(.high-contrast) :is(
-    .hover\\:bg-red-50:hover, .hover\\:bg-red-100:hover, .hover\\:bg-red-200:hover,
-    .hover\\:bg-rose-50:hover, .hover\\:bg-rose-100:hover, .hover\\:bg-rose-200:hover,
-    .hover\\:bg-pink-50:hover, .hover\\:bg-pink-100:hover, .hover\\:bg-pink-200:hover
+    .hover\:bg-red-50:hover, .hover\:bg-red-100:hover, .hover\:bg-red-200:hover,
+    .hover\:bg-rose-50:hover, .hover\:bg-rose-100:hover, .hover\:bg-rose-200:hover,
+    .hover\:bg-pink-50:hover, .hover\:bg-pink-100:hover, .hover\:bg-pink-200:hover
   ) {
     background-color: #FAF7F2;
   }
