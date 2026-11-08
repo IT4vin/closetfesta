@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RentalItemActions from "@/components/pdv/RentalItemActions";
+import OrderVisitTimes from "@/components/calendar/OrderVisitTimes";
 import RentalPaymentActions from "@/components/pdv/RentalPaymentActions";
 import OrderEditPanel, {type OrderEditorController} from "@/components/pdv/OrderEditPanel";
 import { printRentalContract } from "@/lib/rentalContractPrint";
@@ -130,6 +131,8 @@ export default function RentalOrderDetail(){
             <Step title="Devolução" when={dateAcross(currentItems,"return_date")} Icon={CheckCircle2}/>
           </CardContent>
         </Card>
+
+        <OrderVisitTimes contractId={order.id} />
 
         <Card className="shadow-sm">
           <CardHeader className="border-b pb-4"><div className="flex items-center justify-between gap-2">
