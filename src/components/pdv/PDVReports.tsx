@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
+import GoalsProgress from "@/components/reports/GoalsProgress";
 import { useLiveClosetData, useLiveFinanceData, moneyBRL, dateTimeBR } from "@/hooks/useLiveClosetData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function PDVReports() {
         <Button variant="outline" onClick={()=>{void operations.refetch();void financial.refetch();}}><RefreshCw className="mr-2 h-4 w-4"/>Atualizar</Button>
       </div>
     </header>
+    <GoalsProgress contracts={operations.data.contracts} payments={financial.data.payments}/>
     <div className="grid gap-4 sm:grid-cols-3">
       <Card><CardContent className="p-5"><p className="text-sm text-muted-foreground">Contratos no período</p>
         <p className="mt-3 text-2xl font-semibold">{contracts.length}</p></CardContent></Card>
