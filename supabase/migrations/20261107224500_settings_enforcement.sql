@@ -11,7 +11,7 @@ DECLARE
   max_in_slot integer := 0;
   min_notice integer := 0;
   wait_minutes integer := 0;
-  overlaps integer := 0;
+  occupied_count integer := 0;
   local_date text;
   value_txt text;
 BEGIN
@@ -43,12 +43,12 @@ BEGIN
   IF max_in_slot>0 THEN
     -- Lock transacional impede ultrapassar capacidade em gravações simultâneas.
     PERFORM pg_advisory_xact_lock(72771505);
-    SELECT count(*) INTO overlaps FROM public.appointments existing
+    SELECT count(*) INTO occupied_count FROM public.appointments existing
     WHERE existing.id IS DISTINCT FROM NEW.id
       AND existing.status <> 'cancelled'
       AND existing.start_at < NEW.end_at + wait_minutes * interval '1 minute'
       AND existing.end_at + wait_minutes * interval '1 minute' > NEW.start_at;
-    IF overlaps >= max_in_slot THEN
+    IF occupied_count >= max_in_slot THEN
       RAISE EXCEPTION 'Limite configurado de atendimentos simultâneos atingido' USING ERRCODE='22023';
     END IF;
   END IF;
