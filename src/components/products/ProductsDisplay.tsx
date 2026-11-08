@@ -8,12 +8,14 @@ interface ProductsDisplayProps {
   products: any[];
   viewMode: "grid" | "list";
   onEdit: (product: any) => void;
+  onHistory: (product: any) => void;
 }
 
 const ProductsDisplay: React.FC<ProductsDisplayProps> = ({ 
   products, 
   viewMode, 
-  onEdit 
+  onEdit,
+  onHistory
 }) => {
   if (products.length === 0) {
     return <EmptyProducts />;
@@ -26,7 +28,8 @@ const ProductsDisplay: React.FC<ProductsDisplayProps> = ({
           <ProductCard 
             key={product.id} 
             product={product} 
-            onEdit={() => onEdit(product)} 
+            onEdit={() => onEdit(product)}
+            onHistory={() => onHistory(product)}
           />
         ))}
       </div>
@@ -37,6 +40,7 @@ const ProductsDisplay: React.FC<ProductsDisplayProps> = ({
     <ProductTable 
       products={products}
       onEdit={onEdit}
+      onHistory={onHistory}
     />
   );
 };

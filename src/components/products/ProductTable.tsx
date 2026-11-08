@@ -2,14 +2,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, CreditCard, Tag, CalendarDays } from "lucide-react";
+import { Edit, Eye, CreditCard, Tag, Clock3 } from "lucide-react";
 
 interface ProductTableProps {
   products: any[];
   onEdit: (product: any) => void;
+  onHistory: (product: any) => void;
 }
 
-const ProductTable: React.FC<ProductTableProps> = ({ products, onEdit }) => {
+const ProductTable: React.FC<ProductTableProps> = ({ products, onEdit, onHistory }) => {
   const navigate = useNavigate();
   
   return (
@@ -91,10 +92,12 @@ const ProductTable: React.FC<ProductTableProps> = ({ products, onEdit }) => {
                   <Button 
                     variant="ghost" 
                     size="icon"
-                    onClick={() => navigate(`/products/${product.id}`)}
-                    className="text-marsala"
+                    aria-label={"Histórico de locações de " + product.name}
+                    title={"Histórico de locações de " + product.name}
+                    onClick={() => onHistory(product)}
+                    className="text-marsala hover:bg-marsala-50"
                   >
-                    <CalendarDays size={16} />
+                    <Clock3 size={16} />
                   </Button>
                 </div>
               </td>
