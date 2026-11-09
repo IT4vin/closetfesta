@@ -1,6 +1,17 @@
 name: Frontend Readiness Checks
 
 on:
+  push:
+    branches: [work/production-readiness-phase1-20261106]
+    paths:
+      - "src/**"
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - ".github/workflows/frontend-readiness.yml"
   pull_request:
     branches: [main, work/production-readiness-phase1-20261106]
     paths:
