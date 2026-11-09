@@ -1,5 +1,7 @@
 import React, { useState, Suspense } from 'react';
-import { Search, Filter, Grid, List, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Search, Grid, List, ExternalLink } from 'lucide-react';
+import { useProducts } from './hooks/useProducts';
+import { useCategories } from './hooks/useCategories';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -31,13 +33,17 @@ export default function Catalog() {
   const [sortBy, setSortBy] = useState<string>('name');
   const [page, setPage] = useState(1);
 
-  // Estados fixos por enquanto para evitar problemas
-  const products: any[] = [];
-  const loading = false;
-  const error = null;
-  const hasMore = false;
-  const totalCount = 0;
-  const categories: any[] = [];
+  // Catálogo interno: consulta os produtos reais, inclusive os com estoque
+  // aguardando conferência. Não altera a regra do catálogo público.
+  const { products, loading, error, hasMore, totalCount } = useProducts({
+    page,
+    pageSize: 12,
+    categoryId,
+    searchTerm,
+    priceFilter,
+    sortBy,
+  });
+  const { categories } = useCategories();
 
   // Detecta a porta atual do sistema principal
   const currentPort = window.location.port || '3000';
