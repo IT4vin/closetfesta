@@ -737,7 +737,7 @@ const PDVSale = ({ onCreateListing }: { onCreateListing?: () => void }) => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setIsCustomerModalOpen(true)
+                onClick={() => setIsCustomerModalOpen(true)}
                 className="text-xs whitespace-nowrap"
               >
                 <UserPlus size={14} className="mr-1 sm:mr-2" />
