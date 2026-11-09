@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Building2, CalendarDays, CreditCard, FileText, Shield, Bell, Target, Receipt, Search, Settings as SettingsIcon, Database } from "lucide-react";
+import { Building2, CalendarDays, CreditCard, FileText, Shield, Bell, Target, Receipt, Search, Settings as SettingsIcon, Database, Users } from "lucide-react";
 import { useAuth } from "@/stores/authStore";
 import PermissionManager from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import ClosetSettingsEditor from "@/components/settings/ClosetSettingsEditor";
+import EmployeeManager from "@/components/settings/EmployeeManager";
 import CurrentUserProfileEditor from "@/components/settings/CurrentUserProfileEditor";
 import type { ClosetSettingsSection } from "@/lib/closetSettings";
 
@@ -14,6 +15,7 @@ const sections = [
   { id:"operations", label:"Operações", description:"Agenda, atendimento, pedidos e estoque", icon:CalendarDays },
   { id:"payments", label:"Métodos de pagamento", description:"Recebimentos e parcelamento", icon:CreditCard },
   { id:"documents", label:"Documentos e contratos", description:"Textos, modelos e orientações", icon:FileText },
+  { id:"employees", label:"Funcionários", description:"Cadastrar equipe e gerenciar acessos", icon:Users },
   { id:"permissions", label:"Permissões", description:"Acesso por perfil e usuários", icon:Shield },
   { id:"messages", label:"Avisos e mensagens", description:"Modelos de comunicação", icon:Bell },
   { id:"goals", label:"Metas", description:"Objetivos e indicadores comerciais", icon:Target },
@@ -22,16 +24,18 @@ const sections = [
 
 export default function Settings() {
   const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState<ClosetSettingsSection>("company");
+  const [activeSection, setActiveSection] = useState<ClosetSettingsSection | "employees">("company");
   const [search, setSearch] = useState("");
   const [unsaved, setUnsaved] = useState(false);
   const canRead = PermissionManager.hasPermission("settings", "read");
+  const isAdmin = user?.role?.id === "admin";
   const matching = sections.filter(section =>
+    (section.id !== "employees" || isAdmin) &&
     (section.label + " " + section.description).toLocaleLowerCase("pt-BR")
       .includes(search.toLocaleLowerCase("pt-BR")));
   const current = sections.find(section => section.id === activeSection) ?? sections[0];
   const Icon = current.icon;
-  const changeSection = (section: ClosetSettingsSection) => {
+  const changeSection = (section: ClosetSettingsSection | "employees") => {
     if (section === activeSection) return;
     if (unsaved && !window.confirm("Há alterações não salvas. Deseja descartá-las e trocar de seção?")) return;
     setUnsaved(false);
@@ -110,7 +114,8 @@ export default function Settings() {
             </div>
           </div></CardHeader>
           <CardContent className="p-6">
-            <ClosetSettingsEditor key={activeSection} section={activeSection} onDirtyChange={setUnsaved}/>
+            {activeSection === "employees" ? (isAdmin ? <EmployeeManager/> : null) :
+              <ClosetSettingsEditor key={activeSection} section={activeSection} onDirtyChange={setUnsaved}/>}
             {activeSection==="company" && <div className="mt-6"><CurrentUserProfileEditor/></div>}
           </CardContent>
         </Card>
