@@ -6,7 +6,7 @@ vi.mock("@/integrations/supabase/client",()=>({
 import {
  newEmployeeDraft,validateEmployeeDraft,employeeRoleLabels,employeeRoleDetails,
  listEmployees,updateEmployee,changeEmployeeRole,inviteEmployee,
- setEmployeePassword,validateEmployeePassword,
+ setEmployeePassword,validateEmployeePassword,checkEmployeePasswordService,
 } from "@/lib/employeeManagement";
 import {hasRolePermission} from "@/lib/accessControl";
 const employeeId="11111111-1111-4111-8111-111111111111";
@@ -62,6 +62,16 @@ describe("gerenciamento de funcionários em configurações",()=>{
   expect(validateEmployeePassword("Festa-2026-Roupa!")).toBeNull();
   expect(validateEmployeePassword("A".repeat(80)+"2026")).toMatch(/12 a 72/);
   expect(validateEmployeePassword("Á".repeat(40)+"1abc")).toMatch(/12 a 72/);
+ });
+ it("mantem botao de senha desabilitado quando a Edge Function nao esta publicada",async()=>{
+  invoke.mockResolvedValueOnce({data:null,error:{context:{status:404}}})
+    .mockResolvedValueOnce({data:null,error:{context:{status:405}}});
+  expect(await checkEmployeePasswordService()).toBe(false);
+  expect(await checkEmployeePasswordService()).toBe(true);
+  expect(invoke).toHaveBeenCalledWith("closet-admin-set-employee-password",{
+    method:"GET",
+  });
+  expect(rpc).not.toHaveBeenCalled();
  });
  it("redefine senha somente pela Edge Function administrativa, nunca por RPC ou update da tabela",async()=>{
   const newPassword="Festa-2026-Roupa!";
