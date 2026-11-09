@@ -11,6 +11,7 @@ import MainLayout from "./components/layout/MainLayout";
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth, initializeAuthStore } from '@/stores/authStore';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import AcceptEmployeeInvite from './pages/AcceptEmployeeInvite';
 import ClockRoleRoute from './components/time-clock/ClockRoleRoute';
 
 // Importar páginas lazy-loaded
@@ -62,6 +63,9 @@ function App() {
       </div>
     );
   }
+
+  // Primeiro acesso de funcionário é independente do menu e do login padrão.
+  if (window.location.pathname === "/accept-invite") return <AcceptEmployeeInvite />;
 
   // Tela de erro crítico
   if (error && isAuthenticated) {
