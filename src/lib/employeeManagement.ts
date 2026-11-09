@@ -114,6 +114,23 @@ export function validateEmployeePassword(password:string):string|null{
  return null;
 }
 
+/**
+ * Verificacao somente-leitura: a funcao deve devolver HTTP 405 para GET
+ * quando estiver implantada (nao ha alteracao de senha neste teste).
+ * 404 => endpoint ausente; outros erros => nao habilitar a interface.
+ */
+export async function checkEmployeePasswordService():Promise<boolean>{
+ try{
+  const {error}=await supabase.functions.invoke("closet-admin-set-employee-password",{
+   method:"GET",
+  });
+  // GET nunca e considerado sucesso pelo endpoint: exigir o 405 esperado.
+  return (error as any)?.context?.status===405;
+ }catch{
+  return false;
+ }
+}
+
 export async function setEmployeePassword(target:string,password:string):Promise<{
  updated:true;user_id:string;audit_confirmed:boolean;message:string;
 }>{
