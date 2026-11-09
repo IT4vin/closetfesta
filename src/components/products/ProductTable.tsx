@@ -30,11 +30,11 @@ const ProductTable: React.FC<ProductTableProps> = ({ products, onEdit }) => {
             <tr key={product.id} className="border-t border-neutral-200 hover:bg-neutral-50">
               <td className="p-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-md overflow-hidden">
+                  <div className="w-14 h-16 rounded-md overflow-hidden bg-neutral-50 dark:bg-neutral-900 flex-shrink-0">
                     <img 
                       src={product.image} 
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain object-center"
                     />
                   </div>
                   <div>
