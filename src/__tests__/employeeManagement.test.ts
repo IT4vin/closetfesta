@@ -6,6 +6,7 @@ vi.mock("@/integrations/supabase/client",()=>({
 import {
  newEmployeeDraft,validateEmployeeDraft,employeeRoleLabels,employeeRoleDetails,
  listEmployees,updateEmployee,changeEmployeeRole,inviteEmployee,
+ setEmployeePassword,validateEmployeePassword,
 } from "@/lib/employeeManagement";
 import {hasRolePermission} from "@/lib/accessControl";
 const employeeId="11111111-1111-4111-8111-111111111111";
@@ -53,6 +54,37 @@ describe("gerenciamento de funcionários em configurações",()=>{
   expect(rpc).toHaveBeenNthCalledWith(2,"closet_assign_user_role",{
    p_target:employeeId,p_role:null,
   });
+ });
+ it("valida senhas individuais fortes sem enviá-las ao banco de funcionarios",()=>{
+  expect(validateEmployeePassword("123456")).toMatch(/12 a 72/);
+  expect(validateEmployeePassword("semnumeroalgum")).toMatch(/letras e números/);
+  expect(validateEmployeePassword("123456789012345")).toMatch(/letras e números/);
+  expect(validateEmployeePassword("Festa-2026-Roupa!")).toBeNull();
+  expect(validateEmployeePassword("A".repeat(80)+"2026")).toMatch(/12 a 72/);
+  expect(validateEmployeePassword("Á".repeat(40)+"1abc")).toMatch(/12 a 72/);
+ });
+ it("redefine senha somente pela Edge Function administrativa, nunca por RPC ou update da tabela",async()=>{
+  const newPassword="Festa-2026-Roupa!";
+  invoke.mockResolvedValue({data:{updated:true,user_id:employeeId,
+    audit_confirmed:true,message:"Senha alterada"},error:null});
+  const result=await setEmployeePassword(employeeId,newPassword);
+  expect(result.updated).toBe(true);
+  expect(invoke).toHaveBeenCalledWith("closet-admin-set-employee-password",{
+    body:{target_id:employeeId,password:newPassword},
+  });
+  expect(rpc).not.toHaveBeenCalled();
+ });
+ it("recusa respostas incompletas e nao aceita id alvo invalido",async()=>{
+  await expect(setEmployeePassword("123","Festa-2026-Roupa!")).rejects.toThrow(/inválido/);
+  expect(invoke).not.toHaveBeenCalled();
+  invoke.mockResolvedValue({data:{updated:false},error:null});
+  await expect(setEmployeePassword(employeeId,"Festa-2026-Roupa!")).rejects.toThrow(/não confirmou/);
+ });
+ it("exibe mensagem do servidor ao impedir alteracao nao autorizada",async()=>{
+  const error={context:{json:async()=>({error:"Somente administradores podem alterar senhas."})}};
+  invoke.mockResolvedValue({data:null,error});
+  await expect(setEmployeePassword(employeeId,"Festa-2026-Roupa!"))
+    .rejects.toThrow(/Somente administradores/);
  });
  it("apresenta permissões efetivas sem conceder permissões fictícias",()=>{
   expect(hasRolePermission("staff","timeClock","punch")).toBe(true);
