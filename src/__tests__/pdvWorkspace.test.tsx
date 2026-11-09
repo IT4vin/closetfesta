@@ -60,6 +60,16 @@ describe("PDV profissional respeitando o tema do sistema",()=>{
     fireEvent.keyDown(input,{key:"Enter",code:"Enter"});
     expect(props.onAdd).toHaveBeenCalledWith(product,1);
   });
+  it("adiciona Criar listagem no carrinho sem remover busca e atendimento",()=>{
+    const props=options();
+    props.onCreateListing=vi.fn();
+    render(<PDVWorkspace {...props}/>);
+    fireEvent.click(screen.getByRole("button",{name:/Criar listagem/i}));
+    expect(props.onCreateListing).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading",{name:"Resumo da locação"})).toBeTruthy();
+    expect(screen.getByRole("heading",{name:"Itens da locação"})).toBeTruthy();
+    expect(screen.getByPlaceholderText("Pesquise por descrição, código (SKU) ou GTIN")).toBeTruthy();
+  });
   it("oferece atalhos de cliente e rascunho com ações reais",()=>{
     const props=options();render(<PDVWorkspace {...props}/>);
     fireEvent.keyDown(window,{key:"F8"});
