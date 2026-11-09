@@ -2,7 +2,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Eye, Edit, Tag, Clock3 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CreditCard, Eye, Edit, Tag, Clock3, Maximize2 } from "lucide-react";
 
 interface ProductCardProps {
   product: any;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onHistory }) => {
   const navigate = useNavigate();
+  const [photoOpen, setPhotoOpen] = React.useState(false);
   
   const handleClick = () => {
     navigate(`/products/${product.id}`);
@@ -19,14 +21,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onHistory })
   
   return (
     <div className="premium-card overflow-hidden">
-      <div className="relative">
-        <div 
-          className="h-48 bg-center bg-cover" 
-          style={{ backgroundImage: `url(${product.image})` }}
-        />
+      <div className="relative h-80 sm:h-[360px] lg:h-[400px] bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-100 dark:border-neutral-800">
+        {product.image ? (
+          <button
+            type="button"
+            className="group relative block h-full w-full p-2 sm:p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-marsala"
+            onClick={() => setPhotoOpen(true)}
+            aria-label={`Ampliar foto de ${product.name}`}
+            title="Clique para ampliar a imagem"
+          >
+            <img
+              src={product.image}
+              alt={product.name}
+              loading="lazy"
+              className="h-full w-full object-contain object-center transition-transform duration-200 group-hover:scale-[1.02]"
+            />
+            <span className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded-md bg-white/90 px-2 py-1 text-xs font-medium text-neutral-700 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+              <Maximize2 size={13} /> Ampliar
+            </span>
+          </button>
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+            Foto não cadastrada
+          </div>
+        )}
         
         <span 
-          className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-medium ${
+          className={`pointer-events-none absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-medium ${
             product.status === 'available' 
               ? 'bg-green-100 text-green-800' 
               : product.status === 'rented'
@@ -114,6 +135,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onHistory })
           </Button>
         </div>
       </div>
+      <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{product.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center rounded-lg bg-neutral-50 dark:bg-neutral-900">
+            <img
+              src={product.image}
+              alt={`Foto completa de ${product.name}`}
+              className="max-h-[78vh] w-full object-contain"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
