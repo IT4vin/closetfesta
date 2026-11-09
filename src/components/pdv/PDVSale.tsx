@@ -25,6 +25,7 @@ import {
   User,
   CalendarDays,
   ShoppingCart,
+  ClipboardList,
   Target,
   FileText,
   Printer,
@@ -61,7 +62,7 @@ export interface OrderDates {
   returnDate: string;
 }
 
-const PDVSale = () => {
+const PDVSale = ({ onCreateListing }: { onCreateListing?: () => void }) => {
   const { toast } = useToast();
   const { productsList, loading: productsLoading, error: productsError, total: productsTotal, refetch: refetchProducts } = useProducts();
   const { createOrder, generateContract, generateReceipt } = useOrders();
@@ -728,11 +729,15 @@ const PDVSale = () => {
               )}
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={onCreateListing}
+                className="border-marsala text-marsala text-xs whitespace-nowrap">
+                <ClipboardList size={14} className="mr-1" /> Criar listagem
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => setIsCustomerModalOpen(true)}
+                onClick={() => setIsCustomerModalOpen(true)
                 className="text-xs whitespace-nowrap"
               >
                 <UserPlus size={14} className="mr-1 sm:mr-2" />
