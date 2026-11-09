@@ -37,7 +37,7 @@ const cents=(value:number)=>Math.round((value+Number.EPSILON)*100)/100;
 const canRent=(p:Product)=>!p.deleted&&p.status==="available"&&p.quantity>0;
 const MAX_UNITS_PER_PRODUCT=20;
 
-export default function PDVSale(){
+export default function PDVSale({onCreateListing}:{onCreateListing?:()=>void}={}){
   const {toast}=useToast();
   const {user}=useAuth();
   const manager=user?.role?.id==="admin"||user?.role?.id==="manager";
@@ -442,6 +442,7 @@ export default function PDVSale(){
       onContinue={beginCheckout} onSaveDraft={saveDraft} onLoadDraft={restoreDraft}
       onClear={clearCart} onOrders={()=>window.dispatchEvent(new Event("closetfesta:open-orders"))}
       draftBusy={draftBusy} hasDraft={hasDraft}
+      onCreateListing={onCreateListing}
     />
     <RentalAvailabilityDialog
       open={Boolean(conflictProductId)} item={cart.find(item=>item.id===conflictProductId)||null}
