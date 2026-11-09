@@ -4,8 +4,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User, LogOut, ShoppingBag, ClipboardList, Wallet,
-  LayoutDashboard, CalendarDays, ChartNoAxesCombined, Settings2 } from "lucide-react";
+  LayoutDashboard, CalendarDays, ChartNoAxesCombined, Settings2, Heart } from "lucide-react";
 import PDVSale from "@/components/pdv/PDVSale";
+import PDVEventOutfitLists from "@/components/pdv/PDVEventOutfitLists";
 import PDVCashier from "@/components/pdv/PDVCashier";
 import PDVReports from "@/components/pdv/PDVReports";
 import PDVOrders from "@/components/pdv/PDVOrders";
@@ -19,9 +20,14 @@ import { usePermissions } from "@/lib/permissions";
 const PDV = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(() => searchParams.get("tab") === "pedidos" ? "pedidos" : "venda");
+  const [activeTab, setActiveTab] = useState(() => ["pedidos","listagens"].includes(searchParams.get("tab")||"") ? searchParams.get("tab")! : "venda");
+  const [listingCreateSignal,setListingCreateSignal]=useState(0);
+  const openCreateListing=()=>{
+    setActiveTab("listagens");
+    setListingCreateSignal(n=>n+1);
+  };
   useEffect(() => {
-    if (searchParams.get("tab") === "pedidos") setActiveTab("pedidos");
+    if (["pedidos","listagens"].includes(searchParams.get("tab")||"")) setActiveTab(searchParams.get("tab")!);
   }, [searchParams]);
   useEffect(() => {
     const openOrders = () => setActiveTab("pedidos");
@@ -104,6 +110,7 @@ const PDV = () => {
             {([
               {value:"venda",label:"Nova locação",icon:ShoppingBag},
               {value:"pedidos",label:"Pedidos",icon:ClipboardList},
+              {value:"listagens",label:"Listagens",icon:Heart},
               {value:"caixa",label:"Caixa",icon:Wallet},
               {value:"dashboard",label:"Dashboard",icon:LayoutDashboard},
               {value:"agenda",label:"Agenda",icon:CalendarDays},
@@ -121,11 +128,15 @@ const PDV = () => {
 
         <div>
           <TabsContent value="venda" className="space-y-4">
-            <PDVSale />
+            <PDVSale onCreateListing={openCreateListing} />
           </TabsContent>
           
           <TabsContent value="pedidos" className="space-y-4">
             <PDVOrders />
+          </TabsContent>
+
+          <TabsContent value="listagens" className="space-y-4">
+            <PDVEventOutfitLists createSignal={listingCreateSignal} />
           </TabsContent>
           
           <TabsContent value="caixa" className="space-y-4">
