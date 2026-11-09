@@ -48,6 +48,8 @@ export interface Product {
   type?: string;
   subtype?: string;
   image?: string;
+  /** Produto importado, ainda sem quantidade física confirmada. */
+  stockPendingReview?: boolean;
 }
 
 export interface OrderItem {
@@ -240,6 +242,11 @@ function mapProductRow(row: any): Product {
     category: row.product_categories ? { name: row.product_categories.name, description: row.product_categories.description ?? '' } : undefined,
     images,
     rentalPrice: meta.rental_price != null ? Number(meta.rental_price) : undefined,
+    color: typeof meta.color === 'string' && meta.color
+      ? meta.color
+      : (Array.isArray(meta.colors) ? meta.colors.join(', ') : undefined),
+    type: typeof meta.type === 'string' ? meta.type : undefined,
+    stockPendingReview: meta.stock_pending_review === true,
     image: images[0]?.url,
   };
 }
@@ -257,24 +264,46 @@ export const productsApi = {
     limit?: number;
     offset?: number;
   } = {}): Promise<ApiResponse<Product[]>> {
-    let q = supabase
-      .from('products')
-      .select(PRODUCT_SELECT, { count: 'exact' })
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+    // Paginar inclusive quando o chamador não informa limite:
+    // Supabase/PostgREST impõe um máximo por resposta, que pode ocultar
+    // produtos importados quando o catálogo ultrapassar esse limite.
+    const batchMax = 250;
+    const offset = Math.max(0, Math.trunc(params.offset ?? 0));
+    const requestedLimit = params.limit != null && params.limit > 0
+      ? Math.trunc(params.limit)
+      : undefined;
+    const rows: any[] = [];
+    let total: number | null = null;
 
-    if (params.category_id) q = q.eq('category_id', params.category_id);
-    if (params.in_stock) q = q.gt('stock_quantity', 0);
-    if (params.search) q = q.ilike('name', `%${params.search}%`);
-    if (params.limit) q = q.limit(params.limit);
-    if (params.offset != null && params.limit) q = q.range(params.offset, params.offset + params.limit - 1);
+    while (true) {
+      const remaining = requestedLimit == null ? batchMax : requestedLimit - rows.length;
+      const batchSize = Math.min(batchMax, remaining);
+      if (batchSize <= 0) break;
 
-    const { data, error, count } = await q;
-    if (error) fail(error.message);
+      let q = supabase
+        .from('products')
+        .select(PRODUCT_SELECT, { count: 'exact' })
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
 
-    let products = (data || []).map(mapProductRow);
+      if (params.category_id) q = q.eq('category_id', params.category_id);
+      if (params.in_stock) q = q.gt('stock_quantity', 0);
+      if (params.search) q = q.ilike('name', `%${params.search}%`);
+
+      const start = offset + rows.length;
+      const { data, error, count } = await q.range(start, start + batchSize - 1);
+      if (error) fail(error.message);
+      if (total === null) total = count;
+
+      const batch = data || [];
+      rows.push(...batch);
+      if (batch.length < batchSize || (total !== null && offset + rows.length >= total)) break;
+    }
+
+    let products = rows.map(mapProductRow);
     if (params.featured) products = products.filter(p => p.featured);
-    return ok(products, { total: count ?? products.length });
+    return ok(products, { total: total ?? products.length });
   },
 
   async findById(id: string): Promise<ApiResponse<Product>> {
