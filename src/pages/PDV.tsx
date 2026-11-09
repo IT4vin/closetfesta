@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Wand2, User, LogOut } from "lucide-react";
 import PDVSale from "@/components/pdv/PDVSale";
+import PDVEventOutfitLists from "@/components/pdv/PDVEventOutfitLists";
 import PDVCashier from "@/components/pdv/PDVCashier";
 import PDVReports from "@/components/pdv/PDVReports";
 import PDVOrders from "@/components/pdv/PDVOrders";
@@ -17,6 +18,12 @@ import { usePermissions } from "@/lib/permissions";
 
 const PDV = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [pdvTab, setPdvTab] = useState('venda');
+  const [listingCreateSignal, setListingCreateSignal] = useState(0);
+  const openCreateListing = () => {
+    setPdvTab('listagens');
+    setListingCreateSignal(v => v + 1);
+  };
   const [showLogin, setShowLogin] = useState(false);
   const { user, isAuthenticated, logout } = usePermissions();
 
@@ -178,14 +185,17 @@ const PDV = () => {
         </div>
       </header>
 
-      <Tabs defaultValue="venda" className="w-full">
+      <Tabs value={pdvTab} onValueChange={setPdvTab} className="w-full">
         <div className="overflow-x-auto mb-4 md:mb-6">
-          <TabsList className="w-full grid grid-cols-7 min-w-[800px] md:min-w-0">
+          <TabsList className="w-full grid grid-cols-8 min-w-[950px] md:min-w-0">
             <TabsTrigger value="venda" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
               🛒 Venda
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
               📋 Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="listagens" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
+              💍 Listagens
             </TabsTrigger>
             <TabsTrigger value="caixa" className="text-sm md:text-base py-2 md:py-2.5 px-2 md:px-4">
               💰 Caixa
@@ -207,11 +217,14 @@ const PDV = () => {
         
         <div>
           <TabsContent value="venda" className="space-y-4">
-            <PDVSale />
+            <PDVSale onCreateListing={openCreateListing} />
           </TabsContent>
           
           <TabsContent value="pedidos" className="space-y-4">
             <PDVOrders />
+          </TabsContent>
+          <TabsContent value="listagens" className="space-y-4">
+            <PDVEventOutfitLists createSignal={listingCreateSignal} />
           </TabsContent>
           
           <TabsContent value="caixa" className="space-y-4">
