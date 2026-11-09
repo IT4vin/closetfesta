@@ -99,3 +99,44 @@ export async function inviteEmployee(draft:EmployeeDraft){
    throw new Error(data?.error||"O convite não foi confirmado pelo Supabase.");
  return data as {invited:true;user_id:string;email:string;message:string};
 }
+
+
+/**
+ * Senha de acesso individual: validacao apenas de UX. A Edge Function
+ * revalida a mesma regra e confere papel admin no banco.
+ */
+export function validateEmployeePassword(password:string):string|null{
+ if(password.length<12||password.length>72||
+    new TextEncoder().encode(password).byteLength>72)
+   return "A senha deve ter de 12 a 72 caracteres.";
+ if(!/\p{L}/u.test(password)||!/\d/u.test(password))
+   return "Combine letras e números na nova senha.";
+ return null;
+}
+
+export async function setEmployeePassword(target:string,password:string):Promise<{
+ updated:true;user_id:string;audit_confirmed:boolean;message:string;
+}>{
+ const issue=validateEmployeePassword(password);
+ if(issue)throw new Error(issue);
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target))
+   throw new Error("Funcionário inválido.");
+ const {data,error}=await supabase.functions.invoke(
+   "closet-admin-set-employee-password",{
+     body:{target_id:target,password},
+   });
+ if(error){
+   const ctx=(error as any).context;
+   let detail="";
+   if(ctx&&typeof ctx.json==="function"){
+     try{
+       const body=await ctx.json();
+       detail=typeof body?.error==="string"?body.error:"";
+     }catch{}
+   }
+   throw new Error(detail||"Não foi possível definir a senha no servidor.");
+ }
+ if(data?.updated!==true||data?.user_id!==target)
+   throw new Error("O servidor não confirmou a alteração da senha.");
+ return data as {updated:true;user_id:string;audit_confirmed:boolean;message:string};
+}
