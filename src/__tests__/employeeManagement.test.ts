@@ -1,0 +1,66 @@
+import {beforeEach,describe,expect,it,vi} from "vitest";
+const {rpc,invoke}=vi.hoisted(()=>({rpc:vi.fn(),invoke:vi.fn()}));
+vi.mock("@/integrations/supabase/client",()=>({
+ supabase:{rpc,functions:{invoke}},
+}));
+import {
+ newEmployeeDraft,validateEmployeeDraft,employeeRoleLabels,employeeRoleDetails,
+ listEmployees,updateEmployee,changeEmployeeRole,inviteEmployee,
+} from "@/lib/employeeManagement";
+import {hasRolePermission} from "@/lib/accessControl";
+const employeeId="11111111-1111-4111-8111-111111111111";
+const form={...newEmployeeDraft(),full_name:"Funcionário Exemplo",
+ email:"funcionario@exemplo.com",phone:"(21) 99999-9999",
+ role:"staff" as const,department:"Atendimento",job_title:"Consultora de vendas",
+ hired_on:"2026-11-08"};
+beforeEach(()=>{rpc.mockReset();invoke.mockReset();});
+describe("gerenciamento de funcionários em configurações",()=>{
+ it("valida o convite sem expor senhas ou permitir convite direto admin",()=>{
+  expect(validateEmployeeDraft(form,true)).toBeNull();
+  expect(validateEmployeeDraft({...form,email:"invalid"},true)).toMatch(/e-mail/);
+  expect(validateEmployeeDraft({...form,role:"admin"},true)).toMatch(/administradores/);
+  expect(validateEmployeeDraft({...form,phone:"123"},true)).toMatch(/telefone/);
+  expect(validateEmployeeDraft({...form,hired_on:"2026-02-30"},true)).toMatch(/admissão/);
+ });
+ it("cadastra novo login exclusivamente via Edge Function autenticada",async()=>{
+  invoke.mockResolvedValue({data:{invited:true,user_id:employeeId,email:form.email,
+   message:"Convite enviado"},error:null});
+  await inviteEmployee(form);
+  expect(invoke).toHaveBeenCalledWith("closet-invite-employee",{
+   body:expect.objectContaining({email:form.email,role:"staff",
+    full_name:form.full_name,department:form.department}),
+  });
+  expect(rpc).not.toHaveBeenCalled();
+ });
+ it("consulta lista real com RPC protegida e edita cadastro auditado",async()=>{
+  rpc.mockResolvedValueOnce({data:[{id:employeeId,full_name:form.full_name}],error:null})
+    .mockResolvedValueOnce({data:{saved:true},error:null});
+  const list=await listEmployees();
+  expect(list[0].id).toBe(employeeId);
+  expect(rpc).toHaveBeenCalledWith("closet_employee_directory");
+  await updateEmployee(employeeId,form);
+  expect(rpc).toHaveBeenCalledWith("closet_employee_update",expect.objectContaining({
+   p_target:employeeId,p_full_name:form.full_name,p_hired_on:form.hired_on,
+  }));
+ });
+ it("atribui perfil ou revoga acesso usando a auditoria já existente",async()=>{
+  rpc.mockResolvedValue({data:null,error:null});
+  await changeEmployeeRole(employeeId,"cashier");
+  await changeEmployeeRole(employeeId,"inactive");
+  expect(rpc).toHaveBeenNthCalledWith(1,"closet_assign_user_role",{
+   p_target:employeeId,p_role:"cashier",
+  });
+  expect(rpc).toHaveBeenNthCalledWith(2,"closet_assign_user_role",{
+   p_target:employeeId,p_role:null,
+  });
+ });
+ it("apresenta permissões efetivas sem conceder permissões fictícias",()=>{
+  expect(hasRolePermission("staff","timeClock","punch")).toBe(true);
+  expect(hasRolePermission("staff","financial","read")).toBe(false);
+  expect(hasRolePermission("cashier","cash","read")).toBe(true);
+  expect(hasRolePermission("manager","users","update")).toBe(false);
+  expect(hasRolePermission("admin","users","update")).toBe(true);
+  expect(employeeRoleLabels.inactive).toBe("Sem acesso");
+  expect(employeeRoleDetails.staff).toContain("Atendimento");
+ });
+});
