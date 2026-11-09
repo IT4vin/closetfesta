@@ -13,7 +13,7 @@ import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogT
 import {useAuth} from "@/stores/authStore";
 import {hasRolePermission} from "@/lib/accessControl";
 import {
- changeEmployeeRole,employeeRoleDetails,employeeRoleLabels,
+ changeEmployeeRole,checkEmployeePasswordService,employeeRoleDetails,employeeRoleLabels,
  inviteEmployee,listEmployees,newEmployeeDraft,updateEmployee,
  setEmployeePassword,validateEmployeePassword,
  validateEmployeeDraft,type EmployeeDraft,type EmployeeRole,type EmployeeRow,
@@ -141,6 +141,12 @@ export default function EmployeeManager(){
    queryKey:["settings","employees"],
    queryFn:listEmployees,enabled:admin,staleTime:15000,
  });
+ const passwordService=useQuery({
+   queryKey:["settings","employeePasswordService"],
+   queryFn:checkEmployeePasswordService,
+   enabled:admin,staleTime:20000,retry:false,
+ });
+ const passwordServiceReady=passwordService.data===true;
  const filtered=useMemo(()=>employees.data?.filter(m=>
    [m.full_name,m.email,m.job_title,m.department].join(" ").toLowerCase()
      .includes(search.trim().toLowerCase()))??[],[employees.data,search]);
@@ -170,7 +176,7 @@ export default function EmployeeManager(){
   setPasswordVisible(false);setPasswordError("");
  };
  const openPasswordEditor=(employee:EmployeeRow)=>{
-  if(busy||!admin)return;
+  if(busy||!admin||!passwordServiceReady)return;
   setPasswordTarget(employee);
   setPasswordDraft("");setPasswordConfirm("");
   setPasswordVisible(false);setPasswordError("");setError("");
@@ -178,6 +184,10 @@ export default function EmployeeManager(){
  const submitPassword=async(e:React.FormEvent)=>{
   e.preventDefault();
   if(!admin||busy||!passwordTarget)return;
+  if(!passwordServiceReady){
+   setPasswordError("A função de senhas ainda não está disponível no Supabase.");
+   return;
+  }
   const issue=validateEmployeePassword(passwordDraft);
   if(issue){setPasswordError(issue);return;}
   if(passwordDraft!==passwordConfirm){
@@ -282,6 +292,14 @@ export default function EmployeeManager(){
   </div>
   {notice&&<p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>}
   {error&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</p>}
+  {!passwordServiceReady&&!passwordService.isPending&&<div role="status"
+   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+   <span>A redefinição administrativa de senhas está aguardando a publicação da função segura no Supabase. Convites, cadastros e permissões continuam funcionando.</span>
+   <Button type="button" variant="outline" size="sm" disabled={passwordService.isFetching}
+    onClick={()=>void passwordService.refetch()}>
+    <RefreshCcw className="mr-2 h-4 w-4"/>Verificar serviço
+   </Button>
+  </div>}
   {mode&&<Card className="border-marsala-200 shadow-sm">
    <CardHeader className="border-b">
     <CardTitle className="flex items-center gap-2 text-base">
@@ -363,7 +381,7 @@ export default function EmployeeManager(){
        Defina uma senha nova para este usuário, inclusive se ele ainda estiver em primeiro acesso.
        A senha atual não pode ser consultada e a alteração é registrada sem guardar credenciais.
       </p>
-      <Button type="button" variant="outline" disabled={Boolean(busy)}
+      <Button type="button" variant="outline" disabled={Boolean(busy)||!passwordServiceReady}
        onClick={()=>openPasswordEditor(selected)}
        className="border-marsala-200 text-marsala-900">
        <KeyRound className="mr-2 h-4 w-4"/>Definir ou alterar senha
@@ -417,7 +435,7 @@ export default function EmployeeManager(){
       {!employee.email_confirmed&&<Badge variant="outline" className="border-amber-200 text-amber-800">
        Convite pendente
       </Badge>}
-      <Button variant="outline" size="sm" disabled={Boolean(busy)}
+      <Button variant="outline" size="sm" disabled={Boolean(busy)||!passwordServiceReady}
        onClick={()=>openPasswordEditor(employee)}
        aria-label={"Definir ou alterar a senha de "+employee.full_name}>
        <KeyRound className="mr-2 h-4 w-4"/>Senha
