@@ -246,7 +246,7 @@ function mapProductRow(row: any): Product {
       ? meta.color
       : (Array.isArray(meta.colors) ? meta.colors.join(', ') : undefined),
     type: typeof meta.type === 'string' ? meta.type : undefined,
-    stockPendingReview: meta.stock_pending_review === true,
+    stockPendingReview: meta.stock_pending_review === true && Number(row.stock_quantity ?? 0) === 0,
     image: images[0]?.url,
   };
 }
