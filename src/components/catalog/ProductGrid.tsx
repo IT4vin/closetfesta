@@ -88,9 +88,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
                   </p>
                 </div>
                 
-                {product.quantity > 0 && (
+                {product.stockPendingReview ? (
+                  <span className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                    Estoque a conferir
+                  </span>
+                ) : product.quantity > 0 ? (
                   <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                     Em estoque
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-1 rounded">
+                    Sem estoque
                   </span>
                 )}
               </div>
