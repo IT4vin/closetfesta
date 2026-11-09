@@ -3,7 +3,7 @@ import {
   Search, Plus, Minus, X, ShoppingCart, UserRound, CalendarDays, CreditCard,
   Trash2, Keyboard, Save, ArrowRight, PackageSearch, ClipboardList,
   RefreshCw, ShoppingBag, ShieldCheck, History, ChevronDown, SlidersHorizontal,
-  FileText, AlertCircle, Shirt, CheckCircle2
+  FileText, AlertCircle, Shirt, CheckCircle2, UsersRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ export interface PDVWorkspaceProps {
   onCustomer:()=>void; onRefresh:()=>void; onContinue:()=>void;
   onSaveDraft:()=>Promise<void>; onLoadDraft:()=>Promise<void>;
   onClear:()=>void; onOrders:()=>void;
+  onCreateListing?:()=>void;
   draftBusy:boolean; hasDraft:boolean;
 }
 
@@ -58,7 +59,7 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
     globalDiscountType,setGlobalDiscountType,total,totalDiscount,processing,
     availability,availabilityBusy,availabilityError,overrides,onReviewConflict,
     onDatesChange,onAdd,onQuantityChange,onItemDiscount,onRemove,onCustomer,
-    onRefresh,onContinue,onSaveDraft,onLoadDraft,onClear,onOrders,draftBusy,hasDraft,
+    onRefresh,onContinue,onSaveDraft,onLoadDraft,onClear,onOrders,onCreateListing,draftBusy,hasDraft,
   }=props;
   const {user}=useAuth();
   const [qty,setQty]=useState(1);
@@ -150,6 +151,7 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
             <DropdownMenuItem onSelect={()=>void onSaveDraft()} disabled={draftBusy}><Save className="mr-2 h-4 w-4"/>Salvar para depois</DropdownMenuItem>
             <DropdownMenuItem onSelect={()=>void onLoadDraft()} disabled={!hasDraft||draftBusy}><History className="mr-2 h-4 w-4"/>Recuperar atendimento</DropdownMenuItem>
             <DropdownMenuItem onSelect={onOrders}><ClipboardList className="mr-2 h-4 w-4"/>Ver pedidos</DropdownMenuItem>
+            {onCreateListing&&<DropdownMenuItem onSelect={onCreateListing}><UsersRound className="mr-2 h-4 w-4"/>Criar listagem de casamento</DropdownMenuItem>}
             <DropdownMenuItem onSelect={onRefresh}><RefreshCw className="mr-2 h-4 w-4"/>Atualizar catálogo</DropdownMenuItem>
             <DropdownMenuItem onSelect={onClear} disabled={!cart.length}><Trash2 className="mr-2 h-4 w-4"/>Cancelar atendimento</DropdownMenuItem>
           </DropdownMenuContent>
@@ -351,7 +353,13 @@ export default function PDVWorkspace(props:PDVWorkspaceProps){
         <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><ShoppingCart className="h-4 w-4 text-marsala-800"/>Resumo da locação</h3>
-            <Badge variant="outline" className="border-marsala-200 text-marsala-800">Aluguel</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              {onCreateListing&&<Button type="button" size="sm" variant="outline"
+                className="border-marsala-200 text-marsala-900" onClick={onCreateListing}>
+                <UsersRound className="mr-1 h-4 w-4"/>Criar listagem
+              </Button>}
+              <Badge variant="outline" className="border-marsala-200 text-marsala-800">Aluguel</Badge>
+            </div>
           </div>
           <div className="space-y-3 p-4 text-sm">
             <div className="flex items-center justify-between"><span className="text-muted-foreground">Modelos</span>
