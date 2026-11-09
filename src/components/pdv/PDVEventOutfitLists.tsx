@@ -45,6 +45,9 @@ export default function PDVEventOutfitLists({createSignal=0}: Props) {
   const [ruleSearch,setRuleSearch] = useState('');
   const [personGroup,setPersonGroup] = useState<string | null>(null);
   const [person,setPerson] = useState(BLANK_PERSON);
+  const [editPerson,setEditPerson] = useState<OutfitParticipant | null>(null);
+  const [editStatus,setEditStatus] = useState<OutfitParticipant['status']>('pending');
+  const [editNotes,setEditNotes] = useState('');
   const [contractPerson,setContractPerson] = useState<OutfitParticipant | null>(null);
   const [selectedProducts,setSelectedProducts] = useState<string[]>([]);
   const [pickup,setPickup] = useState('');
@@ -120,6 +123,18 @@ export default function PDVEventOutfitLists({createSignal=0}: Props) {
     });
     setPersonGroup(null);setPerson(BLANK_PERSON);await reloadDetail(listId);
     toast({title:result.existing_client?'Cliente vinculado sem duplicação':'Cliente cadastrado na listagem'});
+  });
+  const saveParticipantTracking=()=>act(async()=>{
+    if(!editPerson) return;
+    if(!editPerson.contract_id && (editStatus==='contracted' || editStatus==='completed')) {
+      throw new Error('Vincule um contrato antes de marcar como contratado ou concluído.');
+    }
+    if(editPerson.contract_id && editStatus==='cancelled') {
+      throw new Error('Cancele primeiro o contrato de aluguel pelo procedimento da loja.');
+    }
+    await outfitListApi.updateParticipant(editPerson.id,editStatus,editNotes);
+    setEditPerson(null);await reloadDetail(listId);
+    toast({title:'Acompanhamento do participante atualizado'});
   });
   const rulesForContract=useMemo(()=>
     detail?.rules.filter(x=>x.group_id===contractPerson?.group_id)||[],[detail,contractPerson]);
@@ -264,6 +279,9 @@ export default function PDVEventOutfitLists({createSignal=0}: Props) {
                     </div>
                     <div className="flex gap-2 flex-wrap items-center">
                       <Badge variant={p.contract_id?'outline':'secondary'}>{p.contract_id?'Contrato vinculado':p.status==='pending'?'Sem contrato':p.status}</Badge>
+                      {canEdit && <Button size="sm" variant="ghost" onClick={()=>{
+                        setEditPerson(p);setEditStatus(p.status);setEditNotes(p.notes||'');
+                      }}>Acompanhar</Button>}
                       {canEdit && !p.contract_id && <>
                         <Button size="sm" variant="outline" onClick={()=>openLink(p)}>Vincular existente</Button>
                         <Button size="sm" className="bg-marsala hover:bg-marsala/90" onClick={()=>openContract(p)}>
@@ -369,6 +387,33 @@ export default function PDVEventOutfitLists({createSignal=0}: Props) {
         <div><Label>Observações / responsável por menor</Label><Textarea value={person.notes} onChange={e=>setPerson(s=>({...s,notes:e.target.value}))}/></div>
         <DialogFooter><Button variant="outline" onClick={()=>setPersonGroup(null)}>Cancelar</Button>
           <Button disabled={saving} className="bg-marsala hover:bg-marsala/90" onClick={addPerson}>Cadastrar cliente e vincular</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!editPerson} onOpenChange={v=>{if(!v)setEditPerson(null)}}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Acompanhar participante</DialogTitle></DialogHeader>
+        <p className="text-sm text-neutral-500">{editPerson?.clients?.full_name}</p>
+        <div><Label>Situação</Label>
+          <Select value={editStatus} onValueChange={v=>setEditStatus(v as OutfitParticipant['status'])}>
+            <SelectTrigger><SelectValue/></SelectTrigger><SelectContent>
+              <SelectItem value="pending">Aguardando atendimento</SelectItem>
+              <SelectItem value="contacted">Contatado</SelectItem>
+              <SelectItem value="fitting">Prova / ajustes</SelectItem>
+              {editPerson?.contract_id && <>
+                <SelectItem value="contracted">Contrato fechado</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+              </>}
+              {!editPerson?.contract_id && <SelectItem value="cancelled">Participação cancelada</SelectItem>}
+            </SelectContent>
+          </Select>
+        </div>
+        <div><Label>Orientações e observações individuais</Label>
+          <Textarea value={editNotes} onChange={e=>setEditNotes(e.target.value)} rows={4}
+            placeholder="Ex.: comparecer com sapato, bainha especial, data da prova"/></div>
+        <DialogFooter><Button variant="outline" onClick={()=>setEditPerson(null)}>Fechar</Button>
+          <Button disabled={saving} onClick={saveParticipantTracking} className="bg-marsala hover:bg-marsala/90">Salvar acompanhamento</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 
