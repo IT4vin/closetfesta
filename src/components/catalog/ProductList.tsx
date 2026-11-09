@@ -102,9 +102,17 @@ const ProductList: React.FC<ProductListProps> = ({ products }) => {
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      {product.quantity > 0 && (
+                      {product.stockPendingReview ? (
+                        <span className="text-sm text-amber-700 bg-amber-50 px-3 py-1 rounded">
+                          Estoque a conferir
+                        </span>
+                      ) : product.quantity > 0 ? (
                         <span className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded">
                           Em estoque
+                        </span>
+                      ) : (
+                        <span className="text-sm text-neutral-600 bg-neutral-100 px-3 py-1 rounded">
+                          Sem estoque
                         </span>
                       )}
                       
