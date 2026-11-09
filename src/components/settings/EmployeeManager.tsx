@@ -1,18 +1,21 @@
 import React,{useMemo,useState} from "react";
 import {useQuery,useQueryClient} from "@tanstack/react-query";
 import {BadgeCheck,CalendarClock,Check,ClipboardList,KeyRound,
-  Mail,Plus,RefreshCcw,Search,Shield,ShieldAlert,UserCheck,UserRound,
+  Eye,EyeOff,Mail,Plus,RefreshCcw,Search,Shield,ShieldAlert,UserCheck,UserRound,
   UserRoundX,Users} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Card,CardContent,CardHeader,CardTitle} from "@/components/ui/card";
+import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle}
+ from "@/components/ui/dialog";
 import {useAuth} from "@/stores/authStore";
 import {hasRolePermission} from "@/lib/accessControl";
 import {
  changeEmployeeRole,employeeRoleDetails,employeeRoleLabels,
  inviteEmployee,listEmployees,newEmployeeDraft,updateEmployee,
+ setEmployeePassword,validateEmployeePassword,
  validateEmployeeDraft,type EmployeeDraft,type EmployeeRole,type EmployeeRow,
 } from "@/lib/employeeManagement";
 
@@ -126,6 +129,11 @@ export default function EmployeeManager(){
  const [selected,setSelected]=useState<EmployeeRow|null>(null);
  const [form,setForm]=useState<EmployeeDraft>(newEmployeeDraft);
  const [roleDraft,setRoleDraft]=useState<EmployeeRole>("staff");
+ const [passwordTarget,setPasswordTarget]=useState<EmployeeRow|null>(null);
+ const [passwordDraft,setPasswordDraft]=useState("");
+ const [passwordConfirm,setPasswordConfirm]=useState("");
+ const [passwordVisible,setPasswordVisible]=useState(false);
+ const [passwordError,setPasswordError]=useState("");
  const [busy,setBusy]=useState("");
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
@@ -155,6 +163,44 @@ export default function EmployeeManager(){
  };
  const refresh=async()=>{
   await cache.invalidateQueries({queryKey:["settings","employees"]});
+ };
+ const closePasswordEditor=()=>{
+  if(busy)return;
+  setPasswordTarget(null);setPasswordDraft("");setPasswordConfirm("");
+  setPasswordVisible(false);setPasswordError("");
+ };
+ const openPasswordEditor=(employee:EmployeeRow)=>{
+  if(busy||!admin)return;
+  setPasswordTarget(employee);
+  setPasswordDraft("");setPasswordConfirm("");
+  setPasswordVisible(false);setPasswordError("");setError("");
+ };
+ const submitPassword=async(e:React.FormEvent)=>{
+  e.preventDefault();
+  if(!admin||busy||!passwordTarget)return;
+  const issue=validateEmployeePassword(passwordDraft);
+  if(issue){setPasswordError(issue);return;}
+  if(passwordDraft!==passwordConfirm){
+   setPasswordError("As senhas digitadas não coincidem.");
+   return;
+  }
+  if(!window.confirm(
+   "Confirma a alteração da senha de login de "+passwordTarget.full_name+
+   " ("+passwordTarget.email+")? A senha antiga deixará de funcionar no próximo login."))return;
+  setBusy("password");setPasswordError("");setError("");
+  try{
+   const result=await setEmployeePassword(passwordTarget.id,passwordDraft);
+   setNotice(result.audit_confirmed
+    ?"Senha de login de "+passwordTarget.full_name+" atualizada com sucesso."
+    :"Senha atualizada. Verifique o registro de auditoria no Supabase.");
+   setPasswordTarget(null);
+   await refresh();
+  }catch(cause){
+   setPasswordError(cause instanceof Error?cause.message:"Não foi possível redefinir a senha.");
+  }finally{
+   // Não manter a senha em memória após uma tentativa, inclusive se ela falhar.
+   setPasswordDraft("");setPasswordConfirm("");setPasswordVisible(false);setBusy("");
+  }
  };
  const submitDetails=async(e:React.FormEvent)=>{
   e.preventDefault();
@@ -309,6 +355,20 @@ export default function EmployeeManager(){
       Desativar retira os perfis de acesso; não exclui a conta ou seus
       registros de contrato, pagamentos e ponto.
      </p>
+     <div className="border-t pt-5 space-y-2">
+      <h4 className="flex items-center gap-2 font-semibold text-marsala-950">
+       <KeyRound className="h-4 w-4"/>Senha de login
+      </h4>
+      <p className="text-xs text-muted-foreground">
+       Defina uma senha nova para este usuário, inclusive se ele ainda estiver em primeiro acesso.
+       A senha atual não pode ser consultada e a alteração é registrada sem guardar credenciais.
+      </p>
+      <Button type="button" variant="outline" disabled={Boolean(busy)}
+       onClick={()=>openPasswordEditor(selected)}
+       className="border-marsala-200 text-marsala-900">
+       <KeyRound className="mr-2 h-4 w-4"/>Definir ou alterar senha
+      </Button>
+     </div>
     </>}
    </CardContent>
   </Card>}
@@ -357,7 +417,12 @@ export default function EmployeeManager(){
       {!employee.email_confirmed&&<Badge variant="outline" className="border-amber-200 text-amber-800">
        Convite pendente
       </Badge>}
-      <Button variant="outline" size="sm" onClick={()=>openEdit(employee)}>
+      <Button variant="outline" size="sm" disabled={Boolean(busy)}
+       onClick={()=>openPasswordEditor(employee)}
+       aria-label={"Definir ou alterar a senha de "+employee.full_name}>
+       <KeyRound className="mr-2 h-4 w-4"/>Senha
+      </Button>
+      <Button variant="outline" size="sm" disabled={Boolean(busy)} onClick={()=>openEdit(employee)}>
        <Shield className="mr-2 h-4 w-4"/>Gerenciar
       </Button>
      </div>
@@ -366,9 +431,73 @@ export default function EmployeeManager(){
   </Card>
   <div className="flex items-start gap-2 rounded-lg border border-[#E8E5E1] bg-[#FDFCFB] p-4 text-xs text-muted-foreground">
    <ShieldAlert className="h-4 w-4 shrink-0 text-marsala-700"/>
-   Somente administradores podem convidar funcionários, alterar perfis e
-   desativar acessos. Cada funcionário usa seu próprio login. Registros
-   anteriores são mantidos para auditoria.
+   Somente administradores podem convidar funcionários, definir senhas,
+   alterar perfis e desativar acessos. Cada funcionário usa seu próprio login.
+   Registros anteriores são mantidos para auditoria.
   </div>
+  <Dialog open={Boolean(passwordTarget)} onOpenChange={open=>{
+   if(!open)closePasswordEditor();
+  }}>
+   <DialogContent className="sm:max-w-lg">
+    <DialogHeader>
+     <DialogTitle className="flex items-center gap-2 text-marsala-950">
+      <KeyRound className="h-5 w-5 text-marsala-800"/>Definir senha de login
+     </DialogTitle>
+     <DialogDescription>
+      Esta operação altera a senha de acesso do usuário no Supabase Auth.
+      A senha anterior não fica visível nem será recuperada.
+     </DialogDescription>
+    </DialogHeader>
+    {passwordTarget&&<form onSubmit={e=>void submitPassword(e)} className="space-y-4">
+     <div className="rounded-lg border border-[#E8E5E1] bg-[#FDFCFB] p-3 text-sm">
+      <p className="font-semibold">{passwordTarget.full_name}</p>
+      <p className="break-all text-xs text-muted-foreground">{passwordTarget.email}</p>
+      {!passwordTarget.email_confirmed&&<p className="mt-2 text-xs text-amber-800">
+       O e-mail ainda não foi confirmado. Definir uma senha não dispensa a confirmação necessária para acessar a conta.
+      </p>}
+     </div>
+     <div className="space-y-1.5">
+      <Label htmlFor="admin-new-password">Nova senha (mínimo 12 caracteres) *</Label>
+      <div className="relative">
+       <Input id="admin-new-password" type={passwordVisible?"text":"password"}
+        autoComplete="new-password" minLength={12} maxLength={72}
+        required value={passwordDraft} disabled={Boolean(busy)}
+        className="pr-12"
+        onChange={e=>{setPasswordDraft(e.target.value);setPasswordError("");}}/>
+       <Button type="button" variant="ghost" size="icon"
+        aria-label={passwordVisible?"Ocultar nova senha":"Mostrar nova senha"}
+        disabled={Boolean(busy)}
+        onClick={()=>setPasswordVisible(v=>!v)}
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+        {passwordVisible?<EyeOff className="h-4 w-4"/>:<Eye className="h-4 w-4"/>}
+       </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Use de 12 a 72 caracteres, com letras e números. Prefira uma senha única para cada funcionário.</p>
+     </div>
+     <div className="space-y-1.5">
+      <Label htmlFor="admin-confirm-password">Confirmar nova senha *</Label>
+      <Input id="admin-confirm-password" type={passwordVisible?"text":"password"}
+       autoComplete="new-password" minLength={12} maxLength={72}
+       required value={passwordConfirm} disabled={Boolean(busy)}
+       onChange={e=>{setPasswordConfirm(e.target.value);setPasswordError("");}}/>
+     </div>
+     {passwordError&&<p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+      {passwordError}
+     </p>}
+     <p className="text-xs text-muted-foreground">
+      A senha será atualizada diretamente no serviço de autenticação, sem ser armazenada no cadastro.
+      Sessões já abertas podem permanecer ativas até serem encerradas.
+     </p>
+     <DialogFooter>
+      <Button type="button" variant="outline" disabled={Boolean(busy)}
+       onClick={closePasswordEditor}>Cancelar</Button>
+      <Button type="submit" disabled={Boolean(busy)||!passwordDraft||!passwordConfirm}
+       className="bg-marsala hover:bg-marsala-700">
+       {busy==="password"?"Atualizando...":"Salvar nova senha"}
+      </Button>
+     </DialogFooter>
+    </form>}
+   </DialogContent>
+  </Dialog>
  </div>;
 }
