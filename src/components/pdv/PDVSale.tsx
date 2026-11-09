@@ -63,11 +63,21 @@ export interface OrderDates {
 
 const PDVSale = () => {
   const { toast } = useToast();
-  const { productsList } = useProducts();
+  const { productsList, loading: productsLoading, error: productsError, total: productsTotal, refetch: refetchProducts } = useProducts();
   const { createOrder, generateContract, generateReceipt } = useOrders();
   
   const [barcode, setBarcode] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const visibleProducts = React.useMemo(() => {
+    const term = searchTerm.trim().toLocaleLowerCase('pt-BR');
+    if (!term) return productsList;
+    return productsList.filter(product => [
+      product.name,
+      product.sku ?? '',
+      product.id,
+      product.color ?? '',
+    ].some(value => value.toLocaleLowerCase('pt-BR').includes(term)));
+  }, [productsList, searchTerm]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('hybrid');
   const [defaultItemType, setDefaultItemType] = useState<ItemType>('sale');
@@ -192,7 +202,8 @@ const PDVSale = () => {
     if (!barcode) return;
     
     // Try to find by SKU first, then by ID
-    const product = productsList.find(p => p.sku === barcode || p.id === barcode);
+    const code = barcode.trim();
+    const product = productsList.find(p => p.sku === code || p.id === code);
     
     if (product) {
       addProductToCart(product, defaultItemType);
@@ -615,7 +626,7 @@ const PDVSale = () => {
             <div className="relative">
               <Input
                 type="text"
-                placeholder="Buscar produto"
+                placeholder="Buscar por código, nome ou cor"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -625,31 +636,44 @@ const PDVSale = () => {
               </div>
             </div>
             
-            {/* Product results */}
+            {/* Todos os produtos cadastrados, incluindo estoque pendente de conferência. */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500">
+              <span>{visibleProducts.length} de {productsTotal || productsList.length} produtos cadastrados</span>
+              {productsLoading && <span>Carregando produtos...</span>}
+              {productsError && (
+                <Button type="button" size="sm" variant="outline" onClick={() => void refetchProducts()}>
+                  Erro ao carregar. Tentar novamente
+                </Button>
+              )}
+            </div>
             <div className="h-[calc(100vh-40rem)] sm:h-[calc(100vh-36rem)] xl:h-[calc(100vh-32rem)] overflow-y-auto border rounded-md p-2">
-              {productsList
-                .filter(p => 
-                  searchTerm ? 
-                    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.id?.toLowerCase().includes(searchTerm.toLowerCase()) 
-                  : true
-                )
-                .map(product => (
+              {!productsLoading && !productsError && visibleProducts.length === 0 && (
+                <p className="p-4 text-sm text-neutral-500">Nenhum produto encontrado para essa busca.</p>
+              )}
+              {visibleProducts.map(product => (
                   <div 
                     key={product.id}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md cursor-pointer mb-2"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
+                      {product.image && (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          loading="lazy"
+                          className="h-16 w-12 mr-3 shrink-0 rounded object-cover"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.id}</p>
+                        <p className="text-xs text-gray-500">Código: {product.sku ?? product.id}</p>
                         <p className="font-semibold text-sm mt-1">R$ {product.price.toFixed(2)}</p>
                       </div>
-                      <Badge 
-                        variant={product.quantity > 0 ? "outline" : "destructive"}
+                      <Badge
+                        variant={product.stockPendingReview ? "secondary" : product.quantity > 0 ? "outline" : "destructive"}
                         className="text-xs"
                       >
-                        {product.quantity > 0 ? "Disponível" : "Indisponível"}
+                        {product.stockPendingReview ? "Estoque a conferir" : product.quantity > 0 ? "Disponível" : "Sem estoque"}
                       </Badge>
                     </div>
                     <div className="flex gap-1">
