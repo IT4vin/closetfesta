@@ -43,16 +43,16 @@ export function useProducts({
           category_id: categoryId || undefined,
           search: searchTerm || undefined,
           limit: pageSize,
-          offset: offset,
-          in_stock: true // Apenas produtos em estoque para o catálogo
+          offset: offset
+          // Catálogo interno: exibe também produtos cujo estoque ainda precisa de conferência.
         });
         
         if (response.success) {
           // Converter produtos para formato compatível
           const catalogProducts: CatalogProduct[] = response.data.map(product => ({
             ...product,
-            rental_price: product.price, // Usar price como rental_price por compatibilidade
-            sale_price: null,
+            rental_price: product.rental_price ?? product.price,
+            sale_price: undefined,
             category_name: product.category?.name
           }));
 
@@ -72,8 +72,8 @@ export function useProducts({
           }
 
           setProducts(filteredProducts);
-          setTotalCount(response.total || filteredProducts.length);
-          setHasMore(filteredProducts.length === pageSize);
+          setTotalCount(response.total ?? filteredProducts.length);
+          setHasMore(offset + response.data.length < (response.total ?? offset + response.data.length));
         } else {
           throw new Error(response.message || 'Erro ao buscar produtos');
         }
@@ -83,6 +83,9 @@ export function useProducts({
           : 'Erro ao carregar produtos';
         
         setError(errorMessage);
+        setProducts([]);
+        setTotalCount(0);
+        setHasMore(false);
         console.error('Erro ao buscar produtos:', err);
       } finally {
         setLoading(false);
