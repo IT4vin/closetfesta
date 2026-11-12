@@ -3,7 +3,7 @@ import {ROLE_LABELS,type AppRole} from "@/lib/accessControl";
 
 export type EmployeeRole=Exclude<AppRole,"viewer">|"inactive";
 export interface EmployeeRow {
- id:string;full_name:string;email:string;phone:string|null;
+ id:string;full_name:string;email:string;login_email?:string|null;username?:string|null;phone:string|null;
  role:EmployeeRole;email_confirmed:boolean;created_at:string;
  department:string|null;job_title:string|null;hired_on:string|null;
 }
@@ -156,4 +156,57 @@ export async function setEmployeePassword(target:string,password:string):Promise
  if(data?.updated!==true||data?.user_id!==target)
    throw new Error("O servidor não confirmou a alteração da senha.");
  return data as {updated:true;user_id:string;audit_confirmed:boolean;message:string};
+}
+
+
+/** Login interno e credenciais são criados exclusivamente na Edge Function autorizada. */
+export function validateEmployeeUsername(username:string):string|null {
+ return /^[a-z0-9][a-z0-9._-]{2,31}$/.test(username.trim().toLowerCase())
+   ? null : "O usuário deve ter de 3 a 32 caracteres: letras, números, ponto, hífen ou underline.";
+}
+async function invokeEmployeeCredentials(body:Record<string,unknown>){
+ const {data,error}=await supabase.functions.invoke("closet-admin-manage-employee",{body});
+ if(error){
+  let detail="";
+  const ctx=(error as any).context;
+  if(ctx&&typeof ctx.json==="function"){
+   try{const result=await ctx.json();detail=String(result?.error||"");}catch{}
+  }
+  throw new Error(detail||reason(error,"Falha na operação de credenciais."));
+ }
+ if(data?.error)throw new Error(String(data.error));
+ return data;
+}
+export async function createEmployeeWithCredentials(draft:EmployeeDraft,username:string,password:string){
+ const problem=validateEmployeeDraft(draft,false)||
+   validateEmployeeUsername(username)||validateEmployeePassword(password);
+ if(problem)throw new Error(problem);
+ const contactEmail=draft.email.trim().toLowerCase();
+ if(contactEmail&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contactEmail)){
+  throw new Error("Informe um e-mail de contato válido ou deixe em branco.");
+ }
+ if(draft.role==="admin"||draft.role==="inactive"){
+  throw new Error("Selecione um perfil operacional para o novo funcionário.");
+ }
+ const data=await invokeEmployeeCredentials({
+  action:"create",full_name:draft.full_name.trim(),
+  username:username.trim().toLowerCase(),password,
+  contact_email:contactEmail,role:draft.role,phone:draft.phone.trim(),
+  department:draft.department.trim(),job_title:draft.job_title.trim(),
+  hired_on:draft.hired_on||null,
+ });
+ if(data?.created!==true||typeof data?.user_id!=="string")
+  throw new Error("O Supabase não confirmou a criação do usuário.");
+ return data as {created:true;user_id:string;username:string;message:string};
+}
+export async function setEmployeeUsername(target:string,username:string){
+ const problem=validateEmployeeUsername(username);
+ if(problem)throw new Error(problem);
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target))
+  throw new Error("Funcionário inválido.");
+ const data=await invokeEmployeeCredentials({
+  action:"set_username",target_id:target,username:username.trim().toLowerCase(),
+ });
+ if(data?.updated!==true)throw new Error("O Supabase não confirmou a alteração do usuário.");
+ return data as {updated:true;username:string;audit_confirmed:boolean;message:string};
 }
