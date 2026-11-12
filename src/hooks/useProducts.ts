@@ -133,6 +133,10 @@ export function useProducts(options: UseProductsOptions = {}) {
 
   const handleFormSubmit = async (productData: any) => {
     const files: File[] = productData.imageFiles ?? [];
+    const removeImageIds: string[] = Array.isArray(productData.removeImageIds)
+      ? Array.from(new Set(productData.removeImageIds.filter((id: unknown): id is string =>
+          typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id))))
+      : [];
     const rentalPrice = Number(productData.rentalPrice ?? productData.rental_price ?? 0);
     const payload = {
       name: String(productData.name ?? "").trim(),
@@ -151,6 +155,22 @@ export function useProducts(options: UseProductsOptions = {}) {
       const saved = editingProduct
         ? await updateProduct(editingProduct.id, payload)
         : await createProduct(payload);
+      if (removeImageIds.length) {
+        if (!editingProduct) {
+          throw new Error('Não é possível remover imagens de um produto ainda não cadastrado.');
+        }
+        try {
+          for (const imageId of removeImageIds) {
+            const result = await productsApi.removeImage(saved.id, imageId);
+            if (!result.success) throw new Error(result.message || 'Exclusão não confirmada.');
+          }
+          await fetchProducts();
+        } catch (error) {
+          await fetchProducts();
+          setEditingProduct(saved);
+          throw new Error(`Dados do produto salvos, mas houve erro ao excluir uma foto. Reabra o produto para conferir as imagens e tente novamente. ${error instanceof Error ? error.message : ''}`);
+        }
+      }
       if (files.length) {
         try {
           await uploadImages(saved.id, files);
