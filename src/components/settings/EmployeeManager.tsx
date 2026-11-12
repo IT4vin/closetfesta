@@ -13,9 +13,9 @@ import {Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogT
 import {useAuth} from "@/stores/authStore";
 import {hasRolePermission} from "@/lib/accessControl";
 import {
- changeEmployeeRole,checkEmployeePasswordService,employeeRoleDetails,employeeRoleLabels,
- inviteEmployee,listEmployees,newEmployeeDraft,updateEmployee,
- setEmployeePassword,validateEmployeePassword,
+ changeEmployeeRole,createEmployeeWithCredentials,employeeRoleDetails,employeeRoleLabels,
+ inviteEmployee,listEmployees,newEmployeeDraft,updateEmployee,setEmployeeUsername,
+ setEmployeePassword,validateEmployeePassword,validateEmployeeUsername,
  validateEmployeeDraft,type EmployeeDraft,type EmployeeRole,type EmployeeRow,
 } from "@/lib/employeeManagement";
 
@@ -71,9 +71,9 @@ function RolePreview({role}:{role:EmployeeRole}){
   </p>
  </section>;
 }
-function EmployeeFields({form,setForm,disabled,isCreate}:{
+function EmployeeFields({form,setForm,disabled,isCreate,credentialsMode}:{
  form:EmployeeDraft;setForm:React.Dispatch<React.SetStateAction<EmployeeDraft>>;
- disabled:boolean;isCreate:boolean;
+ disabled:boolean;isCreate:boolean;credentialsMode:boolean;
 }){
  const change=(key:keyof EmployeeDraft,value:string)=>
   setForm(prev=>({...prev,[key]:value}));
@@ -86,8 +86,8 @@ function EmployeeFields({form,setForm,disabled,isCreate}:{
     onChange={e=>change("full_name",e.target.value)}/>
   </div>
   <div className="space-y-1.5">
-   <Label htmlFor="employee-email">E-mail de acesso *</Label>
-   <Input id="employee-email" type="email" autoComplete="email" required={isCreate}
+   <Label htmlFor="employee-email">{credentialsMode?"E-mail de contato (opcional)":"E-mail de acesso *"}</Label>
+   <Input id="employee-email" type="email" autoComplete="email" required={isCreate&&!credentialsMode}
     readOnly={!isCreate} disabled={disabled} value={form.email}
     placeholder="funcionario@exemplo.com"
     onChange={e=>change("email",e.target.value)}/>
@@ -128,6 +128,11 @@ export default function EmployeeManager(){
  const [mode,setMode]=useState<EditorMode>(null);
  const [selected,setSelected]=useState<EmployeeRow|null>(null);
  const [form,setForm]=useState<EmployeeDraft>(newEmployeeDraft);
+ const [createMethod,setCreateMethod]=useState<"credentials"|"invite">("credentials");
+ const [initialUsername,setInitialUsername]=useState("");
+ const [initialPassword,setInitialPassword]=useState("");
+ const [initialPasswordConfirm,setInitialPasswordConfirm]=useState("");
+ const [usernameDraft,setUsernameDraft]=useState("");
  const [roleDraft,setRoleDraft]=useState<EmployeeRole>("staff");
  const [passwordTarget,setPasswordTarget]=useState<EmployeeRow|null>(null);
  const [passwordDraft,setPasswordDraft]=useState("");
@@ -141,23 +146,21 @@ export default function EmployeeManager(){
    queryKey:["settings","employees"],
    queryFn:listEmployees,enabled:admin,staleTime:15000,
  });
- const passwordService=useQuery({
-   queryKey:["settings","employeePasswordService"],
-   queryFn:checkEmployeePasswordService,
-   enabled:admin,staleTime:20000,retry:false,
- });
- const passwordServiceReady=passwordService.data===true;
  const filtered=useMemo(()=>employees.data?.filter(m=>
-   [m.full_name,m.email,m.job_title,m.department].join(" ").toLowerCase()
+   [m.full_name,m.username,m.email,m.job_title,m.department].join(" ").toLowerCase()
      .includes(search.trim().toLowerCase()))??[],[employees.data,search]);
  const roleSummary=useMemo(()=>{
    const rows=employees.data??[];
    return {total:rows.length,active:rows.filter(m=>m.role!=="inactive").length,
      pending:rows.filter(m=>!m.email_confirmed).length};
  },[employees.data]);
- const close=()=>{setMode(null);setSelected(null);setError("");};
+ const clearCreateCredentials=()=>{
+  setInitialUsername("");setInitialPassword("");setInitialPasswordConfirm("");
+ };
+ const close=()=>{setMode(null);setSelected(null);setError("");clearCreateCredentials();};
  const openInvite=()=>{
   setMode("create");setSelected(null);setForm(newEmployeeDraft());
+  setCreateMethod("credentials");clearCreateCredentials();
   setRoleDraft("staff");setError("");setNotice("");
  };
  const openEdit=(employee:EmployeeRow)=>{
@@ -173,21 +176,18 @@ export default function EmployeeManager(){
  const closePasswordEditor=()=>{
   if(busy)return;
   setPasswordTarget(null);setPasswordDraft("");setPasswordConfirm("");
-  setPasswordVisible(false);setPasswordError("");
+  setPasswordVisible(false);setPasswordError("");setUsernameDraft("");
  };
  const openPasswordEditor=(employee:EmployeeRow)=>{
-  if(busy||!admin||!passwordServiceReady)return;
+  if(busy||!admin)return;
   setPasswordTarget(employee);
+  setUsernameDraft(employee.username??"");
   setPasswordDraft("");setPasswordConfirm("");
   setPasswordVisible(false);setPasswordError("");setError("");
  };
  const submitPassword=async(e:React.FormEvent)=>{
   e.preventDefault();
   if(!admin||busy||!passwordTarget)return;
-  if(!passwordServiceReady){
-   setPasswordError("A função de senhas ainda não está disponível no Supabase.");
-   return;
-  }
   const issue=validateEmployeePassword(passwordDraft);
   if(issue){setPasswordError(issue);return;}
   if(passwordDraft!==passwordConfirm){
@@ -212,21 +212,52 @@ export default function EmployeeManager(){
    setPasswordDraft("");setPasswordConfirm("");setPasswordVisible(false);setBusy("");
   }
  };
+ const submitUsername=async()=>{
+  if(!admin||busy||!passwordTarget)return;
+  const issue=validateEmployeeUsername(usernameDraft);
+  if(issue){setPasswordError(issue);return;}
+  if(usernameDraft.trim().toLowerCase()===passwordTarget.username)return;
+  if(!window.confirm("Alterar o login de "+passwordTarget.full_name+"? O identificador de acesso anterior deixará de funcionar."))return;
+  setBusy("username");setPasswordError("");
+  try{
+   const response=await setEmployeeUsername(passwordTarget.id,usernameDraft);
+   setPasswordTarget({...passwordTarget,username:response.username,
+    login_email:response.username+"@closetmanager.local"});
+   setNotice(response.audit_confirmed?"Usuário de login atualizado.":"Login atualizado; confirme a auditoria.");
+   await refresh();
+  }catch(cause){
+   setPasswordError(cause instanceof Error?cause.message:"Não foi possível alterar o usuário.");
+  }finally{setBusy("");}
+ };
  const submitDetails=async(e:React.FormEvent)=>{
   e.preventDefault();
   if(busy||!admin)return;
-  const issue=validateEmployeeDraft(form,mode==="create");
+  const isCredentials=mode==="create"&&createMethod==="credentials";
+  const issue=validateEmployeeDraft(form,mode==="create"&&!isCredentials);
   if(issue){setError(issue);return;}
+  if(isCredentials){
+   const credentialIssue=validateEmployeeUsername(initialUsername)||
+      validateEmployeePassword(initialPassword);
+   if(credentialIssue){setError(credentialIssue);return;}
+   if(initialPassword!==initialPasswordConfirm){
+    setError("As senhas digitadas não coincidem.");return;
+   }
+  }
   setError("");setNotice("");setBusy("save");
   try{
    if(mode==="create"){
-    const confirmation=window.confirm(
-     "Enviar convite de acesso para "+form.email+" como "+employeeRoleLabels[form.role]+
-     "? A senha será definida pelo próprio funcionário.");
-    if(!confirmation)return;
-    const result=await inviteEmployee(form);
-    setNotice("Convite enviado para "+result.email+
-      ". O funcionário define a senha pelo e-mail recebido.");
+    if(isCredentials){
+     await createEmployeeWithCredentials(form,initialUsername,initialPassword);
+     setNotice("Funcionário cadastrado. O usuário e a senha escolhidos já podem ser usados no login.");
+    }else{
+     const confirmation=window.confirm(
+      "Enviar convite de acesso para "+form.email+" como "+employeeRoleLabels[form.role]+
+      "? A senha será definida pelo próprio funcionário.");
+     if(!confirmation)return;
+     const result=await inviteEmployee(form);
+     setNotice("Convite enviado para "+result.email+
+       ". O funcionário define a senha pelo e-mail recebido.");
+    }
     close();
    }else if(mode==="edit"&&selected){
     await updateEmployee(selected.id,form);
@@ -237,7 +268,7 @@ export default function EmployeeManager(){
   }catch(cause){
    setError(cause instanceof Error?cause.message:"Não foi possível concluir.");
    await refresh();
-  }finally{setBusy("");}
+  }finally{setBusy("");setInitialPassword("");setInitialPasswordConfirm("");}
  };
  const saveRole=async()=>{
   if(!admin||busy||!selected||selected.id===user?.id||
@@ -270,8 +301,8 @@ export default function EmployeeManager(){
     </p>
     <h3 className="mt-1 text-xl font-semibold text-marsala-950">Cadastro de Funcionários</h3>
     <p className="mt-1 max-w-lg text-sm leading-relaxed text-muted-foreground">
-     Convide funcionários para utilizar o sistema com login próprio, escolha o
-     perfil de acesso e mantenha todos os históricos de operação e ponto.
+     Cadastre usuários e senhas próprios ou envie convites. Defina o
+     perfil de acesso e preserve os históricos de operação e ponto.
     </p>
    </div>
    <Button onClick={openInvite} className="bg-marsala hover:bg-marsala-700">
@@ -292,30 +323,57 @@ export default function EmployeeManager(){
   </div>
   {notice&&<p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{notice}</p>}
   {error&&<p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-900">{error}</p>}
-  {!passwordServiceReady&&!passwordService.isPending&&<div role="status"
-   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-   <span>A redefinição administrativa de senhas está aguardando a publicação da função segura no Supabase. Convites, cadastros e permissões continuam funcionando.</span>
-   <Button type="button" variant="outline" size="sm" disabled={passwordService.isFetching}
-    onClick={()=>void passwordService.refetch()}>
-    <RefreshCcw className="mr-2 h-4 w-4"/>Verificar serviço
-   </Button>
-  </div>}
   {mode&&<Card className="border-marsala-200 shadow-sm">
    <CardHeader className="border-b">
     <CardTitle className="flex items-center gap-2 text-base">
      <UserRound className="h-5 w-5 text-marsala-800"/>
-     {mode==="create"?"Cadastrar e convidar funcionário":"Editar cadastro do funcionário"}
+     {mode==="create"?"Cadastrar funcionário":"Editar cadastro do funcionário"}
     </CardTitle>
     <p className="text-xs leading-relaxed text-muted-foreground">
      {mode==="create"
-      ?"Será enviado um convite pelo Supabase Auth. A senha é privada e definida pelo funcionário."
+      ?"Escolha entre login com usuário e senha determinados pelo administrador ou convite por e-mail."
       :"As informações serão atualizadas no cadastro vinculado ao login existente."}
     </p>
    </CardHeader>
    <CardContent className="space-y-5 p-4 sm:p-5">
     <form onSubmit={e=>void submitDetails(e)} className="space-y-5">
+     {mode==="create"&&<div className="flex flex-wrap gap-2">
+      <Button type="button" variant={createMethod==="credentials"?"default":"outline"}
+       onClick={()=>setCreateMethod("credentials")} disabled={Boolean(busy)}>
+       <KeyRound className="mr-2 h-4 w-4"/>Definir usuário e senha
+      </Button>
+      <Button type="button" variant={createMethod==="invite"?"default":"outline"}
+       onClick={()=>setCreateMethod("invite")} disabled={Boolean(busy)}>
+       <Mail className="mr-2 h-4 w-4"/>Convidar por e-mail
+      </Button>
+     </div>}
      <EmployeeFields form={form} setForm={setForm} disabled={Boolean(busy)}
-      isCreate={mode==="create"}/>
+      isCreate={mode==="create"} credentialsMode={mode==="create"&&createMethod==="credentials"}/>
+     {mode==="create"&&createMethod==="credentials"&&<div className="grid gap-3 rounded-xl border border-marsala-200 p-4">
+      <div className="space-y-1.5">
+       <Label htmlFor="employee-username">Usuário de login *</Label>
+       <Input id="employee-username" required minLength={3} maxLength={32}
+        autoComplete="off" placeholder="ex.: maria.vendas"
+        value={initialUsername} disabled={Boolean(busy)}
+        onChange={e=>setInitialUsername(e.target.value.toLowerCase())}/>
+      </div>
+      <div className="space-y-1.5">
+       <Label htmlFor="employee-initial-password">Senha inicial (12 a 72 caracteres) *</Label>
+       <Input id="employee-initial-password" type="password" autoComplete="new-password"
+        minLength={12} maxLength={72} required value={initialPassword}
+        disabled={Boolean(busy)} onChange={e=>setInitialPassword(e.target.value)}/>
+      </div>
+      <div className="space-y-1.5">
+       <Label htmlFor="employee-initial-password-confirm">Confirmar senha *</Label>
+       <Input id="employee-initial-password-confirm" type="password"
+        autoComplete="new-password" minLength={12} maxLength={72} required
+        value={initialPasswordConfirm} disabled={Boolean(busy)}
+        onChange={e=>setInitialPasswordConfirm(e.target.value)}/>
+      </div>
+      <p className="text-xs text-muted-foreground">
+       Use uma senha com letras e números; a senha não será guardada na ficha do funcionário.
+      </p>
+     </div>}
      {mode==="create"&&<div className="space-y-2">
       <Label htmlFor="employee-invite-role">Perfil inicial de acesso *</Label>
       <select id="employee-invite-role" value={form.role} disabled={Boolean(busy)}
@@ -332,6 +390,7 @@ export default function EmployeeManager(){
        onClick={close}>Cancelar</Button>
       <Button type="submit" disabled={Boolean(busy)} className="bg-marsala hover:bg-marsala-700">
        {busy?"Salvando...":mode==="create"?
+        createMethod==="credentials"?<><KeyRound className="mr-2 h-4 w-4"/>Criar acesso</>:
         <><Mail className="mr-2 h-4 w-4"/>Enviar convite</>:
         <><BadgeCheck className="mr-2 h-4 w-4"/>Salvar dados</>}
       </Button>
@@ -381,7 +440,7 @@ export default function EmployeeManager(){
        Defina uma senha nova para este usuário, inclusive se ele ainda estiver em primeiro acesso.
        A senha atual não pode ser consultada e a alteração é registrada sem guardar credenciais.
       </p>
-      <Button type="button" variant="outline" disabled={Boolean(busy)||!passwordServiceReady}
+      <Button type="button" variant="outline" disabled={Boolean(busy)}
        onClick={()=>openPasswordEditor(selected)}
        className="border-marsala-200 text-marsala-900">
        <KeyRound className="mr-2 h-4 w-4"/>Definir ou alterar senha
@@ -423,7 +482,11 @@ export default function EmployeeManager(){
       </div>
       <div className="min-w-0">
        <p className="break-words text-sm font-semibold">{employee.full_name||"Sem nome"}</p>
-       <p className="break-words text-xs text-muted-foreground">{employee.email}</p>
+       <p className="break-words text-xs text-muted-foreground">
+        {employee.username?"Usuário: "+employee.username:employee.email}
+       </p>
+       {employee.username&&employee.email&&employee.email!==employee.login_email&&
+         <p className="break-words text-xs text-muted-foreground">Contato: {employee.email}</p>}
        {employee.job_title&&<p className="mt-1 text-xs text-muted-foreground">{employee.job_title}</p>}
       </div>
      </div>
@@ -435,7 +498,7 @@ export default function EmployeeManager(){
       {!employee.email_confirmed&&<Badge variant="outline" className="border-amber-200 text-amber-800">
        Convite pendente
       </Badge>}
-      <Button variant="outline" size="sm" disabled={Boolean(busy)||!passwordServiceReady}
+      <Button variant="outline" size="sm" disabled={Boolean(busy)}
        onClick={()=>openPasswordEditor(employee)}
        aria-label={"Definir ou alterar a senha de "+employee.full_name}>
        <KeyRound className="mr-2 h-4 w-4"/>Senha
@@ -473,6 +536,17 @@ export default function EmployeeManager(){
       {!passwordTarget.email_confirmed&&<p className="mt-2 text-xs text-amber-800">
        O e-mail ainda não foi confirmado. Definir uma senha não dispensa a confirmação necessária para acessar a conta.
       </p>}
+     </div>
+     <div className="space-y-1.5">
+      <Label htmlFor="admin-employee-username">Nome de usuário</Label>
+      <div className="flex gap-2">
+       <Input id="admin-employee-username" type="text" autoComplete="off"
+        maxLength={32} value={usernameDraft} disabled={Boolean(busy)}
+        placeholder="ex.: maria.vendas" onChange={e=>setUsernameDraft(e.target.value.toLowerCase())}/>
+       <Button type="button" variant="outline" disabled={Boolean(busy)||!usernameDraft.trim()}
+        onClick={()=>void submitUsername()}>Alterar</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Alterar o usuário modifica o identificador de login.</p>
      </div>
      <div className="space-y-1.5">
       <Label htmlFor="admin-new-password">Nova senha (mínimo 12 caracteres) *</Label>
