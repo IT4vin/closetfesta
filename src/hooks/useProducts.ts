@@ -1,5 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { productsApi, type Product, type ApiResponse, ApiError } from '@/lib/api';
+import {
+  applyProductFilters, EMPTY_PRODUCT_FILTERS, getProductFilterOptions, hasProductFilters,
+  type ProductFilters,
+} from '@/lib/productFilters';
+export type { ProductFilters } from '@/lib/productFilters';
 
 interface UseProductsOptions {
   category_id?: string;
@@ -11,20 +16,8 @@ interface UseProductsOptions {
   autoFetch?: boolean;
 }
 
-export interface ProductFilters {
-  type: string;
-  status: string;
-  size: string;
-  color?: string;
-  priceRange: {
-    min: string;
-    max: string;
-  };
-}
-
 export function useProducts(options: UseProductsOptions = {}) {
   const [productsList, setProductsList] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,12 +26,12 @@ export function useProducts(options: UseProductsOptions = {}) {
 
   // Estados para funcionalidades da página
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<ProductFilters>({
-    type: '',
-    status: '',
-    size: '',
-    priceRange: { min: '', max: '' }
-  });
+  const [filters, setFilters] = useState<ProductFilters>(EMPTY_PRODUCT_FILTERS);
+  const filterOptions = useMemo(() => getProductFilterOptions(productsList), [productsList]);
+  const filteredProducts = useMemo(
+    () => applyProductFilters(productsList, filters, searchTerm),
+    [productsList, filters, searchTerm],
+  );
 
   const { autoFetch = true, ...apiOptions } = options;
 
@@ -52,7 +45,6 @@ export function useProducts(options: UseProductsOptions = {}) {
       
       if (response.success) {
         setProductsList(response.data);
-        setFilteredProducts(response.data);
         setTotal(response.total || response.data.length);
       } else {
         throw new Error(response.message || 'Erro ao buscar produtos');
@@ -68,59 +60,6 @@ export function useProducts(options: UseProductsOptions = {}) {
       setLoading(false);
     }
   };
-
-  // Produtos filtrados baseados nos filtros e busca
-  useEffect(() => {
-    const filtered = productsList.filter(product => {
-      // Filtro de busca
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const matchesSearch = 
-          product.name.toLowerCase().includes(searchLower) ||
-          product.description.toLowerCase().includes(searchLower) ||
-          product.id.toLowerCase().includes(searchLower) ||
-          (product.sku && product.sku.toLowerCase().includes(searchLower));
-        
-        if (!matchesSearch) return false;
-      }
-
-      // Filtro de categoria
-      if (filters.type && filters.type !== 'in_stock' && filters.type !== 'out_of_stock') {
-        // Assumindo que filters.type pode ser usado como category filter
-        // return false;
-      }
-
-      // Filtro de tipo (em estoque/esgotado)
-      if (filters.type === 'in_stock' && product.quantity <= 0) {
-        return false;
-      }
-      if (filters.type === 'out_of_stock' && product.quantity > 0) {
-        return false;
-      }
-
-      // Filtro de status
-      if (filters.status && product.status !== filters.status) {
-        return false;
-      }
-
-      // Filtro de tamanho
-      if (filters.size && !product.sizes?.includes(filters.size)) {
-        return false;
-      }
-
-      // Filtro de preço
-      if (filters.priceRange.min && product.price < parseFloat(filters.priceRange.min)) {
-        return false;
-      }
-      if (filters.priceRange.max && product.price > parseFloat(filters.priceRange.max)) {
-        return false;
-      }
-
-      return true;
-    });
-    
-    setFilteredProducts(filtered);
-  }, [productsList, searchTerm, filters]);
 
   // Handlers para formulários e ações
   const handleAddProduct = () => {
@@ -217,14 +156,10 @@ export function useProducts(options: UseProductsOptions = {}) {
     }
   };
 
-  const hasActiveFilters = () => {
-    return !!(
-      filters.type || 
-      filters.status || 
-      filters.size || 
-      filters.priceRange.min || 
-      filters.priceRange.max
-    );
+  const hasActiveFilters = () => hasProductFilters(filters, searchTerm);
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilters({ ...EMPTY_PRODUCT_FILTERS, priceRange: { ...EMPTY_PRODUCT_FILTERS.priceRange } });
   };
 
   const createProduct = async (productData: {
@@ -367,7 +302,9 @@ export function useProducts(options: UseProductsOptions = {}) {
     searchTerm,
     setSearchTerm,
     filters,
+    filterOptions,
     filteredProducts,
+    clearAllFilters,
     editingProduct,
     setEditingProduct,
     
