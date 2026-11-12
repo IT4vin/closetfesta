@@ -1,137 +1,131 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Grid3X3, List } from "lucide-react";
+import { Grid3X3, List, X } from "lucide-react";
 import FilterBar from "@/components/common/FilterBar";
-import { ProductFilters } from "@/hooks/useProducts";
+import type { ProductFilters } from "@/hooks/useProducts";
 
 interface ProductsFilterBarProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   filters: ProductFilters;
+  filterOptions: { categories: string[]; colors: string[]; sizes: string[] };
   handleFilterChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   showFilters: boolean;
   productsCount: number;
   viewMode: "grid" | "list";
   setViewMode: (mode: "grid" | "list") => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
 }
 
 const ProductsFilterBar: React.FC<ProductsFilterBarProps> = ({
-  searchTerm,
-  setSearchTerm,
-  filters,
-  handleFilterChange,
-  showFilters,
-  productsCount,
-  viewMode,
-  setViewMode
+  searchTerm, setSearchTerm, filters, filterOptions, handleFilterChange, showFilters,
+  productsCount, viewMode, setViewMode, hasActiveFilters, onClearFilters,
 }) => {
-  // Clear search handler
-  const handleClearSearch = () => {
-    setSearchTerm("");
-  };
+  const onSelect = (name: string) => (value: string) =>
+    handleFilterChange({ target: { name, value } } as React.ChangeEvent<HTMLSelectElement>);
 
-  // Create the select filters array for the FilterBar
   const selectFilters = showFilters ? [
     {
       name: "type",
       label: "Categoria",
       value: filters.type,
-      onChange: (value) => handleFilterChange({
-        target: { name: "type", value }
-      } as React.ChangeEvent<HTMLSelectElement>),
+      onChange: onSelect("type"),
       options: [
-        { value: "", label: "Todos os tipos" },
-        { value: "Vestido", label: "Vestidos" },
-        { value: "Terno", label: "Ternos" },
-        { value: "Acessório", label: "Acessórios" }
-      ]
+        { value: "", label: "Todas as categorias" },
+        ...filterOptions.categories.map(value => ({ value, label: value })),
+      ],
     },
     {
       name: "status",
       label: "Status",
       value: filters.status,
-      onChange: (value) => handleFilterChange({
-        target: { name: "status", value }
-      } as React.ChangeEvent<HTMLSelectElement>),
+      onChange: onSelect("status"),
       options: [
         { value: "", label: "Todos os status" },
         { value: "available", label: "Disponível" },
+        { value: "reserved", label: "Reservado" },
         { value: "rented", label: "Alugado" },
-        { value: "maintenance", label: "Em Manutenção" }
-      ]
+        { value: "maintenance", label: "Em manutenção" },
+      ],
     },
     {
       name: "size",
       label: "Tamanho",
       value: filters.size,
-      onChange: (value) => handleFilterChange({
-        target: { name: "size", value }
-      } as React.ChangeEvent<HTMLSelectElement>),
+      onChange: onSelect("size"),
       options: [
         { value: "", label: "Todos os tamanhos" },
-        { value: "P", label: "P" },
-        { value: "M", label: "M" },
-        { value: "G", label: "G" },
-        { value: "GG", label: "GG" },
-        { value: "38", label: "38" },
-        { value: "40", label: "40" },
-        { value: "42", label: "42" },
-        { value: "44", label: "44" }
-      ]
+        ...filterOptions.sizes.map(value => ({ value, label: value })),
+        { value: "__missing__", label: "Sem tamanho cadastrado" },
+      ],
     },
     {
       name: "color",
       label: "Cor",
       value: filters.color,
-      onChange: (value) => handleFilterChange({
-        target: { name: "color", value }
-      } as React.ChangeEvent<HTMLSelectElement>),
+      onChange: onSelect("color"),
       options: [
         { value: "", label: "Todas as cores" },
-        { value: "Branco", label: "Branco" },
-        { value: "Preto", label: "Preto" },
-        { value: "Rose", label: "Rose" },
-        { value: "Azul Marinho", label: "Azul Marinho" },
-        { value: "Dourado", label: "Dourado" },
-        { value: "Cinza", label: "Cinza" },
-        { value: "Marsala", label: "Marsala" }
-      ]
-    }
+        ...filterOptions.colors.map(value => ({ value, label: value })),
+        { value: "__missing__", label: "Sem cor cadastrada" },
+      ],
+    },
   ] : [];
 
   return (
     <div className="premium-card mb-8">
       <FilterBar
-        searchPlaceholder="Buscar por nome, código ou categoria..."
+        searchPlaceholder="Buscar por nome, código, categoria ou cor..."
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         selectFilters={selectFilters}
         showFilterButton={false}
-        onClearSearch={handleClearSearch}
+        onClearSearch={() => setSearchTerm("")}
       />
-      
-      {/* View mode controls */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-200">
-        <div className="text-sm text-neutral-600">
-          {productsCount} produtos encontrados
+      {showFilters && (
+        <div className="grid grid-cols-1 gap-3 px-4 pb-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="products-price-min" className="mb-1 block text-sm font-medium text-neutral-600">
+              Aluguel mínimo (R$)
+            </label>
+            <input id="products-price-min" name="priceMin" type="text" inputMode="decimal"
+              placeholder="Ex.: 190,00" value={filters.priceRange.min}
+              onChange={handleFilterChange} className="input-field w-full" />
+          </div>
+          <div>
+            <label htmlFor="products-price-max" className="mb-1 block text-sm font-medium text-neutral-600">
+              Aluguel máximo (R$)
+            </label>
+            <input id="products-price-max" name="priceMax" type="text" inputMode="decimal"
+              placeholder="Ex.: 500,00" value={filters.priceRange.max}
+              onChange={handleFilterChange} className="input-field w-full" />
+          </div>
         </div>
-        
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span aria-live="polite" className="text-sm text-neutral-600">
+            {productsCount} {productsCount === 1 ? "produto encontrado" : "produtos encontrados"}
+          </span>
+          {hasActiveFilters && (
+            <Button type="button" variant="outline" size="sm" onClick={onClearFilters}
+              className="h-9 gap-1.5 border-marsala-200 text-marsala-800">
+              <X className="h-4 w-4" /> Limpar filtros
+            </Button>
+          )}
+        </div>
         <div className="flex gap-2">
-          <Button 
-            variant={viewMode === "grid" ? "default" : "outline"} 
-            size="icon" 
+          <Button aria-label="Visualização em grade" type="button"
+            variant={viewMode === "grid" ? "default" : "outline"} size="icon"
             onClick={() => setViewMode("grid")}
-            className={viewMode === "grid" ? "bg-marsala hover:bg-marsala-700" : ""}
-          >
+            className={viewMode === "grid" ? "bg-marsala hover:bg-marsala-700" : ""}>
             <Grid3X3 className="h-4 w-4" />
           </Button>
-          <Button 
-            variant={viewMode === "list" ? "default" : "outline"} 
-            size="icon" 
+          <Button aria-label="Visualização em lista" type="button"
+            variant={viewMode === "list" ? "default" : "outline"} size="icon"
             onClick={() => setViewMode("list")}
-            className={viewMode === "list" ? "bg-marsala hover:bg-marsala-700" : ""}
-          >
+            className={viewMode === "list" ? "bg-marsala hover:bg-marsala-700" : ""}>
             <List className="h-4 w-4" />
           </Button>
         </div>
