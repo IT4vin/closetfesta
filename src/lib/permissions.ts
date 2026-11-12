@@ -110,7 +110,7 @@ function buildUser(
 
 let cachedSession: SessionData | null = null;
 
-async function fetchRole(userId: string): Promise<AppRole> {
+async function fetchRole(userId: string): Promise<AppRole | null> {
   const { data } = await supabase
     .from("user_roles")
     .select("role")
@@ -118,8 +118,9 @@ async function fetchRole(userId: string): Promise<AppRole> {
   const roles = (data ?? []).map((r) => r.role as AppRole);
   if (roles.includes("admin")) return "admin";
   if (roles.includes("manager")) return "manager";
-  if (roles.includes("seller")) return "seller";
-  return (roles[0] as AppRole) ?? "viewer";
+  if (roles.includes("staff") || roles.includes("cashier")) return "seller";
+  // Sem perfil atribuído: acesso bloqueado, mesmo com senha válida.
+  return roles.length ? "viewer" : null;
 }
 
 async function buildSessionFromSupabase(): Promise<SessionData | null> {
@@ -127,6 +128,10 @@ async function buildSessionFromSupabase(): Promise<SessionData | null> {
   const s = data.session;
   if (!s) return null;
   const role = await fetchRole(s.user.id);
+  if (!role) {
+    cachedSession = null;
+    return null;
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -164,13 +169,17 @@ const PermissionManager = {
   },
 
   async login(identifier: string, password: string): Promise<SessionData> {
-    const email = identifier.includes("@")
-      ? identifier
-      : `${identifier}@closetmanager.local`;
+    const normalized = identifier.trim().toLowerCase();
+    const email = normalized.includes("@")
+      ? normalized
+      : `${normalized}@closetmanager.local`;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     const session = await buildSessionFromSupabase();
-    if (!session) throw new Error("Não foi possível iniciar a sessão.");
+    if (!session) {
+      await supabase.auth.signOut();
+      throw new Error("Esta conta não possui um perfil de acesso ativo.");
+    }
     return session;
   },
 
