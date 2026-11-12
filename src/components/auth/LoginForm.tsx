@@ -4,10 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Shield, LogIn, User, Key, Sparkles, RefreshCw, Stethoscope } from "lucide-react";
+import { Shield, LogIn, User, Key, Sparkles } from "lucide-react";
 import { useAuthActions } from "@/stores/authStore";
-import PermissionManager from "@/lib/permissions";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -18,109 +16,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showDemo, setShowDemo] = useState(true);
-  
-  const { login } = useAuthActions();
-
-  const demoCredentials = [
-    { 
-      username: 'admin', 
-      password: 'admin123', 
-      role: 'Administrador', 
-      description: 'Acesso total ao sistema',
-      icon: '👑',
-      bgColor: 'bg-marsala-50 border-marsala-200 hover:bg-marsala-100'
-    },
-    { 
-      username: 'manager', 
-      password: 'manager123', 
-      role: 'Gerente', 
-      description: 'Vendas e relatórios',
-      icon: '📊',
-      bgColor: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-    },
-    { 
-      username: 'seller', 
-      password: 'seller123', 
-      role: 'Vendedor', 
-      description: 'Apenas vendas',
-      icon: '🛍️',
-      bgColor: 'bg-green-50 border-green-200 hover:bg-green-100'
-    },
-    { 
-      username: 'viewer', 
-      password: 'viewer123', 
-      role: 'Visualizador', 
-      description: 'Apenas consulta',
-      icon: '👁️',
-      bgColor: 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-    }
-  ];
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    console.log('🔑 Tentativa de login via AuthStore:', { username, password: password.replace(/./g, '*') });
-
     try {
       const success = await login(username, password);
       
       if (success) {
-        console.log('✅ Login realizado com sucesso via AuthStore');
         onLoginSuccess();
       } else {
         setError('Falha no login. Verifique suas credenciais.');
       }
     } catch (err) {
-      console.error('❌ Erro de login via AuthStore:', err);
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleReset = () => {
-    try {
-      // Limpar completamente o localStorage relacionado ao sistema
-      localStorage.removeItem('closetfesta_session');
-      localStorage.removeItem('closetfesta_users');
-      localStorage.removeItem('closetfesta_roles');
-      
-      // Forçar reinicialização
-      PermissionManager.resetSystem();
-      
-      setError('');
-      setUsername('');
-      setPassword('');
-      
-      console.log('🔄 Sistema completamente resetado');
-      alert('Sistema resetado! Usuários padrão recriados. Tente fazer login novamente.');
-    } catch (err) {
-      console.error('Erro ao resetar sistema:', err);
-    }
-  };
-
-  const handleDiagnose = () => {
-    try {
-      // Verificar usuários no localStorage
-      const users = JSON.parse(localStorage.getItem('closetfesta_users') || '[]');
-      console.log('👥 Usuários no localStorage:', users);
-      
-      // Forçar reinicialização
-      PermissionManager.initialize();
-      
-      alert(`Diagnóstico:\n- Usuários encontrados: ${users.length}\n- Verificar console para detalhes`);
-    } catch (err) {
-      console.error('Erro no diagnóstico:', err);
-      alert('Erro no diagnóstico. Verificar console.');
-    }
-  };
-
-  const quickLogin = (user: typeof demoCredentials[0]) => {
-    setUsername(user.username);
-    setPassword(user.password);
   };
 
   return (
@@ -169,7 +82,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Digite seu usuário"
+                      placeholder="Nome de usuário ou e-mail"
                       className="h-12 pl-4 pr-4 border-gray-200 focus:border-marsala-400 focus:ring-marsala-400/20 bg-white/70"
                       required
                     />
@@ -214,87 +127,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
               </form>
             </div>
 
-            {/* Seção de Demonstração */}
-            {showDemo && (
-              <div className="mt-10 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-gradient-to-r from-marsala-500 to-marsala-600 rounded-lg flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-800">Usuários para Demonstração</h3>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDemo(false)}
-                    className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  >
-                    Ocultar
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {demoCredentials.map((user, index) => (
-                    <div 
-                      key={index}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.02] ${user.bgColor}`}
-                      onClick={() => quickLogin(user)}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{user.icon}</span>
-                          <Badge variant="outline" className="text-xs font-medium border-current">
-                            {user.role}
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-gray-500 font-medium">Clique para usar</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-gray-600" />
-                          <span className="text-sm font-medium">{user.username}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Key className="h-3 w-3 text-gray-600" />
-                          <span className="text-sm font-mono">{user.password}</span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-2 pl-5">{user.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Ferramentas de Desenvolvimento */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReset}
-                  className="flex-1 h-11 border-marsala-200 text-marsala-700 hover:bg-marsala-50 hover:border-marsala-300"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Resetar Sistema
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDiagnose}
-                  className="flex-1 h-11 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
-                >
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  Diagnóstico
-                </Button>
-              </div>
-            </div>
-
             {/* Footer */}
             <div className="text-center border-t border-gray-100 pt-6">
               <div className="text-xs text-gray-500 space-y-1">
-                <p className="font-medium">© 2025 Closet Festa Manager - Sistema de Demonstração</p>
+                <p className="font-medium">© 2026 Closet Festa Manager - Sistema de Gestão</p>
                 <p>Desenvolvido para gestão completa de aluguel de roupas</p>
                 <div className="flex items-center justify-center gap-1 mt-2">
                   <span>Feito com</span>
