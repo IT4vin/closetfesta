@@ -16,6 +16,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login } = useAuthActions();
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
