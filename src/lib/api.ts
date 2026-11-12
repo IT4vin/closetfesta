@@ -397,13 +397,41 @@ export const productsApi = {
     return ok(uploaded);
   },
 
-  async removeImage(_productId: string, imageId: string): Promise<ApiResponse<{ id: string }>> {
-    const { data: img } = await supabase.from('product_images').select('storage_path').eq('id', imageId).maybeSingle();
-    if (img?.storage_path) {
-      await supabase.storage.from('product-images').remove([img.storage_path]);
+  async removeImage(productId: string, imageId: string): Promise<ApiResponse<{ id: string }>> {
+    // Verificar o vínculo exato antes de remover: nunca excluir foto de outro produto.
+    const { data: image, error: readError } = await supabase.from('product_images')
+      .select('id, storage_path, is_primary').eq('id', imageId)
+      .eq('product_id', productId).maybeSingle();
+    if (readError) fail(readError.message);
+    if (!image) fail('Imagem não encontrada neste produto ou sem permissão para excluí-la.', 404);
+
+    // Desvincular primeiro, pois uma falha de RLS no banco não deve apagar o arquivo.
+    const { data: deleted, error: deleteError } = await supabase.from('product_images')
+      .delete().eq('id', imageId).eq('product_id', productId).select('id').maybeSingle();
+    if (deleteError) fail(deleteError.message);
+    if (!deleted) fail('O Supabase não confirmou a exclusão da imagem. Verifique as permissões.', 403);
+
+    // Se a foto principal foi excluída, promover a próxima para o catálogo.
+    if (image.is_primary) {
+      const { data: next, error: nextError } = await supabase.from('product_images')
+        .select('id').eq('product_id', productId)
+        .order('position', { ascending: true }).limit(1).maybeSingle();
+      if (nextError) {
+        console.warn('Foto excluída, mas não foi possível consultar a próxima imagem principal.', nextError);
+      } else if (next) {
+        const { error: primaryError } = await supabase.from('product_images')
+          .update({ is_primary: true }).eq('id', next.id).eq('product_id', productId);
+        if (primaryError) console.warn('Foto excluída, mas não foi possível atualizar a imagem principal.', primaryError);
+      }
     }
-    const { error } = await supabase.from('product_images').delete().eq('id', imageId);
-    if (error) fail(error.message);
+
+    // A limpeza do arquivo ocorre após o sucesso da exclusão do vínculo no banco.
+    // Objetos importados/compartilhados nunca devem ser removidos por engano.
+    if (image.storage_path?.startsWith(productId + '/')) {
+      const { error: storageError } = await supabase.storage.from('product-images')
+        .remove([image.storage_path]);
+      if (storageError) console.warn('Foto desvinculada; limpeza do arquivo no Storage pendente.', storageError);
+    }
     return ok({ id: imageId });
   },
 };
