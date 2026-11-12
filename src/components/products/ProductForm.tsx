@@ -51,12 +51,15 @@ interface ProductFormProps {
   };
   onSubmit?: (data: any) => Promise<void> | void;
   onCancel?: () => void;
+  /** UI gate only; Supabase RLS independently authorizes the write. */
+  canEditProducts?: boolean;
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
+  canEditProducts = true,
 }) => {
   const [formData, setFormData] = useState({
     // Informações básicas
@@ -298,7 +301,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const removeImage = (index: number) => {
     const image = formData.images[index];
-    if (!image || saving) return;
+    if (!image || saving || !canEditProducts) return;
     if (image.startsWith("blob:")) {
       const fileIndex = formData.images.slice(0, index + 1)
         .filter(url => url.startsWith("blob:")).length - 1;
@@ -326,6 +329,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving) return;
+    if (!canEditProducts) {
+      setSaveError("Seu perfil não tem permissão para alterar produtos. Entre com uma conta Administrador ou Gerente.");
+      return;
+    }
     if (!onSubmit) {
       setSaveError("A ação de salvar não está disponível. Feche e reabra o produto.");
       return;
@@ -372,6 +379,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
   return (
     <form ref={formRef} noValidate onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
       
+      {!canEditProducts && (
+        <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-950">
+          Seu perfil permite consultar produtos, mas não salvar alterações ou excluir fotografias.
+          Para editar o estoque, entre com uma conta de Administrador ou Gerente.
+          O sistema não altera suas permissões automaticamente.
+        </div>
+      )}
       {/* Mensagem de rascunho */}
       {showDraftMessage && (
         <div className="bg-marsala-50 border border-marsala-200 rounded-lg p-4 mb-6">
@@ -688,7 +702,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  disabled={saving}
+                  disabled={saving || !canEditProducts}
                   title={img.startsWith("blob:") ? "Remover imagem recém-adicionada" : "Marcar foto para exclusão ao salvar"}
                   aria-label={`Remover imagem ${i + 1}`}
                   className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 transition-colors opacity-80 group-hover:opacity-100"
@@ -705,6 +719,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             type="button"
             className="px-4 py-2 bg-marsala text-white rounded hover:bg-marsala-700 transition-colors"
             onClick={() => fileInputRef.current?.click()}
+            disabled={saving || !canEditProducts}
           >
             📷 Adicionar Imagens
           </button>
@@ -721,6 +736,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           accept="image/*"
           multiple
           onChange={handleImageUpload}
+          disabled={saving || !canEditProducts}
           ref={fileInputRef}
           className="hidden"
         />
@@ -832,28 +848,28 @@ const ProductForm: React.FC<ProductFormProps> = ({
         {saveError && <p role="alert" aria-live="assertive" className="w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">{saveError}</p>}
         <button
           type="submit"
-          disabled={saving}
-          className="rounded-lg bg-marsala px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-marsala-700 disabled:cursor-wait disabled:opacity-60"
+          disabled={saving || !canEditProducts}
+          className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-marsala px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-marsala-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:px-5"
         >
-          {saving ? "Salvando produto e imagens..." : initialData ? "Salvar alterações" : "Cadastrar produto"}
+          {!canEditProducts ? "Sem permissão" : saving ? "Salvando..." : initialData ? "Salvar alterações" : "Cadastrar produto"}
         </button>
         
         {onCancel && (
           <button
             type="button"
             onClick={handleCancel}
-            className="rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:flex-none sm:px-5"
           >
             Cancelar
           </button>
         )}
 
         {/* Indicador de status */}
-        <div className="flex items-center text-sm text-gray-500 ml-auto">
+        <div className="flex w-full items-center justify-end text-xs text-gray-500 sm:ml-auto sm:w-auto">
           {Object.keys(errors).length > 0 && (
             <span className="text-red-600">⚠️ {Object.keys(errors).length} erro(s) encontrado(s)</span>
           )}
-          {Object.keys(errors).length === 0 && isValid && formData.name && !saveError && (
+          {canEditProducts && !saving && Object.keys(errors).length === 0 && isValid && formData.name && !saveError && (
             <span className="text-green-600">Pronto para verificar e salvar</span>
           )}
         </div>
