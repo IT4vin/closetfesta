@@ -5,6 +5,7 @@ import ProductForm from "@/components/products/ProductForm";
 import ImportProductsModal from "@/components/products/import-export/ImportProductsModal";
 import ExportProductsModal from "@/components/products/import-export/ExportProductsModal";
 import { Product } from "@/hooks/useProducts";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductsModalsProps {
   modalOpen: boolean;
@@ -35,6 +36,9 @@ const ProductsModals: React.FC<ProductsModalsProps> = ({
   filteredProducts,
   hasActiveFilters
 }) => {
+  const { user } = useAuth();
+  const canEditProducts = user?.role.id === "admin" || user?.role.id === "manager";
+
   return (
     <>
       {/* Product Form Modal */}
@@ -49,7 +53,8 @@ const ProductsModals: React.FC<ProductsModalsProps> = ({
             </p>
           </DialogHeader>
           <ProductForm 
-            initialData={editingProduct as any} 
+            initialData={editingProduct as any}
+            canEditProducts={canEditProducts}
             onSubmit={async (data) => { await handleFormSubmit(data); setModalOpen(false); }} 
             onCancel={() => setModalOpen(false)} 
           />
