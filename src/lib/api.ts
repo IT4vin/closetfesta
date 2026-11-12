@@ -344,8 +344,17 @@ export const productsApi = {
       patch.metadata = metadata;
     }
 
-    const { data, error } = await supabase.from('products').update(patch).eq('id', id).select(PRODUCT_SELECT).single();
-    if (error) fail(error.message);
+    const { data, error } = await supabase.from('products')
+      .update(patch).eq('id', id).select(PRODUCT_SELECT).maybeSingle();
+    if (error) {
+      if (error.code === 'PGRST116') {
+        fail('Não foi possível salvar: o usuário não tem permissão de edição ou o produto não está acessível.', 403);
+      }
+      fail(error.message);
+    }
+    // Sob RLS, UPDATE pode afetar zero registros sem lançar erro.
+    // Nunca comunicar sucesso quando a gravação não ocorreu.
+    if (!data) fail('Alteração recusada. Apenas Administradores e Gerentes podem editar produtos e imagens.', 403);
     return ok(mapProductRow(data));
   },
 
