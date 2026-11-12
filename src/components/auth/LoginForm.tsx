@@ -95,15 +95,18 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         setMode("login");
         setNotice("Se o e-mail estiver cadastrado, o Supabase enviará as instruções de recuperação.");
       } else {
-        if (!email.includes("@")) throw new Error("Entre usando o e-mail cadastrado no Supabase.");
-        const success = await login(email.trim().toLowerCase(), password);
+        const identifier=email.trim().toLowerCase();
+        if(!identifier.includes("@")&&!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(identifier)){
+          throw new Error("Informe seu usuário ou e-mail cadastrado.");
+        }
+        const success = await login(identifier, password);
         if (!success) {
           const message = useAuthStore.getState().error ?? "";
           if (/email not confirmed|email não confirmado|email nao confirmado/i.test(message)) {
             setMode("verify");
             throw new Error("Seu cadastro existe, mas o e-mail ainda não foi confirmado. Clique em Reenviar confirmação abaixo.");
           }
-          throw new Error(message || "Acesso não autorizado. Confira seu e-mail, senha e permissão de funcionário.");
+          throw new Error(message || "Acesso não autorizado. Confira usuário, senha e permissão de funcionário.");
         }
         onLoginSuccess();
       }
@@ -132,14 +135,16 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           {notice && <Alert><AlertDescription>{notice}</AlertDescription></Alert>}
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="admin-email">E-mail</Label>
+              <Label htmlFor="admin-email">{mode==="login"?"Usuário ou e-mail":"E-mail"}</Label>
               {mode === "initial" || mode === "verify" ? (
                 <Input id="admin-email" type="email" value={INITIAL_ADMIN_EMAIL} readOnly autoComplete="email" />
               ) : (
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input id="admin-email" type="email" className="pl-9" required autoComplete="email"
-                    value={email} onChange={event => setEmail(event.target.value)} placeholder="seuemail@exemplo.com" />
+                  <Input id="admin-email" type={mode==="login"?"text":"email"} className="pl-9"
+                    required autoComplete="username"
+                    value={email} onChange={event => setEmail(event.target.value)}
+                    placeholder={mode==="login"?"Seu usuário ou e-mail":"seuemail@exemplo.com"} />
                 </div>
               )}
             </div>
