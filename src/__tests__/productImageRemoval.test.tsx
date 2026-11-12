@@ -56,4 +56,18 @@ describe("exclusão de imagens no formulário de produtos",()=>{
   expect(screen.getByRole("alert").textContent).toMatch(/Tipo de Produto|productType|obrigatório/i);
   expect(button.hasAttribute("disabled")).toBe(false);
  });
+
+ it("bloqueia o salvamento para funcionário sem autorização e explica o motivo",()=>{
+  const onSubmit=vi.fn();
+  render(<ProductForm initialData={initialData} canEditProducts={false} onSubmit={onSubmit}/>);
+  expect(screen.getByText(/Seu perfil permite consultar produtos/)).toBeTruthy();
+  const save=screen.getByRole("button",{name:"Sem permissão"});
+  expect(save.hasAttribute("disabled")).toBe(true);
+  const remove=screen.getByRole("button",{name:"Remover imagem 1"});
+  expect(remove.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(save);
+  fireEvent.click(remove);
+  expect(onSubmit).not.toHaveBeenCalled();
+  expect(screen.getByAltText("Imagem 1")).toBeTruthy();
+ });
 });
