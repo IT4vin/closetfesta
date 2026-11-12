@@ -14,7 +14,9 @@ const ProductsPage = () => {
     searchTerm,
     setSearchTerm,
     filters,
+    filterOptions,
     filteredProducts,
+    clearAllFilters,
     editingProduct,
     setEditingProduct,
     handleAddProduct,
@@ -58,6 +60,9 @@ const ProductsPage = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filters={filters}
+        filterOptions={filterOptions}
+        hasActiveFilters={hasActiveFilters()}
+        onClearFilters={clearAllFilters}
         handleFilterChange={handleFilterChange}
         showFilters={showFilters}
         productsCount={filteredProducts.length}
