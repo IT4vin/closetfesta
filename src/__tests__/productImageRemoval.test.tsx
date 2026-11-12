@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import {afterEach,describe,expect,it,vi} from "vitest";
-import {cleanup,fireEvent,render,screen} from "@testing-library/react";
+import {cleanup,fireEvent,render,screen,waitFor} from "@testing-library/react";
 import ProductForm from "@/components/products/ProductForm";
 
 afterEach(()=>cleanup());
@@ -34,5 +34,26 @@ describe("exclusão de imagens no formulário de produtos",()=>{
   fireEvent.click(screen.getByRole("button",{name:"Remover imagem 1"}));
   expect(screen.getByAltText("Imagem 1")).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toMatch(/identificar esta foto/);
+ });
+
+ it("salva edição válida ao clicar no botão e repassa IDs de fotos marcadas",async()=>{
+  const onSubmit=vi.fn().mockResolvedValue(undefined);
+  render(<ProductForm initialData={initialData} onSubmit={onSubmit}/>);
+  fireEvent.click(screen.getByRole("button",{name:"Remover imagem 1"}));
+  fireEvent.click(screen.getByRole("button",{name:"Salvar alterações"}));
+  await waitFor(()=>expect(onSubmit).toHaveBeenCalledTimes(1));
+  expect(onSubmit.mock.calls[0][0]).toMatchObject({
+   name:"Vestido vinho",removeImageIds:[existing.id],imageFiles:[],
+  });
+ });
+ it("mostra erro de campo junto ao botão sem impedir novas tentativas de salvar",async()=>{
+  const onSubmit=vi.fn();
+  render(<ProductForm initialData={{...initialData,productType:""}} onSubmit={onSubmit}/>);
+  const button=screen.getByRole("button",{name:"Salvar alterações"});
+  expect(button.hasAttribute("disabled")).toBe(false);
+  fireEvent.click(button);
+  expect(onSubmit).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert").textContent).toMatch(/Tipo de Produto|productType|obrigatório/i);
+  expect(button.hasAttribute("disabled")).toBe(false);
  });
 });
