@@ -367,8 +367,8 @@ const UserManagement = () => {
             {formFields}
             <div className="space-y-2">
               <Label>Perfil de acesso</Label>
-              <Select value={details.role} onValueChange={(role: EditableRole) =>
-                setDetails((d) => ({...d, role}))}>
+              <Select value={details.role} onValueChange={(role) =>
+                setDetails((d) => ({...d, role: role as EditableRole}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{roles.map((role) =>
                   <SelectItem key={role} value={role}>{labels[role]}</SelectItem>)}</SelectContent>
@@ -449,7 +449,7 @@ const UserManagement = () => {
             <div className="space-y-2">
               <Label>Permissões por perfil</Label>
               <Select value={details.role} disabled={selected?.id === user?.id}
-                onValueChange={(role: EmployeeRole) => setDetails((d) => ({...d, role}))}>
+                onValueChange={(role) => setDetails((d) => ({...d, role: role as EmployeeRole}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(["admin", "manager", "staff", "cashier", "inactive"] as EmployeeRole[])
