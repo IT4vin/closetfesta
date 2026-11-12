@@ -106,6 +106,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Hooks para opções customizadas
   const productTypesOptions = useCustomOptions({
@@ -177,6 +178,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     errors,
     isValid,
     validateAll,
+    validateField,
     validateSingleField,
     touchField,
     getFieldError,
@@ -323,7 +325,29 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!validateAll() || saving || !onSubmit) return;
+    if (saving) return;
+    if (!onSubmit) {
+      setSaveError("A ação de salvar não está disponível. Feche e reabra o produto.");
+      return;
+    }
+    if (!validateAll()) {
+      const invalidFields = Object.keys(validationSchema)
+        .map(key => ({ key, error: validateField(key) }))
+        .filter((item): item is { key: string; error: string } => Boolean(item.error));
+      const messages = invalidFields.slice(0, 3).map(item => item.error).join("; ");
+      setSaveError(messages
+        ? "Não foi possível salvar. Corrija: " + messages + "."
+        : "Há campos inválidos. Revise os dados do produto.");
+      const firstField = invalidFields[0]?.key;
+      if (firstField) {
+        const element = Array.from(formRef.current?.querySelectorAll<HTMLElement>("[name]") ?? [])
+          .find(input => input.getAttribute("name") === firstField);
+        if (typeof element?.scrollIntoView === "function") {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {
@@ -346,7 +370,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+    <form ref={formRef} noValidate onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
       
       {/* Mensagem de rascunho */}
       {showDraftMessage && (
@@ -801,18 +825,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       </FormSection>
 
-            {saveError && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
+
 
       {/* BOTÕES DE AÇÃO */}
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t bg-white/95 px-4 py-4 shadow-[0_-8px_18px_-15px_rgba(0,0,0,.25)] backdrop-blur sm:-mx-6 sm:px-6">
+        {saveError && <p role="alert" aria-live="assertive" className="w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">{saveError}</p>}
         <button
           type="submit"
-          disabled={!isValid || saving}
-          className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors ${
-            isValid 
-              ? 'bg-marsala text-white hover:bg-marsala-700' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
+          disabled={saving}
+          className="rounded-lg bg-marsala px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-marsala-700 disabled:cursor-wait disabled:opacity-60"
         >
           {saving ? "Salvando produto e imagens..." : initialData ? "Salvar alterações" : "Cadastrar produto"}
         </button>
@@ -832,8 +853,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
           {Object.keys(errors).length > 0 && (
             <span className="text-red-600">⚠️ {Object.keys(errors).length} erro(s) encontrado(s)</span>
           )}
-          {Object.keys(errors).length === 0 && formData.name && (
-            <span className="text-green-600">✅ Formulário válido</span>
+          {Object.keys(errors).length === 0 && isValid && formData.name && !saveError && (
+            <span className="text-green-600">Pronto para verificar e salvar</span>
           )}
         </div>
       </div>
