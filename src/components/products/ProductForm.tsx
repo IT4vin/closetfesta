@@ -43,7 +43,7 @@ interface ProductFormProps {
     
     // Outros campos existentes
     description?: string;
-    images?: Array<string | { url: string }>;
+    images?: Array<string | { id?: string; url: string }>;
     material?: string;
     cleaningInstructions?: string;
     notes?: string;
@@ -102,6 +102,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [autoGenerateCode, setAutoGenerateCode] = useState(!initialData?.fullCode);
   const [showDraftMessage, setShowDraftMessage] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -295,11 +296,29 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const removeImage = (index: number) => {
     const image = formData.images[index];
-    if (!image || !image.startsWith("blob:")) return;
-    const fileIndex = formData.images.slice(0, index + 1).filter(url => url.startsWith("blob:")).length - 1;
-    URL.revokeObjectURL(image);
-    setPendingFiles(previous => previous.filter((_, i) => i !== fileIndex));
-    setFormData(previous => ({ ...previous, images: previous.images.filter((_, i) => i !== index) }));
+    if (!image || saving) return;
+    if (image.startsWith("blob:")) {
+      const fileIndex = formData.images.slice(0, index + 1)
+        .filter(url => url.startsWith("blob:")).length - 1;
+      URL.revokeObjectURL(image);
+      setPendingFiles(previous => previous.filter((_, i) => i !== fileIndex));
+    } else {
+      // Fotos existentes são marcadas para exclusão: nada é apagado antes de Salvar.
+      // O identificador real vem de product_images, nunca do índice nem da URL.
+      const existing = initialData?.images?.find(row =>
+        typeof row !== "string" && row.url === image && Boolean(row.id) &&
+        !removedImageIds.includes(row.id!)
+      );
+      if (!existing || typeof existing === "string" || !existing.id) {
+        setSaveError("Não foi possível identificar esta foto para exclusão. Reabra o produto e tente novamente.");
+        return;
+      }
+      setRemovedImageIds(previous => [...previous, existing.id!]);
+    }
+    setSaveError("");
+    setFormData(previous => ({
+      ...previous, images: previous.images.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -308,10 +327,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
     setSaving(true);
     setSaveError("");
     try {
-      await onSubmit({ ...formData, imageFiles: pendingFiles });
+      await onSubmit({ ...formData, imageFiles: pendingFiles, removeImageIds: removedImageIds });
       clearStorage();
       formData.images.filter(url => url.startsWith("blob:")).forEach(url => URL.revokeObjectURL(url));
       setPendingFiles([]);
+      setRemovedImageIds([]);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Não foi possível concluir o cadastro.");
     } finally {
@@ -644,8 +664,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  disabled={!img.startsWith("blob:")}
-                  title={!img.startsWith("blob:") ? "Foto já salva — gerencie pela API do produto" : "Remover prévia"}
+                  disabled={saving}
+                  title={img.startsWith("blob:") ? "Remover imagem recém-adicionada" : "Marcar foto para exclusão ao salvar"}
                   aria-label={`Remover imagem ${i + 1}`}
                   className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 transition-colors opacity-80 group-hover:opacity-100"
                 >
@@ -682,8 +702,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
         
         <p className="text-xs text-gray-500 mt-2">
-          JPG, PNG ou WebP; até 12 novas fotos com 8 MB cada. Imagens existentes não são apagadas pelo formulário.
+          JPG, PNG ou WebP; até 12 novas fotos com 8 MB cada. Use o X para remover uma imagem. Fotos existentes só serão excluídas após salvar; cancelar preserva as fotos originais.
         </p>
+        {removedImageIds.length > 0 && (
+          <p role="status" className="mt-2 text-xs font-medium text-amber-800">
+            {removedImageIds.length} foto(s) marcada(s) para exclusão ao salvar. Cancelar mantém as imagens.
+          </p>
+        )}
       </FormSection>
 
 {/* SEÇÃO: TIPOS DE EVENTO */}
