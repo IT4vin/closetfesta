@@ -63,7 +63,7 @@ const Settings = () => {
   const [activeSection, setActiveSection] = useState("profile");
 
   // Verificação de permissões
-  const canManageUsers = PermissionManager.hasPermission('users', 'read');
+  const canManageUsers = user?.role?.id === 'admin';
   const canManageSecurity = PermissionManager.hasPermission('security', 'read');
   const canManageSystem = PermissionManager.hasPermission('system', 'manage');
   const canManageBusiness = PermissionManager.hasPermission('business', 'manage');
