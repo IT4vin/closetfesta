@@ -1,1 +1,10 @@
-project_id = "zwmmkpqmftrxozumooni"
+project_id = "roqcwdlsuawrdbmnwbvv"
+
+[functions.closet-invite-employee]
+verify_jwt = true
+
+[functions.closet-admin-set-employee-password]
+verify_jwt = true
+
+[functions.closet-admin-manage-employee]
+verify_jwt = true
