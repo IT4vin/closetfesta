@@ -88,8 +88,11 @@ export function applyProductFilters(
     if (category && normalizeProductFilterValue(productCategoryName(product)) !== category) return false;
     if (status && normalizeProductFilterValue(product.status) !== status) return false;
     const sizes = product.sizes?.length ? product.sizes : (product.size ? [product.size] : []);
-    if (size && !sizes.some(item => normalizeProductFilterValue(item) === size)) return false;
-    if (color && normalizeProductFilterValue(product.color) !== color) return false;
+    if (size === "__missing__" && sizes.some(item => normalizeProductFilterValue(item))) return false;
+    if (size && size !== "__missing__" &&
+      !sizes.some(item => normalizeProductFilterValue(item) === size)) return false;
+    if (color === "__missing__" && normalizeProductFilterValue(product.color)) return false;
+    if (color && color !== "__missing__" && normalizeProductFilterValue(product.color) !== color) return false;
 
     const price = Number(product.rental_price ?? product.rentalPrice ?? product.price);
     if (minPrice !== null && !(price >= minPrice)) return false;
