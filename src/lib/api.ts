@@ -38,6 +38,8 @@ export interface Product {
   category_id: string;
   sizes: string[];
   featured: boolean;
+  show_in_catalog?: boolean;
+  active?: boolean;
   deleted: boolean;
   status: 'available' | 'rented' | 'maintenance' | 'reserved';
   created_at: string;
@@ -238,6 +240,8 @@ function mapProductRow(row: any): Product {
     category_id: row.category_id ?? '',
     sizes: Array.isArray(meta.sizes) ? meta.sizes : (typeof meta.sizes === 'string' ? meta.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
     featured: Boolean(meta.featured),
+    show_in_catalog: row.show_in_catalog !== false,
+    active: row.active === true,
     size: Array.isArray(meta.sizes) ? meta.sizes[0] : undefined,
     color: meta.color ?? undefined,
     type: meta.type ?? undefined,
@@ -264,6 +268,7 @@ export const productsApi = {
     search?: string;
     limit?: number;
     offset?: number;
+    catalog_visibility?: 'all' | 'visible' | 'hidden';
   } = {}): Promise<ApiResponse<Product[]>> {
     let q = supabase
       .from('products')
@@ -272,6 +277,8 @@ export const productsApi = {
       .order('created_at', { ascending: false });
 
     if (params.category_id) q = q.eq('category_id', params.category_id);
+    if (params.catalog_visibility === 'visible') q = q.eq('show_in_catalog', true);
+    if (params.catalog_visibility === 'hidden') q = q.eq('show_in_catalog', false);
     if (params.in_stock) q = q.gt('stock_quantity', 0);
     if (params.search) q = q.ilike('name', `%${params.search}%`);
     if (params.limit) q = q.limit(params.limit);
@@ -314,6 +321,7 @@ export const productsApi = {
       min_stock: input.min_stock != null ? Number(input.min_stock) : null,
       unit: input.unit ?? 'un',
       active: input.active ?? true,
+      show_in_catalog: input.show_in_catalog !== false,
       metadata,
     };
     const { data, error } = await supabase.from('products').insert(row).select(PRODUCT_SELECT).single();
@@ -356,6 +364,29 @@ export const productsApi = {
     // Nunca comunicar sucesso quando a gravação não ocorreu.
     if (!data) fail('Alteração recusada. Apenas Administradores e Gerentes podem editar produtos e imagens.', 403);
     return ok(mapProductRow(data));
+  },
+
+  /** Muda apenas a visibilidade pública, sem alterar estoque, locação ou metadata. */
+  async setCatalogVisibility(id: string, visible: boolean): Promise<ApiResponse<{ id: string; show_in_catalog: boolean }>> {
+    const { data, error } = await supabase.from('products')
+      .update({ show_in_catalog: visible }).eq('id', id).is('deleted_at', null)
+      .select('id, show_in_catalog').maybeSingle();
+    if (error) fail(error.message);
+    if (!data || data.show_in_catalog !== visible) {
+      fail('O Supabase não confirmou a alteração. Apenas Administradores e Gerentes podem publicar ou ocultar produtos.', 403);
+    }
+    return ok(data);
+  },
+
+  async getCatalogCounts(): Promise<{ total: number; visible: number; hidden: number }> {
+    const base = () => supabase.from('products').select('id', { count: 'exact', head: true }).is('deleted_at', null);
+    const [total, visible, hidden] = await Promise.all([
+      base(), base().eq('show_in_catalog', true), base().eq('show_in_catalog', false),
+    ]);
+    if (total.error || visible.error || hidden.error) {
+      fail(total.error?.message || visible.error?.message || hidden.error?.message || 'Erro ao consultar visibilidade do catálogo.');
+    }
+    return { total: total.count ?? 0, visible: visible.count ?? 0, hidden: hidden.count ?? 0 };
   },
 
   async delete(id: string, hardDelete = false): Promise<ApiResponse<{ id: string }>> {
