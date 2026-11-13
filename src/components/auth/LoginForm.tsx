@@ -118,17 +118,17 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-marsala-50 via-neutral-50 to-marsala-100 p-4">
-      <Card className="w-full max-w-md border-0 shadow-xl">
-        <CardHeader className="rounded-t-xl bg-gradient-to-r from-marsala-700 to-marsala-900 p-7 text-center text-white">
-          <div className="mx-auto mb-3 flex h-28 w-28 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-marsala-50 via-neutral-50 to-marsala-100 px-3 py-6 sm:p-4">
+      <Card className="w-full max-w-md overflow-hidden border-0 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-marsala-700 to-marsala-900 px-4 py-5 text-center text-white sm:p-7">
+          <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 sm:h-28 sm:w-28">
             <img src="/closet-festa-logo.svg" alt="Logo Closet Festa"
-              width={112} height={112} loading="eager" className="h-28 w-28 object-contain" />
+              width={112} height={112} loading="eager" className="h-24 w-24 object-contain sm:h-28 sm:w-28" />
           </div>
           <CardTitle className="sr-only">Closet Festa</CardTitle>
-          <p className="text-sm text-white/80">Sistema administrativo e frente de caixa</p>
+          <p className="mx-auto max-w-[16rem] text-center text-xs leading-relaxed text-white/80 sm:max-w-none sm:text-sm">Sistema administrativo e frente de caixa</p>
         </CardHeader>
-        <CardContent className="space-y-5 p-6">
+        <CardContent className="space-y-5 p-4 sm:p-6">
           <h2 className="text-lg font-semibold">
             {mode === "initial" ? "Primeiro acesso administrativo" : mode === "verify" ? "Confirmar e-mail" : mode === "recover" ? "Recuperar senha" : "Acesso da equipe"}
           </h2>

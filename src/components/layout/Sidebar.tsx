@@ -58,17 +58,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   return (
     <div className="h-full w-64 max-w-full border-r border-marsala-800/20 bg-marsala-900 text-white flex flex-col">
-      <div className="p-4 border-b border-marsala-800/30 flex justify-between items-center">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="relative flex items-start justify-center border-b border-marsala-800/30 px-4 py-3">
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
           <img src="/closet-festa-logo.svg" alt="Logo Closet Festa"
-            width={72} height={72} className="h-[72px] w-[72px] shrink-0 object-contain" />
-          <div className="min-w-0">
+            width={80} height={80} className="h-20 w-20 shrink-0 object-contain" />
+          <div>
             <h1 className="sr-only">Closet Festa</h1>
-            <p className="text-xs text-marsala-200">Sistema de Gestão</p>
+            <p className="text-xs leading-tight text-marsala-200">Sistema de Gestão</p>
           </div>
         </div>
         
-        <div className="md:hidden">
+        <div className="absolute right-2 top-2 md:hidden">
           <Button 
             variant="ghost" 
             size="icon"

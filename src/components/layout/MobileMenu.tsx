@@ -69,10 +69,12 @@ const MobileMenu = () => {
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-[90vh] pt-2 flex flex-col bg-marsala-900 text-white">
-        <div className="px-4 py-3 border-b border-marsala-800/30 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-white">Closet Manager</h1>
-            <p className="text-xs text-marsala-200 mt-1">Sistema de Gestão</p>
+        <div className="relative flex items-start justify-center border-b border-marsala-800/30 px-4 py-3">
+          <div className="flex flex-col items-center gap-1 text-center">
+            <img src="/closet-festa-logo.svg" alt="Logo Closet Festa"
+              width={76} height={76} className="h-[76px] w-[76px] object-contain" />
+            <h1 className="sr-only">Closet Festa</h1>
+            <p className="text-xs leading-tight text-marsala-200">Sistema de Gestão</p>
           </div>
           
           <DrawerClose asChild>
@@ -80,7 +82,7 @@ const MobileMenu = () => {
               variant="ghost" 
               size="icon"
               aria-label="Fechar menu"
-              className="h-8 w-8 flex items-center justify-center text-white hover:bg-marsala-800/50"
+              className="absolute right-2 top-2 h-8 w-8 flex items-center justify-center text-white hover:bg-marsala-800/50"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Fechar</span>
