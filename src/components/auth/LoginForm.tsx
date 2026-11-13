@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LockKeyhole, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { useAuthActions, useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -121,8 +121,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-marsala-50 via-neutral-50 to-marsala-100 p-4">
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardHeader className="rounded-t-xl bg-gradient-to-r from-marsala-700 to-marsala-900 p-7 text-center text-white">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
-            <LockKeyhole className="h-7 w-7" />
+          <div className="mx-auto mb-3 flex h-24 w-24 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+            <img src="/closet-festa-logo.svg" alt="Logo Closet Festa"
+              width={96} height={96} loading="eager" className="h-24 w-24 object-contain" />
           </div>
           <CardTitle className="text-2xl text-white">Closet Festa</CardTitle>
           <p className="text-sm text-white/80">Sistema administrativo e frente de caixa</p>

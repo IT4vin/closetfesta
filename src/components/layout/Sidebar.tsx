@@ -59,9 +59,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   return (
     <div className="h-full w-64 max-w-full border-r border-marsala-800/20 bg-marsala-900 text-white flex flex-col">
       <div className="p-4 border-b border-marsala-800/30 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-white">Closet Manager</h1>
-          <p className="text-xs text-marsala-200 mt-1">Sistema de Gestão</p>
+        <div className="flex min-w-0 items-center gap-2">
+          <img src="/closet-festa-logo.svg" alt="Logo Closet Festa"
+            width={56} height={56} className="h-14 w-14 shrink-0 object-contain" />
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-white">Closet Festa</h1>
+            <p className="mt-1 text-xs text-marsala-200">Sistema de Gestão</p>
+          </div>
         </div>
         
         <div className="md:hidden">
